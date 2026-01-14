@@ -7,7 +7,11 @@ const Stack = createNativeStackNavigator();
 
 export const KardexStack = () => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator 
+      initialRouteName="KARDEX_LIST"
+      screenOptions={{
+        animation: 'slide_from_right',
+    }}>
       <Stack.Screen
         name="KARDEX_LIST"
         component={KardexScreen}

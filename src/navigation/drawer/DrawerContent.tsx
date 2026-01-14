@@ -39,6 +39,27 @@ const MENU_ITEMS: MenuItem[] = [
     roles: ['ADMIN', 'SHIFT_GUARD', 'GUARD'],
   },
   {
+    label: 'Guardias',
+    icon: 'account-group',
+    route: 'GUARDS_STACK',
+    screen: 'GUARD_LIST',
+    roles: ['ADMIN', 'SHIFT_GUARD'],
+  },
+  {
+    label: 'Mis Asignaciones',
+    icon: 'clipboard-list-outline',
+    route: 'ASSIGNMENTS_STACK',
+    screen: 'MY_ASSIGNMENTS_MAIN',
+    roles: ['GUARD'],
+  },
+  {
+    label: 'Usuarios',
+    icon: 'account-plus',
+    route: 'USERS_STACK',
+    screen: 'USER_LIST',
+    roles: ['ADMIN'],
+  },
+  {
     label: 'Historial',
     icon: 'history',
     route: 'Tabs',

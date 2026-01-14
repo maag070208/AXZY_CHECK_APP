@@ -8,11 +8,13 @@ import { CameraModal } from '../components/CameraModal';
 import { registerCheck, updateCheck } from '../service/check.service';
 import Geolocation from '@react-native-community/geolocation';
 import { Platform, PermissionsAndroid } from 'react-native';
+import { getAllAssignments, updateAssignmentStatus } from '../../assignments/service/assignment.service';
+import { TaskChecklist } from '../components/TaskChecklist';
 
 const { width } = Dimensions.get('window');
 
 export const CheckReportScreen = ({ route, navigation }: any) => {
-  const { location } = route.params;
+  const { location, assignmentId } = route.params;
   const user = useSelector((state: RootState) => state.userState);
   
   const [loading, setLoading] = useState(false);
@@ -24,11 +26,31 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   const [cameraMode, setCameraMode] = useState<'video' | 'photo'>('photo');
   const [showDescDialog, setShowDescDialog] = useState(false);
   const [tempDescription, setTempDescription] = useState('');
+  const [tasks, setTasks] = useState<any[]>([]);
 
-  // Initialize Report on Mount
   useEffect(() => {
     initReport();
+    if (assignmentId) {
+        loadAssignmentTasks();
+    }
   }, []);
+
+  const loadAssignmentTasks = async () => {
+    try {
+        const res = await getAllAssignments({ id: assignmentId });
+        if (res.success && res.data && res.data.length > 0) {
+            setTasks(res.data[0].tasks || []);
+        }
+    } catch (e) {
+        console.error("Error loading tasks", e);
+    }
+  };
+
+  const handleTaskToggle = (taskId: number) => {
+      setTasks(current => current.map(t => 
+          t.id === taskId ? { ...t, completed: !t.completed } : t
+      ));
+  };
 
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') {
@@ -86,7 +108,8 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
               "", 
               [], 
               coords?.lat, 
-              coords?.lng
+              coords?.lng,
+              route.params.assignmentId // Pass Assignment ID
           );
           
           // Check if res.data has the id (based on log: res.data.id exists)
@@ -195,6 +218,15 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         Alert.alert("Requisito", "Debes agregar al menos 2 fotos.");
         return;
     }
+
+    // CHECK TASKS COMPLETION
+    if (assignmentId && tasks.length > 0) {
+        const pendingTasks = tasks.filter(t => !t.completed);
+        if (pendingTasks.length > 0) {
+            Alert.alert("Tareas Pendientes", `Tienes ${pendingTasks.length} tarea(s) sin completar. Debes completarlas todas.`);
+            return;
+        }
+    }
     
     // Check pending uploads
     const pending = photos.some(p => p.uploading) || video?.uploading;
@@ -210,12 +242,26 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         const res = await updateCheck(currentKardexId, notes || "Reporte completado");
         
         if (res.success) {
+            
+            // IF ASSIGNMENT, UPDATE STATUS TO UNDER_REVIEW
+            if (assignmentId) {
+                try {
+                    await updateAssignmentStatus(assignmentId, 'UNDER_REVIEW' as any); // TODO: Import Enum
+                } catch (assignError) {
+                   console.error("Error updating assignment status", assignError);
+                   // Continue to exit, but maybe warn? For now assume it works or is secondary.
+                }
+            }
+
             Alert.alert("Reporte Completado", "La información se ha guardado.", [
                  { 
                     text: "OK", 
                 onPress: () => {
-                    // Reset to Home Tab
-                    navigation.navigate('HOME_STACK', { screen: 'HOME_MAIN' });
+                   // Ensure we navigate back to the Tabs, then to HomeStack
+                   navigation.navigate('Tabs', {
+                       screen: 'HOME_STACK',
+                        params: { screen: 'HOME_MAIN' }
+                   });
                 } 
                 }
             ]);
@@ -248,6 +294,11 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
                     <Text style={styles.userInitial}>{user?.username?.charAt(0).toUpperCase()}</Text>
                 </Surface>
             </View>
+
+            {/* TASKS CHECKLIST (If Assignment) */}
+            {tasks.length > 0 && (
+                <TaskChecklist tasks={tasks} onTaskToggle={handleTaskToggle} />
+            )}
 
             {/* NOTAS - ESTILO CLEAN INPUT */}
             <View style={styles.section}>

@@ -12,6 +12,8 @@ export interface IKardexEntry {
     userId: number;
     locationId: number;
     timestamp: string;
+    latitude?: number;
+    longitude?: number;
     notes?: string;
     media?: { type: 'IMAGE' | 'VIDEO', url: 'string', description?: string }[];
     user: {
@@ -45,4 +47,9 @@ export const getKardex = async (filters: IKardexFilter) => {
 export const getUsers = async () => {
     const response = await get<any[]>('/users');
     return { success: true, data: response.data };
+};
+
+export const getKardexById = async (id: number) => {
+    const response = await get<IKardexEntry>(`/kardex/${id}`);
+    return { success: true, data: response.data }; // Match TResult structure or adapt
 };

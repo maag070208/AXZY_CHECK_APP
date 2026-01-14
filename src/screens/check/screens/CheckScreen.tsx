@@ -1,4 +1,4 @@
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Text } from 'react-native-paper';
@@ -12,7 +12,11 @@ import { ILocation } from '../../locations/type/location.types';
 export const CheckScreen = ({ navigation }: any) => {
   const device = useCameraDevice('back');
   const isFocused = useIsFocused();
+  const route = useRoute<any>();
   const user = useSelector((state: RootState) => state.userState);
+  
+  // Get params for "Assignment Mode"
+  const { assignmentId, expectedLocationId, expectedLocationName } = route.params || {};
 
   const [hasPermission, setHasPermission] = useState(false);
   const [locations, setLocations] = useState<ILocation[]>([]);
@@ -64,7 +68,16 @@ export const CheckScreen = ({ navigation }: any) => {
     const location = locations.find((l) => l.name === code);
 
     if (location) {
-      navigation.navigate('CHECK_REPORT', { location });
+      // Logic for Assignment Mode logic
+      if (expectedLocationId && location.id !== expectedLocationId) {
+         Alert.alert('Ubicación Incorrecta', `Se esperaba: ${expectedLocationName}\nEscaneado: ${location.name}`, [
+             { text: 'Intentar de nuevo', onPress: () => { setScanned(false); } }
+         ]);
+         setProcessing(false);
+         return;
+      }
+
+      navigation.navigate('CHECK_MAIN', { location, assignmentId });
       setScanned(false); 
     } else {
       Alert.alert('No encontrado', `Ubicación no encontrada: ${code}`, [
@@ -115,7 +128,9 @@ export const CheckScreen = ({ navigation }: any) => {
       </View>
 
       <View style={styles.overlay}>
-        <Text style={styles.instructions}>Escanea el código QR de la ubicación</Text>
+        <Text style={styles.instructions}>
+            {expectedLocationName ? `Escanea: ${expectedLocationName}` : 'Escanea el código QR de la ubicación'}
+        </Text>
         {processing && <ActivityIndicator size="large" color={theme.colors.primary} />}
       </View>
     </View>
