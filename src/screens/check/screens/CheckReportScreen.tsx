@@ -6,6 +6,8 @@ import { RootState } from '../../../core/store/redux.config';
 import { uploadFile } from '../../../shared/service/upload.service';
 import { CameraModal } from '../components/CameraModal';
 import { registerCheck, updateCheck } from '../service/check.service';
+import Geolocation from '@react-native-community/geolocation';
+import { Platform, PermissionsAndroid } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -28,10 +30,64 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     initReport();
   }, []);
 
+  const requestLocationPermission = async () => {
+    if (Platform.OS === 'ios') {
+        Geolocation.requestAuthorization();
+        return true;
+    }
+    try {
+        const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+                title: "Permiso de Ubicación",
+                message: "Necesitamos acceder a tu ubicación para el reporte.",
+                buttonNeutral: "Preguntar Luego",
+                buttonNegative: "Cancelar",
+                buttonPositive: "OK"
+            }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+        console.warn(err);
+        return false;
+    }
+  };
+
+  const getCurrentLocation = (): Promise<{lat: number, lng: number} | null> => {
+      return new Promise((resolve) => {
+          Geolocation.getCurrentPosition(
+              (position) => {
+                  resolve({
+                      lat: position.coords.latitude,
+                      lng: position.coords.longitude
+                  });
+              },
+              (error) => {
+                  console.log("Location Error:", error);
+                  resolve(null);
+              },
+              { enableHighAccuracy: false, timeout: 5000, maximumAge: 10000 }
+          );
+      });
+  };
+
   const initReport = async () => {
       try {
+          const hasPermission = await requestLocationPermission();
+          let coords = null;
+          if (hasPermission) {
+              coords = await getCurrentLocation();
+          }
+
           // Create draft with empty notes
-          const res = await registerCheck(location.id, Number(user.id), "", []);
+          const res = await registerCheck(
+              location.id, 
+              Number(user.id), 
+              "", 
+              [], 
+              coords?.lat, 
+              coords?.lng
+          );
           
           // Check if res.data has the id (based on log: res.data.id exists)
           if (res.success && res.data?.id) {
@@ -42,6 +98,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
               ]);
           }
       } catch (e) {
+        console.log(e);
           Alert.alert("Error de Conexión", "Revisa tu internet.");
       }
   };
@@ -156,10 +213,10 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
             Alert.alert("Reporte Completado", "La información se ha guardado.", [
                  { 
                     text: "OK", 
-                    onPress: () => navigation.reset({
-                        index: 0,
-                        routes: [{ name: 'HOME' }],
-                    }) 
+                onPress: () => {
+                    // Reset to Home Tab
+                    navigation.navigate('HOME_STACK', { screen: 'HOME_MAIN' });
+                } 
                 }
             ]);
         } else {
@@ -183,7 +240,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
                     <Text style={styles.headerSubtitle}>REPORTE TÉCNICO</Text>
                     <Text style={styles.headerTitle}>{location?.name || 'Zona de Control'}</Text>
                     <View style={styles.locationBadge}>
-                        <IconButton icon="map-marker" size={12} iconColor="#6200ee" style={{margin:0}} />
+                        <IconButton icon="map-marker" size={12} iconColor="#065911" style={{margin:0}} />
                         <Text style={styles.locationText}>Verificación en tiempo real</Text>
                     </View>
                 </View>
@@ -204,7 +261,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
                     numberOfLines={4}
                     style={styles.inputGlass}
                     outlineColor="transparent"
-                    activeOutlineColor="#6200ee"
+                    activeOutlineColor="#065911"
                     placeholderTextColor="#999"
                 />
             </View>
@@ -216,7 +273,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
                     <Surface style={styles.videoCardPro} elevation={1}>
                         <View style={styles.videoHeader}>
                             <View style={styles.iconCircle}>
-                                <IconButton icon="play-circle" iconColor="#6200ee" size={24} />
+                                <IconButton icon="play-circle" iconColor="#065911" size={24} />
                             </View>
                             <View style={{flex: 1, marginLeft: 12}}>
                                 <Text style={styles.videoTitle}>Video de Inspección</Text>
@@ -226,7 +283,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
                             </View>
                             <IconButton icon="trash-can-outline" iconColor="#ff4444" onPress={() => setVideo(null)} />
                         </View>
-                        {video.uploading && <ProgressBar indeterminate color="#6200ee" style={styles.proProgress} />}
+                        {video.uploading && <ProgressBar indeterminate color="#065911" style={styles.proProgress} />}
                     </Surface>
                 ) : (
                     <TouchableOpacity 
@@ -234,7 +291,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
                         style={styles.videoPlaceholder} 
                         onPress={() => { setCameraMode('video'); setCameraVisible(true); }}
                     >
-                        <IconButton icon="video-plus" size={32} iconColor="#6200ee" />
+                        <IconButton icon="video-plus" size={32} iconColor="#065911" />
                         <Text style={styles.videoPlaceholderText}>GRABAR VIDEO DE EVIDENCIA</Text>
                     </TouchableOpacity>
                 )}
@@ -255,7 +312,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
                             <Image source={{ uri: photo.uri }} style={styles.photoImage} />
                             {photo.uploading && (
                                 <View style={styles.photoLoader}>
-                                    <ActivityIndicator color="#6200ee" size="small" />
+                                    <ActivityIndicator color="#065911" size="small" />
                                 </View>
                             )}
                             <TouchableOpacity style={styles.photoDeleteBtn} onPress={() => handleRemovePhoto(index)}>
@@ -268,7 +325,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
                         style={styles.addPhotoCard} 
                         onPress={() => { setTempDescription(''); setShowDescDialog(true); }}
                     >
-                        <IconButton icon="plus" iconColor="#6200ee" size={28} />
+                        <IconButton icon="plus" iconColor="#065911" size={28} />
                         <Text style={styles.addPhotoText}>Añadir</Text>
                     </TouchableOpacity>
                 </View>
@@ -281,7 +338,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
                 disabled={loading || !currentKardexId || photos.length < 2}
                 style={[
                     styles.mainActionBtn, 
-                    (loading || !currentKardexId || photos.length < 2) && {opacity: 0.5, backgroundColor: '#A0A0A0', shadowOpacity: 0}
+                    (loading || !currentKardexId || photos.length < 2) && {opacity: 0.5, backgroundColor: '#c8c8c8', shadowOpacity: 0}
                 ]}
             >
                 {loading ? <ActivityIndicator color="#fff" /> : (
@@ -311,12 +368,12 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
                 value={tempDescription}
                 onChangeText={setTempDescription}
                 style={styles.dialogInput}
-                activeUnderlineColor="#6200ee"
+                activeUnderlineColor="#065911"
               />
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setShowDescDialog(false)} textColor="#999">Cancelar</Button>
-              <Button onPress={onDescriptionConfirmed} mode="text" labelStyle={{fontWeight:'bold'}} textColor="#6200ee">Capturar</Button>
+              <Button onPress={onDescriptionConfirmed} mode="text" labelStyle={{fontWeight:'bold'}} textColor="#065911">Capturar</Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
@@ -325,7 +382,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#F8F9FD' },
+  mainContainer: { flex: 1, backgroundColor: '#f6fbf4' },
   scrollContent: { padding: 24, paddingBottom: 60 },
   headerContainer: {
     flexDirection: 'row',
@@ -333,7 +390,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 32,
   },
-  headerSubtitle: { fontSize: 11, fontWeight: '700', color: '#6200ee', letterSpacing: 2, marginBottom: 4 },
+  headerSubtitle: { fontSize: 11, fontWeight: '700', color: '#065911', letterSpacing: 2, marginBottom: 4 },
   headerTitle: { fontSize: 28, fontWeight: '800', color: '#1A1C3D', letterSpacing: -0.5 },
   locationBadge: { flexDirection: 'row', alignItems: 'center', marginLeft: -8, marginTop: 2 },
   locationText: { fontSize: 12, color: '#7E84A3', fontWeight: '500' },
@@ -344,11 +401,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6200ee',
+    shadowColor: '#065911',
     shadowOpacity: 0.1,
     shadowRadius: 10,
   },
-  userInitial: { color: '#6200ee', fontWeight: '800', fontSize: 20 },
+  userInitial: { color: '#065911', fontWeight: '800', fontSize: 20 },
   section: { marginBottom: 32 },
   sectionLabel: { fontSize: 16, fontWeight: '800', color: '#1A1C3D', marginBottom: 16 },
   inputGlass: {
@@ -369,7 +426,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  videoPlaceholderText: { fontSize: 11, fontWeight: '800', color: '#6200ee', letterSpacing: 1 },
+  videoPlaceholderText: { fontSize: 11, fontWeight: '800', color: '#065911', letterSpacing: 1 },
   videoCardPro: {
     borderRadius: 20,
     backgroundColor: '#FFF',
@@ -377,14 +434,14 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   videoHeader: { flexDirection: 'row', alignItems: 'center', padding: 12 },
-  iconCircle: { backgroundColor: '#F3F0FF', borderRadius: 12, padding: 2 },
+  iconCircle: { backgroundColor: '#f1f6eb', borderRadius: 12, padding: 2 },
   videoTitle: { fontWeight: '700', fontSize: 15, color: '#1A1C3D' },
   videoStatus: { fontSize: 12, color: '#2e7d32', marginTop: 2 },
   proProgress: { height: 4, borderRadius: 2 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  badgePending: { backgroundColor: '#FFF0F0' },
-  badgeSuccess: { backgroundColor: '#F0FFF4' },
+  badgePending: { backgroundColor: '#FFDAD6' },
+  badgeSuccess: { backgroundColor: '#d0f8d3' },
   badgeText: { fontSize: 11, fontWeight: 'bold' },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   photoContainerPro: {
@@ -418,15 +475,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addPhotoText: { fontSize: 12, fontWeight: '700', color: '#6200ee', marginTop: -8 },
+  addPhotoText: { fontSize: 12, fontWeight: '700', color: '#065911', marginTop: -8 },
   photoLoader: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center', borderRadius: 18 },
   mainActionBtn: {
-    backgroundColor: '#6200ee',
+    backgroundColor: '#065911',
     height: 62,
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6200ee',
+    shadowColor: '#065911',
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },

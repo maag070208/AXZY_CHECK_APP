@@ -3,27 +3,25 @@ import { StyleSheet } from 'react-native';
 
 export const theme = {
   colors: {
-    activeSubstanceLink: '#4dd2db', // Actualizado al nuevo primario
-    addressButton: '#4dd2db', // Actualizado al nuevo primario
-    romaCard: '#4dd2db', // Actualizado al nuevo primario
-    onRomaCard: '#FFFFFF',
+    activeSubstanceLink: '#065911', 
+    addressButton: '#065911', 
     paragraph: '#666',
 
-    // COLOR PRIMARIO ACTUALIZADO
-    primary: '#4dd2db',
-    onPrimary: '#FFFFFF', // CAMBIADO A BLANCO para texto de botones
-    primaryContainer: '#d9f7f9',
-    onPrimaryContainer: '#002022',
+    // COLOR PRIMARIO ACTUALIZADO (Verde Oscuro)
+    primary: '#065911',
+    onPrimary: '#FFFFFF', 
+    primaryContainer: '#d0f8d3', // Un verde muy suave para fondos de botones secundarios
+    onPrimaryContainer: '#022104',
 
-    secondary: '#767676',
+    secondary: '#54634d', // Verde grisáceo para mantener la sobriedad
     onSecondary: '#FFFFFF',
-    secondaryContainer: '#e8f4f5',
-    onSecondaryContainer: '#1a1e1e',
+    secondaryContainer: '#d7e8cd',
+    onSecondaryContainer: '#121f0e',
 
-    tertiary: '#006874',
+    tertiary: '#38656a',
     onTertiary: '#FFFFFF',
-    tertiaryContainer: '#97f0ff',
-    onTertiaryContainer: '#001f24',
+    tertiaryContainer: '#bcebf0',
+    onTertiaryContainer: '#002022',
 
     quaternary: '#CCCCCC',
     onQuaternary: '#000000',
@@ -34,46 +32,46 @@ export const theme = {
     background: '#FFFFFF',
     onBackground: '#1B1B1F',
 
-    surface: '#FEFBFF',
+    surface: '#FBFDF7', // Ajustado ligeramente hacia un tono neutro/cálido
     onSurface: '#1B1B1F',
-    surfaceVariant: '#E1E2EC',
-    onSurfaceVariant: '#44464F',
+    surfaceVariant: '#E1E4D5',
+    onSurfaceVariant: '#44483D',
     surfaceDisabled: 'rgba(27, 27, 31, 0.12)',
     onSurfaceDisabled: 'rgba(27, 27, 31, 0.38)',
 
-    outline: '#757780',
+    outline: '#75796C',
     disabled: '#c8c8c8',
     onDisabled: '#666666',
-    outlineVariant: '#C5C6D0',
+    outlineVariant: '#C5C8BA',
     lightGray: '#F4F4F4',
     darkGray: '#3C3C3C',
     shadow: '#000000',
     scrim: '#000000',
 
-    inverseSurface: '#303034',
-    inverseOnSurface: '#F2F0F4',
-    inversePrimary: '#4dd2db',
+    inverseSurface: '#2F312C',
+    inverseOnSurface: '#F1F1EA',
+    inversePrimary: '#d23c00ff',
 
     elevation: {
       level0: 'transparent',
-      level1: '#f5fdfe',
-      level2: '#edfbfc',
-      level3: '#e5f9fb',
-      level4: '#e0f8fa',
-      level5: '#daf7f9',
+      level1: '#f1f6eb',
+      level2: '#e9f1e2',
+      level3: '#e1ecd9',
+      level4: '#dee9d6',
+      level5: '#d8e5ce',
     },
 
     backdrop: 'rgba(46, 48, 56, 0.4)',
 
-    success: '#46B000',
+    success: '#065911', // Alineado con tu primario
     onSuccess: '#FFFFFF',
-    successContainer: '#c6ffa8',
-    onSuccessContainer: '#0c2000',
+    successContainer: '#d0f8d3',
+    onSuccessContainer: '#002201',
 
-    error: '#E1251B',
+    error: '#BA1A1A',
     onError: '#FFFFFF',
-    errorContainer: '#ffdad6',
-    onErrorContainer: '#410003',
+    errorContainer: '#FFDAD6',
+    onErrorContainer: '#410002',
 
     warning: '#795900',
     onWarning: '#FFFFFF',
@@ -94,10 +92,9 @@ export const theme = {
     // New home design
     TabNavigationBackground: '#f8f8f8',
     TabNavigationIcon: '#c1c1c4',
-    TabNavigationIconFocused: '#00a0a8', // Tono más oscuro del primario
+    TabNavigationIconFocused: '#065911', // Usando el nuevo verde oscuro
   },
 };
-
 export type ThemeColorsType = {
   primary: string;
   paragraph: string;
@@ -126,8 +123,6 @@ export type ThemeColorsType = {
   background: string;
   onBackground: string;
   quaternary: string;
-  romaCard: string;
-  onRomaCard: string;
   onQuaternary: string;
   grayDark: string;
   addressButton: string;
@@ -162,8 +157,6 @@ export const ThemeColors: ThemeColorsType = {
   onBackground: theme.colors.onBackground,
   quaternary: theme.colors.quaternary,
   onQuaternary: theme.colors.onQuaternary,
-  romaCard: theme.colors.romaCard,
-  onRomaCard: theme.colors.onRomaCard,
   grayDark: theme.colors.grayDark,
   addressButton: theme.colors.addressButton,
 };

@@ -41,3 +41,8 @@ export const getKardex = async (filters: IKardexFilter) => {
     const response = await get<IKardexEntry[]>(`/kardex${query}`);
     return response;
 };
+
+export const getUsers = async () => {
+    const response = await get<any[]>('/users');
+    return { success: true, data: response.data };
+};

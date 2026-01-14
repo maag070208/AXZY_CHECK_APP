@@ -5,11 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppDispatch, useAppSelector } from '../../core/store/hooks';
 import { logout } from '../../core/store/slices/user.slice';
 import { RootState } from '../../core/store/redux.config';
+import { theme } from '../../shared/theme/theme';
 
 /* ======================================================
    TYPES
 ====================================================== */
-type Role = 'ADMIN' | 'OPERATOR' | 'USER';
+type Role = 'ADMIN' | 'SHIFT_GUARD' | 'GUARD';
 
 interface MenuItem {
   label: string;
@@ -28,14 +29,21 @@ const MENU_ITEMS: MenuItem[] = [
     icon: 'home-outline',
     route: 'Tabs',
     screen: 'HOME_STACK',
-    roles: ['ADMIN', 'OPERATOR', 'USER'],
+    roles: ['ADMIN', 'SHIFT_GUARD', 'GUARD'],
   },
   {
-    label: 'Ubicaciones',
-    icon: 'map-marker-outline',
-    route: 'LOCATIONS_STACK',
-    screen: 'LOCATIONS_MAIN',
-    roles: ['ADMIN', 'OPERATOR', 'USER'], // Added USER access since guards need it
+    label: 'Escanear',
+    icon: 'qrcode-scan',
+    route: 'Tabs',
+    screen: 'CHECK_STACK',
+    roles: ['ADMIN', 'SHIFT_GUARD', 'GUARD'],
+  },
+  {
+    label: 'Historial',
+    icon: 'history',
+    route: 'Tabs',
+    screen: 'Kardex',
+    roles: ['ADMIN', 'SHIFT_GUARD'],
   },
 ];
 
@@ -76,7 +84,7 @@ const DrawerContent = ({ navigation }: { navigation: any }) => {
         <IconButton
           icon="pencil"
           size={20}
-          iconColor="#64748b"
+          iconColor={theme.colors.primary}
           onPress={() => navigation.navigate('PROFILE_SCREEN')}
         />
       </View>
@@ -97,7 +105,7 @@ const DrawerContent = ({ navigation }: { navigation: any }) => {
             }
           >
             <View style={styles.iconBox}>
-              <Icon source={item.icon} size={22} color="#475569" />
+              <Icon source={item.icon} size={22} color="#065911" />
             </View>
 
             <Text style={styles.menuLabel}>{item.label}</Text>
@@ -143,7 +151,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: theme.colors.secondaryContainer,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,

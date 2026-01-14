@@ -91,7 +91,7 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc', // Slate-50
+    backgroundColor: '#f6fbf4',
   },
   keyboardView: {
     flex: 1,

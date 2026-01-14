@@ -1,15 +1,22 @@
 import dayjs from 'dayjs';
-import React, { useEffect, useState } from 'react';
-import { Alert, FlatList, Linking, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Alert, FlatList, Linking, StyleSheet, View, RefreshControl } from 'react-native';
 import { Button, Card, Chip, Divider, Modal, Portal, Text, TextInput } from 'react-native-paper';
 import { API_CONSTANTS } from '../../../core/constants/API_CONSTANTS';
-import { getKardex, IKardexEntry, IKardexFilter } from '../service/kardex.service';
+import { getKardex, getUsers, IKardexEntry, IKardexFilter } from '../service/kardex.service';
+import { getLocations } from '../../locations/service/location.service';
+import { SearchComponent } from '../../../shared/components/SearchComponent';
 
 export const KardexScreen = ({ navigation }: any) => {
   const [entries, setEntries] = useState<IKardexEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [filters, setFilters] = useState<IKardexFilter>({});
   
+  // Catalogs
+  const [usersCatalog, setUsersCatalog] = useState<{label: string, value: number}[]>([]);
+  const [locationsCatalog, setLocationsCatalog] = useState<{label: string, value: number}[]>([]);
+
   // UI State for Filters
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [tempFilters, setTempFilters] = useState<IKardexFilter>({});
@@ -25,8 +32,36 @@ export const KardexScreen = ({ navigation }: any) => {
       setLoading(false);
   };
 
+  const fetchCatalogs = async () => {
+      const [uRes, lRes] = await Promise.all([getUsers(), getLocations()]);
+      
+      if (uRes.success && Array.isArray(uRes.data)) {
+          setUsersCatalog(uRes.data.map((u: any) => ({
+              label: `${u.name} ${u.lastName || ''} (${u.username})`,
+              value: u.id
+          })));
+      }
+
+      if (lRes.success && Array.isArray(lRes.data)) {
+          setLocationsCatalog(lRes.data.map((l: any) => ({
+              label: l.name,
+              value: l.id
+          })));
+      }
+  };
+
   useEffect(() => {
       fetchKardex();
+  }, [filters]);
+
+  useEffect(() => {
+      fetchCatalogs();
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+      setRefreshing(true);
+      await fetchKardex();
+      setRefreshing(false);
   }, [filters]);
 
   const applyFilters = () => {
@@ -52,11 +87,11 @@ export const KardexScreen = ({ navigation }: any) => {
       <Card style={styles.card} onPress={() => navigation.navigate('KARDEX_DETAIL', { item })}>
           <Card.Content>
               <View style={styles.row}>
-                  <Text variant="titleMedium">{item.location.name}</Text>
+                  <Text variant="titleMedium" style={{fontWeight:'bold'}}>{item.location.name}</Text>
                   <Text variant="bodySmall">{dayjs(item.timestamp).format('DD/MM/YYYY HH:mm')}</Text>
               </View>
-              <Text variant="bodyMedium">Usuario: {item.user.username}</Text>
-              {item.notes && <Text variant="bodySmall" style={{marginTop:4, fontStyle:'italic'}}>"{item.notes}"</Text>}
+              <Text variant="bodyMedium">Usuario: <Text style={{fontWeight:'bold'}}>{item.user.username}</Text></Text>
+              {item.notes && <Text variant="bodySmall" style={{marginTop:4, fontStyle:'italic', color:'#666'}}>"{item.notes}"</Text>}
               
               <Divider style={{ marginVertical: 8 }} />
               
@@ -67,9 +102,10 @@ export const KardexScreen = ({ navigation }: any) => {
                             key={idx} 
                             icon={m.type === 'VIDEO' ? 'video' : 'camera'} 
                             onPress={() => handleOpenMedia(m)}
-                            style={{marginRight: 4}}
+                            style={{marginRight: 4, marginBottom: 4}}
+                            compact
                           >
-                              {m.type === 'VIDEO' ? 'Ver Video' : `Foto ${idx+1}`}
+                              {m.type === 'VIDEO' ? 'Video' : `Foto ${idx+1}`}
                           </Chip>
                       ))}
                   </View>
@@ -84,9 +120,7 @@ export const KardexScreen = ({ navigation }: any) => {
             <Button mode="outlined" icon="filter" onPress={() => { setTempFilters(filters); setShowFilterModal(true); }}>
                 Filtros
             </Button>
-            <Button mode="contained" onPress={fetchKardex} loading={loading}>
-                Actualizar
-            </Button>
+            <View />
         </View>
 
         <FlatList
@@ -94,48 +128,59 @@ export const KardexScreen = ({ navigation }: any) => {
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderItem}
             contentContainerStyle={styles.list}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#065911']} />
+            }
             ListEmptyComponent={<Text style={{textAlign:'center', marginTop: 20}}>No hay registros</Text>}
         />
 
         <Portal>
             <Modal visible={showFilterModal} onDismiss={() => setShowFilterModal(false)} contentContainerStyle={styles.modal}>
-                <Text variant="titleLarge" style={{marginBottom: 16}}>Filtrar Kardex</Text>
+                <Text variant="titleLarge" style={{marginBottom: 16, fontWeight:'bold'}}>Filtrar Busqueda</Text>
                 
-                <TextInput 
-                    label="ID Usuario (Opcional)"
-                    keyboardType="numeric"
-                    value={tempFilters.userId?.toString() || ''}
-                    onChangeText={(t) => setTempFilters({...tempFilters, userId: t ? Number(t) : undefined})}
-                    style={styles.input}
-                />
-                
-                <TextInput 
-                    label="ID Ubicación (Opcional)"
-                    keyboardType="numeric"
-                    value={tempFilters.locationId?.toString() || ''}
-                    onChangeText={(t) => setTempFilters({...tempFilters, locationId: t ? Number(t) : undefined})}
-                    style={styles.input}
+                <SearchComponent
+                    label="Usuario"
+                    placeholder="Buscar usuario..."
+                    searchPlaceholder="Nombre o usuario..."
+                    options={usersCatalog}
+                    value={tempFilters.userId}
+                    onSelect={(val) => setTempFilters({...tempFilters, userId: Number(val)})}
                 />
 
-                <Text variant="labelMedium" style={{marginTop:10}}>Formato Fecha: YYYY-MM-DD</Text>
-                <View style={styles.row}>
+                <SearchComponent
+                    label="Ubicación"
+                    placeholder="Buscar ubicación..."
+                    searchPlaceholder="Nombre de ubicación..."
+                    options={locationsCatalog}
+                    value={tempFilters.locationId}
+                    onSelect={(val) => setTempFilters({...tempFilters, locationId: Number(val)})}
+                />
+
+                <Text variant="labelMedium" style={{marginTop:10, marginBottom:5}}>Fecha (YYYY-MM-DD)</Text>
+                <View style={[styles.row, {marginBottom: 10}]}>
                     <TextInput 
-                        label="Fecha Inicio"
+                        label="Inicio"
+                        placeholder="YYYY-MM-DD"
                         value={tempFilters.startDate || ''}
                         onChangeText={(t) => setTempFilters({...tempFilters, startDate: t})}
                         style={[styles.input, {flex:1, marginRight:5}]}
+                        mode="outlined"
+                        dense
                     />
                     <TextInput 
-                        label="Fecha Fin"
+                        label="Fin"
+                        placeholder="YYYY-MM-DD"
                         value={tempFilters.endDate || ''}
                         onChangeText={(t) => setTempFilters({...tempFilters, endDate: t})}
                         style={[styles.input, {flex:1, marginLeft:5}]}
+                        mode="outlined"
+                        dense
                     />
                 </View>
 
-                <View style={[styles.row, {marginTop: 20, justifyContent:'flex-end'}]}>
+                <View style={[styles.row, {marginTop: 10, justifyContent:'flex-end'}]}>
                     <Button onPress={clearFilters} style={{marginRight: 10}}>Limpiar</Button>
-                    <Button mode="contained" onPress={applyFilters}>Aplicar Filtros</Button>
+                    <Button mode="contained" onPress={applyFilters}>Aplicar</Button>
                 </View>
             </Modal>
         </Portal>
@@ -146,7 +191,7 @@ export const KardexScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f6fbf4',
   },
   filterBar: {
     flexDirection: 'row',
@@ -159,7 +204,9 @@ const styles = StyleSheet.create({
       padding: 16
   },
   card: {
-      marginBottom: 12
+      marginBottom: 12,
+      backgroundColor: 'white',
+      borderRadius: 12,
   },
   row: {
       flexDirection: 'row',
@@ -174,10 +221,9 @@ const styles = StyleSheet.create({
       backgroundColor: 'white',
       padding: 20,
       margin: 20,
-      borderRadius: 8
+      borderRadius: 16
   },
   input: {
-      marginBottom: 10,
       backgroundColor: 'white'
   }
 });

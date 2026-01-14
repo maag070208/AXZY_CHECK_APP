@@ -1,5 +1,5 @@
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
@@ -8,6 +8,7 @@ import {
   IconButton,
   Text,
 } from 'react-native-paper';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocationFormModal } from '../components/LocationFormModal';
 import {
   createLocation,
@@ -17,13 +18,21 @@ import {
 } from '../service/location.service';
 import { ILocation } from '../type/location.types';
 
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../core/store/redux.config';
+import { UserRole } from '../../../core/types/IUser';
+
+// Definimos el color primario para reuso local
+const PRIMARY_COLOR = '#065911';
+
 export const LocationsScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
+  const user = useSelector((state: RootState) => state.userState);
+  const isAdmin = user.role === UserRole.ADMIN;
   const [locations, setLocations] = useState<ILocation[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Modal States
   const [modalVisible, setModalVisible] = useState(false);
   const [editingLocation, setEditingLocation] = useState<ILocation | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -32,10 +41,15 @@ export const LocationsScreen = ({ navigation }: any) => {
     loadLocations();
   }, []);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      loadLocations();
+    }, []),
+  );
+
   const loadLocations = async () => {
     setLoading(true);
     const res = await getLocations();
-    console.log(res);
     if (res.success) {
       setLocations(res.data as any);
     }
@@ -63,10 +77,7 @@ export const LocationsScreen = ({ navigation }: any) => {
       'Eliminar Ubicación',
       `¿Estás seguro de eliminar "${loc.name}"?`,
       [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
+        { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Eliminar',
           style: 'destructive',
@@ -97,64 +108,66 @@ export const LocationsScreen = ({ navigation }: any) => {
     }
   };
 
-  const renderItem = ({ item }: { item: ILocation }) => (
-    <Card
-      style={styles.card}
-      elevation={1}
-      onPress={() =>
-        navigation.navigate('LOCATIONS_PRODUCTS', {
-          locationId: item.id,
-          locationName: item.name,
-        })
-      }
-    >
-      <Card.Content style={styles.cardContent}>
-        <View style={styles.mainContent}>
-          <View style={styles.locationHeader}>
-            <Text variant="titleMedium" style={styles.name}>
-              {item.name}
-            </Text>
+const renderItem = ({ item }: { item: ILocation }) => (
+  <Card
+    style={styles.card}
+    elevation={0}
+    onPress={() =>
+      navigation.navigate('LOCATIONS_PRODUCTS', {
+        locationId: item.id,
+        locationName: item.name,
+      })
+    }
+  >
+    <View style={styles.cardContent}>
+      <View style={styles.mainContent}>
+        <View style={styles.locationHeader}>
+          <View style={styles.indicator} />
+          <Text variant="titleMedium" style={styles.name}>
+            {item.name}
+          </Text>
+        </View>
+        
+        <View style={styles.detailsGrid}>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Spot</Text>
+            <Text style={styles.detailValue}>{item.spot}</Text>
           </View>
-          
-          <View style={styles.detailsGrid}>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Spot</Text>
-              <Text style={styles.detailValue}>{item.spot}</Text>
-            </View>
-            <View style={styles.separator} />
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Número</Text>
-              <Text style={styles.detailValue}>{item.number}</Text>
-            </View>
+          <View style={styles.separator} />
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Número</Text>
+            <Text style={styles.detailValue}>{item.number}</Text>
           </View>
         </View>
+      </View>
 
-        <View style={styles.actions}>
-          <IconButton
-            icon="pencil"
-            size={20}
-            onPress={() => handleEdit(item)}
-            style={styles.iconButton}
-            iconColor="#4f46e5"
-          />
-          <IconButton
-            icon="delete"
-            size={20}
-            onPress={() => handleDelete(item)}
-            style={styles.iconButton}
-            iconColor="#dc2626"
-          />
-        </View>
-      </Card.Content>
-    </Card>
-  );
-
+      {/* SECCIÓN DE ACCIONES MEJORADA */}
+        {isAdmin && (
+            <View style={styles.actions}>
+            <IconButton
+                icon="pencil-outline"
+                size={20}
+                onPress={() => handleEdit(item)}
+                style={styles.iconButton}
+                iconColor="#54634d" // Gris verdoso sobrio
+            />
+            <IconButton
+                icon="trash-can-outline"
+                size={20}
+                onPress={() => handleDelete(item)}
+                style={styles.iconButton}
+                iconColor="#ba1a1a" // Rojo error del nuevo tema
+            />
+            </View>
+        )}
+    </View>
+  </Card>
+);
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0e6ed4ff" />
+          <ActivityIndicator size="large" color={PRIMARY_COLOR} />
           <Text style={styles.loadingText}>Cargando ubicaciones...</Text>
         </View>
       ) : (
@@ -169,24 +182,25 @@ export const LocationsScreen = ({ navigation }: any) => {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <View style={styles.emptyIcon}>
-                <Text style={styles.emptyIconText}>📍</Text>
+                <IconButton icon="map-marker-off" size={40} iconColor="#ccc" />
               </View>
-              <Text style={styles.emptyTitle}>No hay ubicaciones</Text>
+              <Text style={styles.emptyTitle}>Sin ubicaciones</Text>
               <Text style={styles.emptyText}>
-                Comienza agregando tu primera ubicación
+                Comienza agregando tu primera ubicación con el botón inferior.
               </Text>
             </View>
           }
         />
       )}
 
-      <FAB
-        icon="plus"
-        style={[styles.fab, { bottom: insets.bottom }]}
-        onPress={handleCreate}
-        color="white"
-        animated={true}
-      />
+      {isAdmin && (
+          <FAB
+            icon="plus"
+            style={[styles.fab, { bottom: insets.bottom + 16 }]}
+            onPress={handleCreate}
+            color="white"
+          />
+      )}
 
       <LocationFormModal
         visible={modalVisible}
@@ -202,86 +216,85 @@ export const LocationsScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  title: {
-    fontWeight: '700',
-    color: '#111827',
-    fontSize: 28,
-  },
-  subtitle: {
-    color: '#6b7280',
-    marginTop: 4,
-    fontSize: 15,
+    backgroundColor: '#f6fbf4', // Fondo con tinte verde muy sutil
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
   },
   loadingText: {
-    color: '#6b7280',
-    fontSize: 15,
+    color: '#54634d',
+    fontSize: 14,
+    fontWeight: '500',
   },
   listContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingTop: 20,
     paddingBottom: 100,
   },
   card: {
     backgroundColor: 'white',
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    overflow: 'hidden',
+    borderColor: '#e1e4d5', // Color del outline del nuevo tema
   },
-  cardContent: {
+ cardContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
+    gap: 12,
   },
   mainContent: {
     flex: 1,
   },
+  actionsContainer: {
+    flexDirection: 'column', // Los botones van uno sobre otro
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e1e4d5', // El mismo borde que el card pero separa los botones
+    borderRadius: 12,
+    backgroundColor: '#fbfdf7',
+    paddingVertical: 4,
+  },
+  actionButton: {
+    margin: 0,
+    height: 36,
+    width: 36,
+  },
+  actionDivider: {
+    width: '60%',
+    height: 1,
+    backgroundColor: '#e1e4d5',
+    marginVertical: 2,
+  },
   locationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  badge: {
-    backgroundColor: '#4f46e5',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  badgeText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
+  indicator: {
+    width: 4,
+    height: 18,
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 2,
+    marginRight: 10,
   },
   name: {
-    fontWeight: '600',
-    color: '#111827',
-    fontSize: 16,
+    fontWeight: '700',
+    color: '#1b1b1f',
+    fontSize: 17,
+    letterSpacing: -0.5,
   },
   detailsGrid: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f1f6eb', // Fondo "elevation level 1" del nuevo tema
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
   },
   detailItem: {
     flex: 1,
@@ -289,68 +302,60 @@ const styles = StyleSheet.create({
   },
   separator: {
     width: 1,
-    height: 24,
-    backgroundColor: '#e5e7eb',
+    height: 20,
+    backgroundColor: '#c5c8ba',
   },
   detailLabel: {
-    color: '#6b7280',
-    fontSize: 12,
-    marginBottom: 4,
-    fontWeight: '500',
+    color: '#44483d',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 2,
   },
   detailValue: {
-    color: '#111827',
-    fontSize: 16,
-    fontWeight: '600',
+    color: PRIMARY_COLOR,
+    fontSize: 15,
+    fontWeight: '700',
   },
   actions: {
-    flexDirection: 'row',
-    marginLeft: 12,
+    flexDirection: 'column', // Cambio a columna para un look más moderno en tarjetas horizontales
+    marginLeft: 8,
   },
   iconButton: {
-    marginHorizontal: 4,
+    marginVertical: -4,
   },
   fab: {
     position: 'absolute',
-    margin: 24,
+    margin: 16,
     right: 0,
-    bottom: 0,
-    backgroundColor: '#4f46e5',
+    backgroundColor: PRIMARY_COLOR,
     borderRadius: 16,
-    elevation: 4,
-    shadowColor: '#4f46e5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
+    marginTop: 100,
     paddingHorizontal: 40,
   },
   emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#f3f4f6',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#f1f6eb',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  emptyIconText: {
-    fontSize: 40,
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1b1b1f',
+    marginBottom: 4,
   },
   emptyText: {
-    fontSize: 15,
-    color: '#9ca3af',
+    fontSize: 14,
+    color: '#54634d',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
   },
 });

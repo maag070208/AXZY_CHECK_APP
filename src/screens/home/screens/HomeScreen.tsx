@@ -1,6 +1,9 @@
 import { FlatList, StyleSheet, View } from 'react-native';
 import ModernStyles from '../../../shared/theme/app.styles';
 import { HomeItemComponent } from '../components/HomeItemComponent';
+import { UserRole } from '../../../core/types/IUser';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../core/store/redux.config';
 
 const MODULES = [
   {
@@ -9,17 +12,32 @@ const MODULES = [
     icon: 'map-marker-outline',
     stack: 'LOCATIONS_STACK',
     screen: 'LOCATIONS_MAIN',
-    color: '#0e6ed4ff',
-    gradient: ['#6366f1', '#818cf8'],
+    color: '#1565c0', // Azul profesional
+    gradient: ['#1565c0', '#42a5f5'],
+    roles: [UserRole.ADMIN, UserRole.SHIFT_GUARD]
   },
+  {
+    id: 'scaner',
+    label: 'Escanear',
+    icon: 'qrcode-scan',
+    stack: 'CHECK_STACK',
+    screen: 'CHECK_MAIN',
+    color: '#065911',
+    gradient: ['#065911', '#2e7d32'],
+    roles: [UserRole.ADMIN, UserRole.SHIFT_GUARD, UserRole.GUARD]
+  }
 ];
 
 export const HomeScreen = () => {
+  const user = useSelector((state: RootState) => state.userState);
+  
+  const filteredModules = MODULES.filter(m => m.roles.includes(user.role as UserRole));
+
   return (
     <View style={[ModernStyles.screenContainer, styles.container]}>
       {/* Grid de módulos */}
       <FlatList
-        data={MODULES}
+        data={filteredModules}
         numColumns={2}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
@@ -43,7 +61,7 @@ export const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     padding: 0,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f6fbf4',
   },
   header: {
     flexDirection: 'row',

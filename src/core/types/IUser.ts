@@ -11,3 +11,9 @@ export interface IAuthToken {
   iat: number;
   exp: number;
 }
+
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  SHIFT_GUARD = 'SHIFT_GUARD',
+  GUARD = 'GUARD',
+}

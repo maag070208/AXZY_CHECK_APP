@@ -72,7 +72,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
               <Icon
                 source="account-outline"
                 size={20}
-                color={focusedField === 'username' ? '#3b82f6' : '#94a3b8'}
+                color={focusedField === 'username' ? '#065911' : '#94a3b8'}
               />
               <TextInput
                 style={styles.input}
@@ -107,7 +107,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
               <Icon
                 source="lock-outline"
                 size={20}
-                color={focusedField === 'password' ? '#3b82f6' : '#94a3b8'}
+                color={focusedField === 'password' ? '#065911' : '#94a3b8'}
               />
               <TextInput
                 style={styles.input}
@@ -181,8 +181,8 @@ const styles = StyleSheet.create({
     height: 56,
   },
   inputFocused: {
-    borderColor: '#3b82f6', // Blue-500
-    backgroundColor: '#eff6ff', // Blue-50
+    borderColor: '#065911',
+    backgroundColor: '#d0f8d3',
   },
   inputError: {
     borderColor: '#ef4444', // Red-500
@@ -206,13 +206,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   button: {
-    backgroundColor: '#3b82f6', // Blue-500
+    backgroundColor: '#065911',
     borderRadius: 16,
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 12,
-    shadowColor: '#3b82f6',
+    shadowColor: '#065911',
     shadowOffset: {
       width: 0,
       height: 4,
