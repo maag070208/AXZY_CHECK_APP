@@ -1,15 +1,15 @@
+import dayjs from 'dayjs';
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Image, Linking, Alert, TouchableOpacity, Modal, Platform, SafeAreaView, Dimensions } from 'react-native';
-import { Text, Button, Chip, IconButton, Avatar, ActivityIndicator } from 'react-native-paper';
+import { Alert, Dimensions, Image, Linking, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Button, Text } from 'react-native-paper';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Video from 'react-native-video';
 import { API_CONSTANTS } from '../../../core/constants/API_CONSTANTS';
-import dayjs from 'dayjs';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width } = Dimensions.get('window');
 
+import { getAllAssignments, updateAssignmentStatus } from '../../assignments/service/assignment.service';
 import { getKardexById, IKardexEntry } from '../service/kardex.service';
-import { updateAssignmentStatus, getAllAssignments } from '../../assignments/service/assignment.service';
 
 export const KardexDetailScreen = ({ route, navigation }: any) => {
   const { item: initialItem, kardexId } = route.params;

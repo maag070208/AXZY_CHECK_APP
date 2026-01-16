@@ -8,10 +8,13 @@ import ModernStyles from '../../../shared/theme/app.styles';
 import LoaderComponent from '../../../shared/components/LoaderComponent';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../../shared/theme/theme';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../core/store/redux.config';
 
 export const GuardListScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<any>();
+  const user = useSelector((state: RootState) => state.userState);
   const [guards, setGuards] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -20,10 +23,19 @@ export const GuardListScreen = () => {
     try {
       const response = await getUsers();
       if (response.success && response.data) {
-        const onlyGuards = response.data.filter(
-          (u: any) =>
-            u.role === UserRole.GUARD || u.role === UserRole.SHIFT_GUARD,
-        );
+        // Filter based on logged-in user role
+        const currentUserRole = user.role;
+        
+        const onlyGuards = response.data.filter((u: any) => {
+            if (currentUserRole === UserRole.ADMIN) {
+                // Admin sees SHIFT_GUARD and GUARD
+                return u.role === UserRole.GUARD || u.role === UserRole.SHIFT_GUARD;
+            } else if (currentUserRole === UserRole.SHIFT_GUARD) {
+                // Shift Guard sees ONLY GUARD
+                return u.role === UserRole.GUARD;
+            }
+            return false;
+        });
         setGuards(onlyGuards);
       }
     } catch (error) {

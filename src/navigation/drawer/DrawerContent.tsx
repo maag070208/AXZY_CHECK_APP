@@ -32,13 +32,6 @@ const MENU_ITEMS: MenuItem[] = [
     roles: ['ADMIN', 'SHIFT_GUARD', 'GUARD'],
   },
   {
-    label: 'Escanear',
-    icon: 'qrcode-scan',
-    route: 'Tabs',
-    screen: 'CHECK_STACK',
-    roles: ['ADMIN', 'SHIFT_GUARD', 'GUARD'],
-  },
-  {
     label: 'Guardias',
     icon: 'account-group',
     route: 'GUARDS_STACK',

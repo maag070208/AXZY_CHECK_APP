@@ -34,7 +34,7 @@ const MODULES = [
     screen: 'MY_ASSIGNMENTS_MAIN',
     color: '#e65100', // Orange
     gradient: ['#e65100', '#ff9800'],
-    roles: [UserRole.GUARD]
+    roles: [UserRole.GUARD, UserRole.SHIFT_GUARD]
   },
   {
     id: 'users',
