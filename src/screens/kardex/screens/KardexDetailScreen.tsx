@@ -1,16 +1,65 @@
+import dayjs from 'dayjs';
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Image, Linking, Alert, TouchableOpacity, Modal, Platform, SafeAreaView, Dimensions } from 'react-native';
-import { Text, Button, Chip, IconButton, Avatar } from 'react-native-paper';
+import { Alert, Dimensions, Image, Linking, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Button, Text } from 'react-native-paper';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Video from 'react-native-video';
 import { API_CONSTANTS } from '../../../core/constants/API_CONSTANTS';
-import dayjs from 'dayjs';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width } = Dimensions.get('window');
 
+import { getAllAssignments, updateAssignmentStatus } from '../../assignments/service/assignment.service';
+import { getKardexById, IKardexEntry } from '../service/kardex.service';
+
 export const KardexDetailScreen = ({ route, navigation }: any) => {
-  const { item } = route.params;
+  const { item: initialItem, kardexId } = route.params;
+  const [item, setItem] = useState<IKardexEntry | null>(initialItem || null);
+  const [loading, setLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (item && (item as any).assignmentId) {
+        fetchAssignmentTasks((item as any).assignmentId);
+    }
+  }, [item]);
+
+  const fetchAssignmentTasks = async (assignmentId: number) => {
+      try {
+          // Re-using getAllAssignments to fetch by ID including tasks
+          const res = await getAllAssignments({ id: assignmentId });
+          if (res.success && res.data && res.data.length > 0) {
+              setTasks(res.data[0].tasks || []);
+          }
+      } catch (e) {
+          console.error("Error loading tasks", e);
+      }
+  };
+
+  React.useEffect(() => {
+    if (!item && kardexId) {
+        fetchKardexDetail();
+    }
+  }, [kardexId]);
+
+  const fetchKardexDetail = async () => {
+      setLoading(true);
+      try {
+          const res = await getKardexById(kardexId);
+          if (res.success && res.data) {
+              setItem(res.data);
+          } else {
+              Alert.alert("Error", "No se pudo cargar el reporte");
+              navigation.goBack();
+          }
+      } catch (e) {
+          Alert.alert("Error", "Error al cargar detalles");
+          console.error(e);
+      } finally {
+          setLoading(false);
+      }
+  };
 
   const openMedia = (url: string, type: string) => {
     if (!url) return;
@@ -25,7 +74,7 @@ export const KardexDetailScreen = ({ route, navigation }: any) => {
   };
 
   const openMap = () => {
-    if (!item.latitude || !item.longitude) return;
+    if (!item?.latitude || !item?.longitude) return;
 
     const scheme = Platform.select({ ios: 'maps:0,0?q=', android: 'geo:0,0?q=' });
     const latLng = `${item.latitude},${item.longitude}`;
@@ -39,6 +88,37 @@ export const KardexDetailScreen = ({ route, navigation }: any) => {
         Linking.openURL(url).catch(err => Alert.alert("Error", "No se pudo abrir el mapa"));
     }
   };
+
+  const handleConfirmReport = async () => {
+        if (!item || !(item as any).assignmentId) return;
+
+        setConfirming(true);
+        try {
+            const assignmentId = (item as any).assignmentId;
+            const res = await updateAssignmentStatus(assignmentId, 'REVIEWED' as any);
+            if (res.success) {
+                Alert.alert("Confirmado", "El reporte ha sido validado correctamente.", [
+                    { text: 'OK', onPress: () => navigation.goBack() }
+                ]);
+            } else {
+                Alert.alert("Error", "No se pudo confirmar el reporte.");
+            }
+        } catch (e) {
+            Alert.alert("Error", "Ocurrió un error.");
+        } finally {
+            setConfirming(false);
+        }
+  };
+
+  if (loading) {
+      return (
+          <View style={[styles.safeArea, {justifyContent:'center', alignItems:'center'}]}>
+              <ActivityIndicator size="large" color="#065911" />
+          </View>
+      );
+  }
+
+  if (!item) return null;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -84,6 +164,43 @@ export const KardexDetailScreen = ({ route, navigation }: any) => {
             </View>
         </View>
 
+
+        {/* GALLERY */}
+        <View style={styles.card}>
+            <Text style={styles.galleryTitle}>Evidencia Multimedia</Text>
+            {item.media && item.media.length > 0 ? (
+                <View style={styles.grid}>
+                    {item.media.map((media, index) => (
+                        <TouchableOpacity 
+                            key={index} 
+                            style={styles.mediaItem}
+                            onPress={() => openMedia(media.url, media.type)}
+                        >
+                            {media.type === 'VIDEO' ? (
+                                <View style={styles.videoPlaceholder}>
+                                    <Icon name="play-circle-outline" size={40} color="#fff" />
+                                </View>
+                            ) : (
+                                <Image 
+                                    source={{ uri: `${API_CONSTANTS.BASE_URL.replace('/api/v1', '')}${media.url}` }} 
+                                    style={styles.mediaImage}
+                                    resizeMode="cover"
+                                />
+                            )}
+                            <View style={styles.mediaTypeBadge}>
+                                <Icon name={media.type === 'VIDEO' ? 'video' : 'camera'} size={12} color="#fff" />
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            ) : (
+                <View style={styles.emptyState}>
+                    <Icon name="image-off-outline" size={40} color="#ccc" />
+                    <Text style={styles.emptyText}>No hay evidencia multimedia</Text>
+                </View>
+            )}
+        </View>
+
         {/* NOTES CARD */}
         {item.notes ? (
             <View style={styles.card}>
@@ -92,35 +209,37 @@ export const KardexDetailScreen = ({ route, navigation }: any) => {
             </View>
         ) : null}
 
-        {/* GALLERY */}
-        <Text style={styles.galleryTitle}>Evidencia Capturada</Text>
-        {item.media && item.media.length > 0 ? (
-            <View style={styles.grid}>
-                {item.media.map((m: any, idx: number) => (
-                    <TouchableOpacity key={idx} style={styles.mediaItem} onPress={() => openMedia(m.url, m.type)}>
-                        {m.type === 'IMAGE' ? (
-                            <Image 
-                                source={{ uri: `${API_CONSTANTS.BASE_URL.replace('/api/v1', '')}${m.url}` }} 
-                                style={styles.mediaImage} 
-                            />
-                        ) : (
-                            <View style={styles.videoPlaceholder}>
-                                <Icon name="play-circle" size={40} color="#fff" />
-                            </View>
-                        )}
-                        <View style={styles.mediaTypeBadge}>
-                            <Icon name={m.type === 'VIDEO' ? 'video' : 'camera'} size={12} color="#fff" />
-                        </View>
-                    </TouchableOpacity>
+        {/* COMPLETED TASKS (READ ONLY) */}
+        {tasks.length > 0 && (
+            <View style={styles.card}>
+                <Text style={styles.sectionLabel}>Lista de Tareas</Text>
+                {tasks.map((task, idx) => (
+                    <View key={idx} style={styles.taskItem}>
+                         <Icon name={task.completed ? "check-circle" : "circle-outline"} size={20} color={task.completed ? "#065911" : "#94a3b8"} />
+                         <Text style={[styles.taskText, task.completed && styles.taskTextCompleted]}>{task.description}</Text>
+                         {task.reqPhoto && <Icon name="camera" size={12} color="#64748b" style={{marginLeft:8}} />}
+                    </View>
                 ))}
             </View>
-        ) : (
-            <View style={styles.emptyState}>
-                <Icon name="image-off-outline" size={48} color="#ccc" />
-                <Text style={styles.emptyText}>Sin evidencia multimedia</Text>
+        )}
+
+        {/* ASIDE: CONFIRMATION ACTION FOR SUPERVISORS */}
+        {((item as any).assignmentId && (item as any).assignment?.status === 'UNDER_REVIEW') && (
+            <View style={styles.actionContainer}>
+                <Button 
+                    mode="contained" 
+                    onPress={handleConfirmReport} 
+                    loading={confirming}
+                    disabled={confirming}
+                    buttonColor="#065911"
+                    style={styles.confirmButton}
+                    icon="check-circle"
+                >
+                    Confirmar Reporte
+                </Button>
             </View>
         )}
-        
+
         <View style={{height: 40}} />
 
       </ScrollView>
@@ -345,4 +464,31 @@ const styles = StyleSheet.create({
       padding: 8,
       borderRadius: 20,
   },
+  actionContainer: {
+      marginTop: 20,
+      marginBottom: 30,
+  },
+  confirmButton: {
+      borderRadius: 12,
+      paddingVertical: 6,
+  },
+  taskItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+      paddingVertical: 4,
+      borderBottomWidth:1,
+      borderBottomColor:'#f1f5f9'
+  },
+  taskText: {
+      flex: 1,
+      marginLeft: 12,
+      fontSize: 14,
+      color: '#334155',
+      fontWeight: '500'
+  },
+  taskTextCompleted: {
+      color: '#065911',
+      fontWeight: '600'
+  }
 });

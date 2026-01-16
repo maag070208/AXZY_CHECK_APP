@@ -21,6 +21,16 @@ export type LocationsStackParamList = {
   LOCATIONS_PRODUCTS: { locationId: number; locationName: string };
 };
 
+export type CheckStackParamList = {
+  CHECK_SCAN: undefined;
+  CHECK_MAIN: {
+    assignmentId?: number;
+    expectedLocationId?: number;
+    expectedLocationName?: string;
+    location?: any;
+  };
+};
+
 export type RootStackParamList = {
   DRAWER_MAIN: {
     TABS: ScreenParams;
@@ -28,6 +38,7 @@ export type RootStackParamList = {
 
   TABS: {
     HOME_STACK: ScreenParams;
+    CHECK_STACK: ScreenParams;
   };
 
   HOME_STACK: {
@@ -58,6 +69,15 @@ export type RootStackParamList = {
     ORDERS_MAIN: ScreenParams;
     ORDERS_DETAILS: ScreenParams<{ orderId: number; orderNumber: string }>;
   };
+  CHECK_STACK: {
+    CHECK_SCAN: ScreenParams;
+    CHECK_MAIN: ScreenParams<{
+      assignmentId?: number;
+      expectedLocationId?: number;
+      expectedLocationName?: string;
+      location?: any;
+    }>;
+  };
   PROFILE_SCREEN: undefined;
 };
 
@@ -76,6 +96,7 @@ export const AppStacks: RootStackParamList = {
   },
   TABS: {
     HOME_STACK: {},
+    CHECK_STACK: {},
   },
   HOME_STACK: {
     HOME_MAIN: {},
@@ -97,6 +118,10 @@ export const AppStacks: RootStackParamList = {
   ORDERS_STACK: {
     ORDERS_MAIN: {},
     ORDERS_DETAILS: {},
+  },
+  CHECK_STACK: {
+    CHECK_SCAN: {},
+    CHECK_MAIN: {},
   },
   PROFILE_SCREEN: undefined,
 };

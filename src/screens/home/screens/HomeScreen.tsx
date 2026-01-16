@@ -17,14 +17,34 @@ const MODULES = [
     roles: [UserRole.ADMIN, UserRole.SHIFT_GUARD]
   },
   {
-    id: 'scaner',
-    label: 'Escanear',
-    icon: 'qrcode-scan',
-    stack: 'CHECK_STACK',
-    screen: 'CHECK_MAIN',
-    color: '#065911',
-    gradient: ['#065911', '#2e7d32'],
-    roles: [UserRole.ADMIN, UserRole.SHIFT_GUARD, UserRole.GUARD]
+    id: 'guards',
+    label: 'Guardias',
+    icon: 'account-group',
+    stack: 'GUARDS_STACK',
+    screen: 'GUARD_LIST',
+    color: '#7b1fa2', // Purple
+    gradient: ['#7b1fa2', '#9c27b0'],
+    roles: [UserRole.ADMIN, UserRole.SHIFT_GUARD]
+  },
+  {
+    id: 'assignments',
+    label: 'Mis Asignaciones',
+    icon: 'clipboard-list-outline',
+    stack: 'ASSIGNMENTS_STACK',
+    screen: 'MY_ASSIGNMENTS_MAIN',
+    color: '#e65100', // Orange
+    gradient: ['#e65100', '#ff9800'],
+    roles: [UserRole.GUARD, UserRole.SHIFT_GUARD]
+  },
+  {
+    id: 'users',
+    label: 'Usuarios',
+    icon: 'account-plus',
+    stack: 'USERS_STACK',
+    screen: 'USER_LIST',
+    color: '#0288d1', // Light Blue
+    gradient: ['#0288d1', '#03a9f4'],
+    roles: [UserRole.ADMIN]
   }
 ];
 

@@ -11,7 +11,7 @@ export const CheckStack = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="CHECK_SCAN" component={CheckScreen} />
       <Stack.Screen
-        name="CHECK_REPORT"
+        name="CHECK_MAIN"
         component={CheckReportScreen}
         options={({ navigation }) => ({
           header: () => (

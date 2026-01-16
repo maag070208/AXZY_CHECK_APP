@@ -88,7 +88,18 @@ export const KardexScreen = ({ navigation }: any) => {
           <Card.Content>
               <View style={styles.row}>
                   <Text variant="titleMedium" style={{fontWeight:'bold'}}>{item.location.name}</Text>
-                  <Text variant="bodySmall">{dayjs(item.timestamp).format('DD/MM/YYYY HH:mm')}</Text>
+                  <View style={{flexDirection:'row', alignItems:'center'}}>
+                    <Text variant="bodySmall">{dayjs(item.timestamp).format('DD/MM/YYYY HH:mm')}</Text>
+                    {/* Show status only if completed (REVIEWED) */}
+                    {(item.assignment?.status === 'REVIEWED') && (
+                        <Chip 
+                            style={{backgroundColor:'#e6fffa', height: 24, marginLeft: 8}} 
+                            textStyle={{fontSize: 10, color: '#065911', fontWeight: '700', lineHeight: 10}}
+                        >
+                            VALIDADO
+                        </Chip>
+                    )}
+                  </View>
               </View>
               <Text variant="bodyMedium">Usuario: <Text style={{fontWeight:'bold'}}>{item.user.username}</Text></Text>
               {item.notes && <Text variant="bodySmall" style={{marginTop:4, fontStyle:'italic', color:'#666'}}>"{item.notes}"</Text>}

@@ -28,7 +28,6 @@ axiosInstance.interceptors.request.use(
 
         const state = store.getState();
         const token = state.userState.token; // ⬅️ AQUÍ EL TOKEN DEL STORE
-
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
