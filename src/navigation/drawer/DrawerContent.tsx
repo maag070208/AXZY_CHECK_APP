@@ -59,6 +59,27 @@ const MENU_ITEMS: MenuItem[] = [
     screen: 'Kardex',
     roles: ['ADMIN', 'SHIFT_GUARD'],
   },
+  {
+    label: 'Rondas',
+    icon: 'briefcase-clock-outline',
+    route: 'RECURRING_STACK',
+    screen: 'RecurringList',
+    roles: ['ADMIN', 'SHIFT_GUARD'],
+  },
+  {
+    label: 'Mis Rutinas',
+    icon: 'clipboard-check-outline',
+    route: 'RECURRING_STACK',
+    screen: 'MyRecurring',
+    roles: ['GUARD', 'SHIFT_GUARD'],
+  },
+  {
+    label: 'Incidencias',
+    icon: 'alert-circle-outline',
+    route: 'INCIDENTS_STACK',
+    screen: 'INCIDENT_LIST',
+    roles: ['ADMIN', 'SHIFT_GUARD'],
+  },
 ];
 
 /* ======================================================
@@ -133,7 +154,18 @@ const DrawerContent = ({ navigation }: { navigation: any }) => {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           style={styles.logoutBtn}
-          onPress={() => dispatch(logout())}
+          onPress={async () => {
+            try {
+               const { logout: logoutApi } = require('../../screens/auth/services/AuthService');
+               if (userState.id) {
+                   await logoutApi(userState.id);
+               }
+            } catch (e) {
+               console.error("Logout API failed", e);
+            } finally {
+               dispatch(logout());
+            }
+          }}
         >
           <Icon source="logout" size={20} color="#ef4444" />
           <Text style={styles.logoutText}>Cerrar Sesión</Text>

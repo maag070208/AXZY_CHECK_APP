@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Icon } from 'react-native-paper';
-import ModernStyles from '../../../shared/theme/app.styles';
 import { useAppNavigation } from '../../../navigation/hooks/useAppNavigation';
+import ModernStyles from '../../../shared/theme/app.styles';
 
 interface HomeItemComponentProps {
   icon: string;
@@ -11,6 +11,7 @@ interface HomeItemComponentProps {
   screen: any;
   color?: string;
   gradient?: string[];
+  badge?: number;
 }
 
 // HomeItemComponent sin gradient
@@ -20,6 +21,7 @@ export const HomeItemComponent = ({
   stack,
   screen,
   color = '#3b82f6',
+  badge,
 }: HomeItemComponentProps) => {
   const { navigateToScreen } = useAppNavigation();
 
@@ -47,10 +49,16 @@ export const HomeItemComponent = ({
         {/* Label */}
         <Text style={styles.cardLabel}>{label}</Text>
 
-        {/* Badge de acceso rápido */}
-        <View style={styles.accessBadge}>
-          <Icon source="chevron-right" size={16} color={color} />
-        </View>
+        {/* Badge de contador (Prioridad sobre acceso rápido si existe) */}
+        {badge ? (
+           <View style={styles.notificationBadge}>
+             <Text style={styles.notificationText}>{badge > 99 ? '+99' : badge}</Text>
+           </View>
+        ) : (
+          <View style={styles.accessBadge}>
+            <Icon source="chevron-right" size={16} color={color} />
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -92,4 +100,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  notificationBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    minWidth: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: 'rgba(0,0,0,0.1)'
+  },
+  notificationText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#d32f2f',
+  }
 });

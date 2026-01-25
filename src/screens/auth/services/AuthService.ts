@@ -11,3 +11,9 @@ export const login = async (
     password,
   });
 };
+
+export const logout = async (userId: string): Promise<TResult<boolean>> => {
+  return await post(API_CONSTANTS.URLS.AUTH.LOGIN.replace('login', 'logout'), {
+    userId,
+  });
+};

@@ -192,12 +192,6 @@ export const AssignmentModal = ({ visible, onDismiss, guardId, onSuccess }: Prop
                                 activeOutlineColor="#065911" 
                                 dense
                             />
-                             <TouchableOpacity 
-                                style={[styles.photoOption, tempTaskPhoto && styles.photoOptionSelected]}
-                                onPress={() => setTempTaskPhoto(!tempTaskPhoto)}
-                            >
-                                <Icon name="camera" size={16} color={tempTaskPhoto ? '#fff' : '#64748b'} />
-                            </TouchableOpacity>
                             <IconButton 
                                 icon="plus" 
                                 mode="contained" 
@@ -253,7 +247,9 @@ export const AssignmentModal = ({ visible, onDismiss, guardId, onSuccess }: Prop
                         onPress={handleSubmit} 
                         loading={submitting} 
                         disabled={submitting || !selectedLocationId}
-                        style={styles.assignButton}
+                        style={[styles.assignButton, {
+                            backgroundColor: selectedLocationId ? '#065911' : '#ccc'
+                        }]}
                         labelStyle={{ fontWeight: 'bold' }}
                     >
                         Asignar

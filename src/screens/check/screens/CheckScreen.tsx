@@ -30,8 +30,14 @@ export const CheckScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     if (isFocused) {
-      setScanned(false);
-      setProcessing(false);
+      // Delay scanning to prevent immediate re-scan loop when coming back
+      const timer = setTimeout(() => {
+          setScanned(false);
+          setProcessing(false);
+      }, 1500);
+      return () => clearTimeout(timer);
+    } else {
+        setScanned(true); // Disable scanning while not focused
     }
   }, [isFocused]);
 
@@ -77,7 +83,9 @@ export const CheckScreen = ({ navigation }: any) => {
          return;
       }
 
-      navigation.navigate('CHECK_MAIN', { location, assignmentId });
+      // Forward recurringTasks if present
+      const { recurringTasks } = route.params || {};
+      navigation.navigate('CHECK_MAIN', { location, assignmentId, recurringTasks });
       setScanned(false); 
     } else {
       Alert.alert('No encontrado', `Ubicación no encontrada: ${code}`, [

@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, Image, Linking, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Button, Text } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -11,24 +11,69 @@ const { width } = Dimensions.get('window');
 import { getAllAssignments, updateAssignmentStatus } from '../../assignments/service/assignment.service';
 import { getKardexById, IKardexEntry } from '../service/kardex.service';
 
+const ImageWithLoader = ({ uri, style }: { uri: string, style: any }) => {
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+
+    return (
+        <View style={[style, { overflow: 'hidden', backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }]}>
+            <Image 
+                source={{ uri }} 
+                style={[style, { position: 'absolute' }]}
+                resizeMode="cover"
+                onLoadStart={() => setLoading(true)}
+                onLoadEnd={() => setLoading(false)}
+                onError={() => { setLoading(false); setError(true); }}
+            />
+            {loading && (
+                <ActivityIndicator color="#065911" size="small" />
+            )}
+            {error && (
+                <Icon name="image-broken-variant" size={24} color="#ccc" />
+            )}
+        </View>
+    );
+};
+
 export const KardexDetailScreen = ({ route, navigation }: any) => {
-  const { item: initialItem, kardexId } = route.params;
+  const { item: initialItem, kardexId: paramId } = route.params;
+  const kardexId = paramId || initialItem?.id;
   const [item, setItem] = useState<IKardexEntry | null>(initialItem || null);
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
 
-  React.useEffect(() => {
-    if (item && (item as any).assignmentId) {
-        fetchAssignmentTasks((item as any).assignmentId);
+  useEffect(() => {
+    console.log({item});
+    if (item) {
+        if ((item as any).assignment && (item as any).assignment.tasks) {
+             setTasks((item as any).assignment.tasks);
+        } else if ((item as any).assignmentId) {
+            fetchAssignmentTasks((item as any).assignmentId);
+        } else if (item.notes && item.notes.includes('--- LISTA DE VERIFICACIÓN ---')) {
+            console.log("Found checklist in notes:", item.notes);
+            // Parse tasks from notes
+            try {
+                const parts = item.notes.split('--- LISTA DE VERIFICACIÓN ---');
+                const checklistStr = parts[1];
+                if (checklistStr) {
+                    const parsedTasks = checklistStr.trim().split('\n').map((line, idx) => {
+                        const completed = line.trim().startsWith('[x]');
+                        const description = line.replace(/^\[.\]\s*/, '').trim();
+                        return { id: idx, description, completed, reqPhoto: false };
+                    });
+                    setTasks(parsedTasks);
+                }
+            } catch (e) { console.error('Error parsing checklist', e); }
+        }
     }
   }, [item]);
 
   const fetchAssignmentTasks = async (assignmentId: number) => {
       try {
-          // Re-using getAllAssignments to fetch by ID including tasks
           const res = await getAllAssignments({ id: assignmentId });
+          console.log(res);
           if (res.success && res.data && res.data.length > 0) {
               setTasks(res.data[0].tasks || []);
           }
@@ -37,16 +82,22 @@ export const KardexDetailScreen = ({ route, navigation }: any) => {
       }
   };
 
-  React.useEffect(() => {
-    if (!item && kardexId) {
+  useEffect(() => {
+    console.log(kardexId);
+    if (kardexId) {
         fetchKardexDetail();
     }
   }, [kardexId]);
 
   const fetchKardexDetail = async () => {
+      if (!kardexId) return;
       setLoading(true);
       try {
-          const res = await getKardexById(kardexId);
+          const res = await getKardexById(kardexId).catch((e) => {
+              console.error(e);
+              return { success: false, data: null };
+          });
+          console.log(res);
           if (res.success && res.data) {
               setItem(res.data);
           } else {
@@ -64,7 +115,7 @@ export const KardexDetailScreen = ({ route, navigation }: any) => {
   const openMedia = (url: string, type: string) => {
     if (!url) return;
     const baseUrl = API_CONSTANTS.BASE_URL.replace('/api/v1', '');
-    const fullUrl = `${baseUrl}${url}`;
+    const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
 
     if (type === 'VIDEO') {
         setVideoUrl(fullUrl);
@@ -136,18 +187,22 @@ export const KardexDetailScreen = ({ route, navigation }: any) => {
         </View>
 
         {/* LOCATION CARD */}
+        {/* LOCATION CARD */}
         <View style={styles.card}>
             <View style={styles.cardHeader}>
                 <Icon name="map-marker-radius" size={24} color="#065911" />
-                <Text style={styles.cardTitle}>Ubicación</Text>
+                <Text style={styles.cardTitle}>Punto de Control</Text>
             </View>
             <Text style={styles.locationName}>{item.location.name}</Text>
             
             {(item.latitude && item.longitude) && (
-                <TouchableOpacity style={styles.mapButton} onPress={openMap}>
-                    <Icon name="map" size={20} color="#fff" />
-                    <Text style={styles.mapButtonText}>Ver en Mapa</Text>
-                </TouchableOpacity>
+                <View style={{marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0'}}>
+                    <Text style={{fontSize: 12, color: '#7E84A3', marginBottom: 8}}>Verificación Física:</Text>
+                    <TouchableOpacity style={styles.mapButton} onPress={openMap}>
+                        <Icon name="crosshairs-gps" size={20} color="#fff" />
+                        <Text style={styles.mapButtonText}>Ver Ubicación del Escaneo</Text>
+                    </TouchableOpacity>
+                </View>
             )}
         </View>
 
@@ -164,35 +219,37 @@ export const KardexDetailScreen = ({ route, navigation }: any) => {
             </View>
         </View>
 
-
-        {/* GALLERY */}
+        {/* GALLERY CAROUSEL */}
         <View style={styles.card}>
             <Text style={styles.galleryTitle}>Evidencia Multimedia</Text>
             {item.media && item.media.length > 0 ? (
-                <View style={styles.grid}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingRight: 20}}>
                     {item.media.map((media, index) => (
                         <TouchableOpacity 
                             key={index} 
-                            style={styles.mediaItem}
+                            style={[styles.mediaItem, { width: 280, height: 200, marginRight: 12 }]}
                             onPress={() => openMedia(media.url, media.type)}
                         >
                             {media.type === 'VIDEO' ? (
                                 <View style={styles.videoPlaceholder}>
-                                    <Icon name="play-circle-outline" size={40} color="#fff" />
+                                    <Icon name="play-circle" size={56} color="#fff" />
+                                    <Text style={{color: 'white', marginTop: 8, fontWeight: 'bold'}}>REPRODUCIR VIDEO</Text>
                                 </View>
                             ) : (
-                                <Image 
-                                    source={{ uri: `${API_CONSTANTS.BASE_URL.replace('/api/v1', '')}${media.url}` }} 
-                                    style={styles.mediaImage}
-                                    resizeMode="cover"
+                                <ImageWithLoader 
+                                    uri={media.url.startsWith('http') ? media.url : `${API_CONSTANTS.BASE_URL.replace('/api/v1', '')}${media.url}`}
+                                    style={{width: '100%', height: '100%'}}
                                 />
                             )}
                             <View style={styles.mediaTypeBadge}>
-                                <Icon name={media.type === 'VIDEO' ? 'video' : 'camera'} size={12} color="#fff" />
+                                <Icon name={media.type === 'VIDEO' ? 'video' : 'camera'} size={14} color="#fff" />
+                                <Text style={{color: '#fff', fontSize: 10, marginLeft: 4, fontWeight: 'bold'}}>
+                                    {media.type === 'VIDEO' ? 'VIDEO' : 'FOTO'}
+                                </Text>
                             </View>
                         </TouchableOpacity>
                     ))}
-                </View>
+                </ScrollView>
             ) : (
                 <View style={styles.emptyState}>
                     <Icon name="image-off-outline" size={40} color="#ccc" />
@@ -201,11 +258,10 @@ export const KardexDetailScreen = ({ route, navigation }: any) => {
             )}
         </View>
 
-        {/* NOTES CARD */}
         {item.notes ? (
             <View style={styles.card}>
                 <Text style={styles.sectionLabel}>Observaciones</Text>
-                <Text style={styles.notesText}>{item.notes}</Text>
+                <Text style={styles.notesText}>{item.notes.split('--- LISTA DE VERIFICACIÓN ---')[0].trim()}</Text>
             </View>
         ) : null}
 

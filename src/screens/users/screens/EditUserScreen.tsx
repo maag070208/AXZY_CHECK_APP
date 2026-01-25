@@ -237,7 +237,7 @@ export const EditUserScreen = () => {
                                             onPress={() => setShowStartPicker(true)}
                                         >
                                             <Text style={styles.timeLabel}>Inicio</Text>
-                                            <Text style={styles.timeValue}>{value || '08:00'}</Text>
+                                            <Text style={styles.timeValue}>{value}</Text>
                                             <View style={styles.timeIcon}>
                                                 <Icon name="clock-o" size={24} color="#065911" />
                                             </View>
@@ -255,7 +255,7 @@ export const EditUserScreen = () => {
                                             onPress={() => setShowEndPicker(true)}
                                         >
                                             <Text style={styles.timeLabel}>Fin</Text>
-                                            <Text style={styles.timeValue}>{value || '16:00'}</Text>
+                                            <Text style={styles.timeValue}>{value}</Text>
                                             <View style={styles.timeIcon}>
                                                 <Icon name="clock-o" size={24} color="#065911" />
                                             </View>
