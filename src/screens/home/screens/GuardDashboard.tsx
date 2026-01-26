@@ -56,6 +56,7 @@ export const GuardDashboard = () => {
       if (recurringRes.success) setConfigs(recurringRes.data || []);
       if (assignRes.success) setSpecialAssignments(assignRes.data || []);
     } catch (e) {
+      console.log(e);
       dispatch(showToast({ message: 'Error de conexión', type: 'error' }));
     } finally {
       setLoading(false);
