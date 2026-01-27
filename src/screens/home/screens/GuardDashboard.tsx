@@ -7,6 +7,7 @@ import {
   Alert,
   Dimensions,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import {
   Text,
@@ -27,8 +28,14 @@ import {
   useCodeScanner,
 } from 'react-native-vision-camera';
 import { getMyRecurringAssignments } from '../../recurring/service/recurring.service';
+import {
+  startRound,
+  endRound,
+  getCurrentRound,
+} from '../../home/service/round.service';
 import { getMyAssignments } from '../../assignments/service/assignment.service';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../../core/store/redux.config';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { theme } from '../../../shared/theme/theme';
 
@@ -37,29 +44,97 @@ const { width } = Dimensions.get('window');
 export const GuardDashboard = () => {
   const navigation = useNavigation<any>();
   const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.userState);
   const isFocused = useIsFocused();
 
   const device = useCameraDevice('back');
   const [hasPermission, setHasPermission] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [roundLoading, setRoundLoading] = useState(false);
+  const [activeRound, setActiveRound] = useState<any>(null); // { id, startTime }
   const [configs, setConfigs] = useState<any[]>([]);
   const [specialAssignments, setSpecialAssignments] = useState<any[]>([]);
+
+  // Helper checks
+  const isRoundActive = activeRound && activeRound.status === 'IN_PROGRESS';
+  const isRoundCompleted = activeRound && activeRound.status === 'COMPLETED';
+  const isMyRound = isRoundActive && activeRound.guardId === user.id;
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [recurringRes, assignRes] = await Promise.all([
-        getMyRecurringAssignments(),
-        getMyAssignments(),
+      const [recurringRes, assignRes, roundRes] = await Promise.all([
+        getMyRecurringAssignments().catch(err => {
+          console.warn('Recurring Error:', err);
+          return { success: false, data: [] };
+        }),
+        getMyAssignments().catch(err => {
+          console.warn('Assignments Error:', err);
+          return { success: false, data: [] };
+        }),
+        getCurrentRound().catch(err => {
+          console.warn('Round Error:', err);
+          return { success: false, data: null };
+        }),
       ]);
-      if (recurringRes.success) setConfigs(recurringRes.data || []);
-      if (assignRes.success) setSpecialAssignments(assignRes.data || []);
+
+      // Safe assignments with Fallbacks
+      setConfigs(recurringRes?.data || []);
+      setSpecialAssignments(assignRes?.data || []);
+
+      // For round, we check if it is valid
+      if (roundRes?.success && roundRes.data) {
+        setActiveRound(roundRes.data);
+      } else {
+        setActiveRound(null);
+      }
     } catch (e) {
-      console.log(e);
+      console.log('Critical Error loading data:', e);
+      // Fallbacks are already handled by initial state
       dispatch(showToast({ message: 'Error de conexión', type: 'error' }));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleRound = async () => {
+    setRoundLoading(true);
+    try {
+      if (activeRound) {
+        if (activeRound.status === 'COMPLETED') {
+          return; // Should be disabled anyway, but safety check
+        }
+        // End Round
+        const res = await endRound(activeRound.id);
+        if (res.success) {
+          setActiveRound(res.data); // Update with completed data
+          dispatch(showToast({ message: 'Ronda finalizada', type: 'success' }));
+        } else {
+          const msg =
+            res.messages && res.messages.length > 0
+              ? res.messages[0]
+              : 'No se pudo finalizar la ronda';
+          Alert.alert('Error', msg);
+        }
+      } else {
+        // Start Round
+        const res = await startRound(Number(user.id));
+        if (res.success) {
+          setActiveRound(res.data);
+          dispatch(showToast({ message: 'Ronda iniciada', type: 'success' }));
+        } else {
+          const msg =
+            res.messages && res.messages.length > 0
+              ? res.messages[0]
+              : 'No se pudo iniciar la ronda';
+          Alert.alert('Error', msg);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Ocurrió un error inesperado');
+    } finally {
+      setRoundLoading(false);
     }
   };
 
@@ -84,7 +159,7 @@ export const GuardDashboard = () => {
     },
   });
 
-    const handleCodeScanned = (code: string) => {
+  const handleCodeScanned = (code: string) => {
     if (scanned) return;
     setScanned(true);
 
@@ -220,178 +295,318 @@ export const GuardDashboard = () => {
             </Text>
           </View>
         </View>
-        <View style={{ paddingBottom: 10 }}>
-          {item.recurringLocations.map((loc: any) => (
-            <View key={loc.id}>{renderLocationItem({ item: loc })}</View>
-          ))}
-        </View>
+
+        {/* MODIFIED: Show content only if activeRound is true */}
+        {activeRound && (
+          <View style={{ paddingBottom: 10 }}>
+            {item.recurringLocations.map((loc: any) => (
+              <View key={loc.id}>{renderLocationItem({ item: loc })}</View>
+            ))}
+          </View>
+        )}
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <View style={loading ? {
+        display: 'flex',
+              justifyContent:'center',
+              alignItems: 'center',
+              height: '100%'
+    } : styles.container}>
       <StatusBar barStyle="light-content" />
-
-      {/* ESCÁNER: DISEÑO MÁS AGRESIVO Y ÚTIL */}
-      <View style={styles.scannerContainer}>
-        {isFocused && (
-          <Camera
-            style={StyleSheet.absoluteFill}
-            device={device}
-            isActive={isFocused && !scanned}
-            codeScanner={codeScanner}
-          />
-        )}
-        <View style={styles.scanOverlay}>
-          <View style={styles.targetBox}>
-            <View
-              style={[
-                styles.corner,
-                { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4 },
-              ]}
-            />
-            <View
-              style={[
-                styles.corner,
-                { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4 },
-              ]}
-            />
-            <View
-              style={[
-                styles.corner,
-                {
-                  bottom: 0,
-                  left: 0,
-                  borderBottomWidth: 4,
-                  borderLeftWidth: 4,
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.corner,
-                {
-                  bottom: 0,
-                  right: 0,
-                  borderBottomWidth: 4,
-                  borderRightWidth: 4,
-                },
-              ]}
-            />
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.contentSheet}>
-        <View style={styles.dragIndicator} />
-
-        {/* BOTONES DE ACCIÓN: MÁS GRANDES PARA EL DEDO */}
-        <View style={styles.actionRow}>
-          <Button
-            mode="contained"
-            onPress={() => navigation.navigate('ASSIGNMENTS_STACK', { screen: 'INCIDENT_REPORT', params: { initialCategory: 'FALTAS' } })}
-            style={[styles.roundBtn, { backgroundColor: '#E53935' }]}
-            icon="alert-circle"
-          >
-            INCIDENCIA
-          </Button>
-          <Button
-            mode="contained"
-            onPress={() => navigation.navigate('ASSIGNMENTS_STACK', { screen: 'INCIDENT_REPORT', params: { initialCategory: 'FALTAS' } })}
-            style={[styles.roundBtn, { backgroundColor: '#FB8C00' }]}
-            icon="file-document"
-          >
-            MULTA
-          </Button>
-        </View>
-
-        <FlatList
-          data={configs}
-          renderItem={renderConfigSection}
-          keyExtractor={item => String(item.id)}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          refreshControl={
-            <RefreshControl refreshing={loading} onRefresh={loadData} />
-          }
-          ListHeaderComponent={
-            <>
-              {/* ASIGNACIONES ESPECIALES - SE MANTIENEN TODAS */}
-              {specialAssignments.length > 0 && (
-                <View style={styles.specialSection}>
-                  <View style={styles.listHeaderLeft}>
-                    <Icon source="star" size={20} color="#FBC02D" />
-                    <Text style={styles.sectionTitle}>
-                      ASIGNACIONES ESPECIALES
-                    </Text>
-                  </View>
-                  {specialAssignments.map(assignment => (
-                    <Card
-                      key={assignment.id}
-                      style={styles.specialCard}
-                      mode="contained"
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12 }}>
-                        <View style={{ flex: 1, marginRight: 8 }}>
-                            <Text style={styles.specialLocName} numberOfLines={1}>
-                              {assignment.location?.name}
-                            </Text>
-                            {assignment.notes && (
-                              <Text style={styles.specialNotes} numberOfLines={1}>
-                                "{assignment.notes}"
-                              </Text>
-                            )}
-                            <View style={styles.specialBadge}>
-                              <Text style={styles.specialBadgeText}>
-                                {assignment.tasks?.length || 0} TAREAS
-                              </Text>
-                            </View>
-                        </View>
-                        <Button
-                          mode="contained"
-                          onPress={() =>
-                            navigation.navigate('ASSIGNMENTS_STACK', {
-                              screen: 'ASSIGNMENT_SCAN',
-                              params: {
-                                targetLocation: assignment.location,
-                                assignmentId: assignment.id,
-                                tasks: assignment.tasks,
-                              },
-                            })
-                          }
-                          compact
-                          contentStyle={{ height: 36 }}
-                          style={{ borderRadius: 8 }}
-                          buttonColor="#FBC02D"
-                          textColor="#000"
-                          labelStyle={{ fontWeight: 'bold', fontSize: 12 }}
-                          icon="qrcode-scan"
-                        >
-                          ESCANEAR
-                        </Button>
-                      </View>
-                    </Card>
-                  ))}
+      <>
+        {loading ? (
+          <>
+            <ActivityIndicator 
+            size={50} color="#28c444ff" />
+          </>
+        ) : (
+          <>
+            <View style={styles.scannerContainer}>
+              {!activeRound || isRoundCompleted ? (
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    backgroundColor: '#111',
+                  }}
+                >
+                  <Icon source="lock-alert" size={48} color="#555" />
+                  <Text
+                    style={{
+                      color: '#777',
+                      marginTop: 16,
+                      fontWeight: 'bold',
+                      fontSize: 16,
+                      letterSpacing: 1,
+                    }}
+                  >
+                    {isMyRound
+                      ? isRoundCompleted
+                        ? 'RONDA COMPLETADA'
+                        : 'INICIA RONDA PARA HABILITAR'
+                      : configs.length > 0 ? 'RONDA YA TOMADA' : 'NO HAY RONDAS'}
+                  </Text>
                 </View>
+              ) : (
+                <>
+                  {isFocused && device && (
+                    <Camera
+                      style={StyleSheet.absoluteFill}
+                      device={device}
+                      isActive={isFocused && !scanned}
+                      codeScanner={codeScanner}
+                    />
+                  )}
+                  <View style={styles.scanOverlay}>
+                    <View style={styles.targetBox}>
+                      <View
+                        style={[
+                          styles.corner,
+                          {
+                            top: 0,
+                            left: 0,
+                            borderTopWidth: 4,
+                            borderLeftWidth: 4,
+                          },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.corner,
+                          {
+                            top: 0,
+                            right: 0,
+                            borderTopWidth: 4,
+                            borderRightWidth: 4,
+                          },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.corner,
+                          {
+                            bottom: 0,
+                            left: 0,
+                            borderBottomWidth: 4,
+                            borderLeftWidth: 4,
+                          },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.corner,
+                          {
+                            bottom: 0,
+                            right: 0,
+                            borderBottomWidth: 4,
+                            borderRightWidth: 4,
+                          },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                </>
               )}
-              <View style={styles.listHeaderLeft}>
-                <Icon
-                  source="clipboard-list"
-                  size={20}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.sectionTitle}>MIS RONDAS PENDIENTES</Text>
+            </View>
+
+            <View style={styles.contentSheet}>
+              <View style={styles.dragIndicator} />
+
+              {/* BOTONES DE ACCIÓN: RONDAS + INCIDENCIAS */}
+              <View style={styles.actionSection}>
+                <Button
+                  mode="contained"
+                  onPress={handleToggleRound}
+                  loading={roundLoading}
+                  disabled={
+                    configs.length === 0 ||
+                    isRoundCompleted || (isRoundActive && !isMyRound)}
+                  style={[
+                    styles.roundMainBtn,
+                    configs.length === 0 && { backgroundColor: '#757575', opacity: 0.8 },
+                    isRoundActive
+                      ? isMyRound
+                        ? { backgroundColor: '#D32F2F' }
+                        : { backgroundColor: '#1976D2', opacity: 0.8 }
+                      : isRoundCompleted
+                      ? { backgroundColor: '#757575', opacity: 0.8 }
+                      : { backgroundColor: '#2E7D32' },
+                  ]}
+                  contentStyle={{ height: 56 }}
+                  labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
+                  icon={
+                    isRoundActive
+                      ? isMyRound
+                        ? 'stop-circle-outline'
+                        : 'account-clock'
+                      : isRoundCompleted
+                      ? 'check-circle-outline'
+                      : 'play-circle-outline'
+                  }
+                >
+                  {isRoundActive
+                    ? isMyRound
+                      ? `TERMINAR RONDA (${new Date(
+                          activeRound.startTime,
+                        ).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })})`
+                      : `RONDA EN CURSO POR ${
+                          activeRound.guard?.name?.toUpperCase() ||
+                          'OTRO GUARDIA'
+                        }`
+                    : isRoundCompleted
+                    ? 'RONDA FINALIZADA HOY'
+                    : 'INICIAR RONDA'}
+                </Button>
+
+                <View style={styles.actionRow}>
+                  <Button
+                    mode="contained"
+                    onPress={() =>
+                      navigation.navigate('ASSIGNMENTS_STACK', {
+                        screen: 'INCIDENT_REPORT',
+                        params: { initialCategory: 'FALTAS' },
+                      })
+                    }
+                    style={[styles.roundBtn, { backgroundColor: '#E53935' }]}
+                    icon="alert-circle"
+                  >
+                    INCIDENCIA
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={() =>
+                      navigation.navigate('ASSIGNMENTS_STACK', {
+                        screen: 'INCIDENT_REPORT',
+                        params: { initialCategory: 'FALTAS' },
+                      })
+                    }
+                    style={[styles.roundBtn, { backgroundColor: '#FB8C00' }]}
+                    icon="file-document"
+                  >
+                    MULTA
+                  </Button>
+                </View>
               </View>
-            </>
-          }
-        />
-      </View>
+
+              <FlatList
+                data={configs}
+                renderItem={isMyRound ? renderConfigSection : () => <></>}
+                keyExtractor={item => String(item.id)}
+                contentContainerStyle={{ paddingBottom: 100 }}
+                refreshControl={
+                  <RefreshControl refreshing={loading} onRefresh={loadData} />
+                }
+                ListHeaderComponent={
+                  <>
+                    {/* ASIGNACIONES ESPECIALES - SE MANTIENEN TODAS */}
+                    {specialAssignments.length > 0 && (
+                      <View style={styles.specialSection}>
+                        <View style={styles.listHeaderLeft}>
+                          <Icon source="star" size={20} color="#FBC02D" />
+                          <Text style={styles.sectionTitle}>
+                            ASIGNACIONES ESPECIALES
+                          </Text>
+                        </View>
+                        {specialAssignments.map(assignment => (
+                          <Card
+                            key={assignment.id}
+                            style={styles.specialCard}
+                            mode="contained"
+                          >
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: 12,
+                              }}
+                            >
+                              <View style={{ flex: 1, marginRight: 8 }}>
+                                <Text
+                                  style={styles.specialLocName}
+                                  numberOfLines={1}
+                                >
+                                  {assignment.location?.name}
+                                </Text>
+                                {assignment.notes && (
+                                  <Text
+                                    style={styles.specialNotes}
+                                    numberOfLines={1}
+                                  >
+                                    "{assignment.notes}"
+                                  </Text>
+                                )}
+                                <View style={styles.specialBadge}>
+                                  <Text style={styles.specialBadgeText}>
+                                    {assignment.tasks?.length || 0} TAREAS
+                                  </Text>
+                                </View>
+                              </View>
+                              <Button
+                                mode="contained"
+                                onPress={() =>
+                                  navigation.navigate('ASSIGNMENTS_STACK', {
+                                    screen: 'ASSIGNMENT_SCAN',
+                                    params: {
+                                      targetLocation: assignment.location,
+                                      assignmentId: assignment.id,
+                                      tasks: assignment.tasks,
+                                    },
+                                  })
+                                }
+                                compact
+                                contentStyle={{ height: 36 }}
+                                style={{ borderRadius: 8 }}
+                                buttonColor="#FBC02D"
+                                textColor="#000"
+                                labelStyle={{
+                                  fontWeight: 'bold',
+                                  fontSize: 12,
+                                }}
+                                icon="qrcode-scan"
+                              >
+                                ESCANEAR
+                              </Button>
+                            </View>
+                          </Card>
+                        ))}
+                      </View>
+                    )}
+
+                    {isMyRound ? (
+                      <View style={styles.listHeaderLeft}>
+                        <Icon
+                          source="clipboard-list"
+                          size={20}
+                          color={theme.colors.primary}
+                        />
+                        <Text style={styles.sectionTitle}>
+                          MIS RONDAS PENDIENTES
+                        </Text>
+                      </View>
+                    ) : (
+                      <></>
+                    )}
+                  </>
+                }
+              />
+            </View>
+          </>
+        )}
+      </>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#ffffffff' },
 
   // Escáner
   scannerContainer: {
@@ -444,7 +659,17 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
 
-  actionRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  actionSection: {
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  roundMainBtn: {
+    borderRadius: 16,
+    marginBottom: 12,
+    justifyContent: 'center',
+    elevation: 4,
+  },
+  actionRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
   roundBtn: { flex: 1, borderRadius: 12, height: 48, justifyContent: 'center' },
 
   // Secciones

@@ -71,6 +71,9 @@ dependencies:
   react-native:
     specifier: 0.80.0
     version: 0.80.0(@babel/core@7.25.2)(@react-native-community/cli@19.0.0)(@types/react@19.1.0)(react@19.1.0)
+  react-native-compressor:
+    specifier: ^1.16.0
+    version: 1.16.0(react-native@0.80.0)(react@19.1.0)
   react-native-gesture-handler:
     specifier: 2.29.0
     version: 2.29.0(react-native@0.80.0)(react@19.1.0)
@@ -6676,6 +6679,17 @@ packages:
 
   /react-is@19.2.3:
     resolution: {integrity: sha512-qJNJfu81ByyabuG7hPFEbXqNcWSU3+eVus+KJs+0ncpGfMyYdvSmxiJxbWR65lYi1I+/0HBcliO029gc4F+PnA==}
+
+  /react-native-compressor@1.16.0(react-native@0.80.0)(react@19.1.0):
+    resolution: {integrity: sha512-yBJ1j/ank4Ckx/0cKf8QiK1oATppxN8GuNBoW6P83Os7s7MUdCLzVmIXX0ikkusdrgdCaetW6j3hH2eMI54pcw==}
+    engines: {node: '>= 16.0.0'}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
+    dependencies:
+      react: 19.1.0
+      react-native: 0.80.0(@babel/core@7.25.2)(@react-native-community/cli@19.0.0)(@types/react@19.1.0)(react@19.1.0)
+    dev: false
 
   /react-native-drawer-layout@4.2.1(react-native-gesture-handler@2.29.0)(react-native-reanimated@4.2.0)(react-native@0.80.0)(react@19.1.0):
     resolution: {integrity: sha512-liwRJ7ynRU/ogRlUdiK1Yoi1VzUSq2Vu/RU+UgqlMB3XduslZ1DZg/mTX0f1uCEV2dJ4ec+1fRa3OlIierfyZg==}

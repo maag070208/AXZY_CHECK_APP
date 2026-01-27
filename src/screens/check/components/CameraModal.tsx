@@ -17,6 +17,7 @@ export const CameraModal = ({ visible, onDismiss, onCapture, mode, maxDuration =
   
   const format = useCameraFormat(device, [
     { videoResolution: { width: 640, height: 480 } },
+    { photoResolution: { width: 1280, height: 720 } },
     { fps: 30 }
   ]);
 

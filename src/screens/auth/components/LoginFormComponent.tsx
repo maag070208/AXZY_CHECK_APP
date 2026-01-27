@@ -40,7 +40,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
 
   const initialValues: LoginFormComponentValues = {
     username: '',
-    password: '',
+    password: 'user123',
   };
 
   return (

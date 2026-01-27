@@ -31,7 +31,7 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1 }} edges={['top', 'right', 'left']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} edges={['top', 'right', 'left']}>
           <Provider store={store}>
             <PersistGate persistor={persistored} loading={null}>
               <PaperProvider theme={themePaper}>

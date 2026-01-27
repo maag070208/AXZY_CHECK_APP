@@ -1,9 +1,32 @@
 import { API_CONSTANTS } from '../../core/constants/API_CONSTANTS';
 import { store } from '../../core/store/redux.config';
+import { Image, Video } from 'react-native-compressor';
 
 export const uploadFile = async (uri: string, type: 'video' | 'image', locationName: string = 'unknown'): Promise<{ success: boolean; url?: string; error?: string }> => {
+  let uploadUri = uri;
+
+  try {
+    console.log(`Starting compression for ${type}...`, { originalUri: uri });
+    if (type === 'image') {
+      const compressedUri = await Image.compress(uri, {
+        compressionMethod: 'manual',
+        maxWidth: 1024,
+        quality: 0.8,
+      });
+      uploadUri = compressedUri;
+    } else if (type === 'video') {
+      const compressedUri = await Video.compress(uri, {
+        compressionMethod: 'auto',
+      });
+      uploadUri = compressedUri;
+    }
+    console.log('Compression successful', { originalUri: uri, compressedUri: uploadUri });
+  } catch (error) {
+    console.warn('Compression failed, falling back to original file', error);
+  }
+
   const formData = new FormData();
-  const filename = uri.split('/').pop() || (type === 'video' ? 'video.mp4' : 'image.jpg');
+  const filename = uploadUri.split('/').pop() || (type === 'video' ? 'video.mp4' : 'image.jpg');
   
   // Robust mime type detection
   let mimeType = type === 'video' ? 'video/mp4' : 'image/jpeg';
@@ -13,11 +36,11 @@ export const uploadFile = async (uri: string, type: 'video' | 'image', locationN
       mimeType = 'image/png';
   }
 
-  console.log('Starting upload (fetch)...', { uri, filename, mimeType, locationName });
+  console.log('Starting upload (fetch)...', { uri: uploadUri, filename, mimeType, locationName });
 
   formData.append('location', locationName);
   formData.append('file', {
-    uri,
+    uri: uploadUri,
     name: filename,
     type: mimeType,
   } as any);

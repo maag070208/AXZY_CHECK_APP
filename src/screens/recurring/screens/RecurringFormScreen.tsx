@@ -78,12 +78,13 @@ export const RecurringFormScreen = () => {
         const newLoc: ILocationCreate = {
             locationId: selectedLocationId,
             locationName: name,
-            tasks: [{ description: '', reqPhoto: false }]
+            tasks: [] // Initialize with 0 tasks
         };
 
         setAddedLocations([...addedLocations, newLoc]);
         setSelectedLocationId(null);
     };
+    
 
     const removeLocation = (index: number) => {
         Alert.alert(
@@ -112,12 +113,9 @@ export const RecurringFormScreen = () => {
 
     const removeTaskFromLocation = (locIndex: number, taskIndex: number) => {
         const list = [...addedLocations];
-        if (list[locIndex].tasks.length > 1) {
-            list[locIndex].tasks.splice(taskIndex, 1);
-            setAddedLocations(list);
-        } else {
-            Alert.alert("Mínimo una tarea", "Cada ubicación debe tener al menos una tarea.");
-        }
+        // Allow removing the last task
+        list[locIndex].tasks.splice(taskIndex, 1);
+        setAddedLocations(list);
     };
 
     const updateTask = (locIndex: number, taskIndex: number, field: keyof ITaskCreate, value: any) => {
@@ -139,11 +137,9 @@ export const RecurringFormScreen = () => {
         
         const cleanLocations: ILocationCreate[] = [];
         for (const loc of addedLocations) {
+            // Filter out empty descriptions, but allow empty task list
             const validTasks = loc.tasks.filter(t => t.description.trim().length > 0);
-            if (validTasks.length === 0) {
-                 Alert.alert("Tareas vacías", `La ubicación "${loc.locationName}" no tiene tareas válidas.`);
-                 return;
-            }
+            // Removed check for validTasks.length === 0
             cleanLocations.push({ ...loc, tasks: validTasks });
         }
 

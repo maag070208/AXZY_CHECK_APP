@@ -98,7 +98,7 @@ const DrawerContent = ({ navigation }: { navigation: any }) => {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container]}>
       {/* ================= HEADER ================= */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
