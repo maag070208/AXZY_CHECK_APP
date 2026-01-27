@@ -59,7 +59,7 @@ export const GuardDashboard = () => {
   // Helper checks
   const isRoundActive = activeRound && activeRound.status === 'IN_PROGRESS';
   const isRoundCompleted = activeRound && activeRound.status === 'COMPLETED';
-  const isMyRound = isRoundActive && activeRound.guardId === user.id;
+  const isMyRound = isRoundActive && Number(activeRound.guardId) === Number(user.id);
 
   const loadData = async () => {
     setLoading(true);
@@ -355,7 +355,7 @@ export const GuardDashboard = () => {
                 <>
                   {isFocused && device && (
                     <Camera
-                      style={StyleSheet.absoluteFill}
+                      style={[StyleSheet.absoluteFill]}
                       device={device}
                       isActive={isFocused && !scanned}
                       codeScanner={codeScanner}
@@ -613,6 +613,8 @@ const styles = StyleSheet.create({
     height: '35%',
     backgroundColor: '#000',
     marginBottom: 10,
+    overflow: 'hidden',
+    position: 'relative',
   },
   scanOverlay: {
     ...StyleSheet.absoluteFillObject,
