@@ -17,7 +17,7 @@ export const CheckStack = () => {
           header: () => (
             <HeaderBack
               navigation={navigation}
-              title="Reporte de Verificación 2"
+              title="Reporte de Verificación"
               back={true}
             />
           ),

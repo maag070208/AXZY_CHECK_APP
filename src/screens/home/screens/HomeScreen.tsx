@@ -4,53 +4,88 @@ import { HomeItemComponent } from '../components/HomeItemComponent';
 import { UserRole } from '../../../core/types/IUser';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
-
-const MODULES = [
-  {
-    id: 'locations',
-    label: 'Ubicaciones',
-    icon: 'map-marker-outline',
-    stack: 'LOCATIONS_STACK',
-    screen: 'LOCATIONS_MAIN',
-    color: '#1565c0', // Azul profesional
-    gradient: ['#1565c0', '#42a5f5'],
-    roles: [UserRole.ADMIN, UserRole.SHIFT_GUARD]
-  },
-  {
-    id: 'guards',
-    label: 'Guardias',
-    icon: 'account-group',
-    stack: 'GUARDS_STACK',
-    screen: 'GUARD_LIST',
-    color: '#7b1fa2', // Purple
-    gradient: ['#7b1fa2', '#9c27b0'],
-    roles: [UserRole.ADMIN, UserRole.SHIFT_GUARD]
-  },
-  {
-    id: 'assignments',
-    label: 'Mis Asignaciones',
-    icon: 'clipboard-list-outline',
-    stack: 'ASSIGNMENTS_STACK',
-    screen: 'MY_ASSIGNMENTS_MAIN',
-    color: '#e65100', // Orange
-    gradient: ['#e65100', '#ff9800'],
-    roles: [UserRole.GUARD, UserRole.SHIFT_GUARD]
-  },
-  {
-    id: 'users',
-    label: 'Usuarios',
-    icon: 'account-plus',
-    stack: 'USERS_STACK',
-    screen: 'USER_LIST',
-    color: '#0288d1', // Light Blue
-    gradient: ['#0288d1', '#03a9f4'],
-    roles: [UserRole.ADMIN]
-  }
-];
+import { GuardDashboard } from './GuardDashboard';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useState } from 'react';
+import { getPendingIncidentsCount } from '../../assignments/service/incident.service';
 
 export const HomeScreen = () => {
   const user = useSelector((state: RootState) => state.userState);
+  const [pendingIncidents, setPendingIncidents] = useState(0);
   
+  // If user is GUARD or SHIFT_GUARD, show Dashboard directly
+  if (user.role === UserRole.GUARD || user.role === UserRole.SHIFT_GUARD) {
+      return <GuardDashboard />;
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadCount = async () => {
+        if (user.role === UserRole.ADMIN) {
+          const res = await getPendingIncidentsCount();
+          if (res.success && res.data) {
+             setPendingIncidents((res.data as any).count);
+          }
+        }
+      };
+      loadCount();
+    }, [user.role])
+  );
+
+  const MODULES = [
+    {
+      id: 'incidents',
+      label: 'Incidencias',
+      icon: 'alert-circle-outline',
+      stack: 'INCIDENTS_STACK',
+      screen: 'INCIDENT_LIST', 
+      color: '#d32f2f', // Red for alerts
+      gradient: ['#d32f2f', '#ef5350'],
+      roles: [UserRole.ADMIN],
+      badge: pendingIncidents > 0 ? pendingIncidents : undefined
+    },
+    {
+      id: 'locations',
+      label: 'Ubicaciones',
+      icon: 'map-marker-outline',
+      stack: 'LOCATIONS_STACK',
+      screen: 'LOCATIONS_MAIN',
+      color: '#1565c0', // Azul profesional
+      gradient: ['#1565c0', '#42a5f5'],
+      roles: [UserRole.ADMIN, UserRole.SHIFT_GUARD]
+    },
+    {
+      id: 'guards',
+      label: 'Guardias',
+      icon: 'account-group',
+      stack: 'GUARDS_STACK',
+      screen: 'GUARD_LIST',
+      color: '#7b1fa2', // Purple
+      gradient: ['#7b1fa2', '#9c27b0'],
+      roles: [UserRole.ADMIN, UserRole.SHIFT_GUARD]
+    },
+    {
+      id: 'users',
+      label: 'Usuarios',
+      icon: 'account-plus',
+      stack: 'USERS_STACK',
+      screen: 'USER_LIST',
+      color: '#0288d1', // Light Blue
+      gradient: ['#0288d1', '#03a9f4'],
+      roles: [UserRole.ADMIN]
+    },
+    {
+      id: 'recurring',
+      label: 'Rondas',
+      icon: 'clipboard-clock-outline',
+      stack: 'RECURRING_STACK',
+      screen: 'RECURRING_LIST',
+      color: '#0288d1', // Light Blue
+      gradient: ['#0288d1', '#03a9f4'],
+      roles: [UserRole.ADMIN, UserRole.SHIFT_GUARD]
+    },
+  ];
+
   const filteredModules = MODULES.filter(m => m.roles.includes(user.role as UserRole));
 
   return (
@@ -68,6 +103,7 @@ export const HomeScreen = () => {
             screen={item.screen}
             color={item.color}
             gradient={item.gradient}
+            badge={item.badge}
           />
         )}
         columnWrapperStyle={styles.row}

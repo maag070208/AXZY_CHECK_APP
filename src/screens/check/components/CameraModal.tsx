@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { IconButton, Modal, Portal, Text } from 'react-native-paper';
-import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import { Camera, useCameraDevice, useCameraFormat } from 'react-native-vision-camera';
 import { APP_SETTINGS } from '../../../core/constants/APP_SETTINGS';
 
 interface Props {
@@ -9,10 +9,18 @@ interface Props {
   onDismiss: () => void;
   onCapture: (file: { uri: string; type: 'video' | 'photo' }) => void;
   mode: 'video' | 'photo';
+  maxDuration?: number;
 }
 
-export const CameraModal = ({ visible, onDismiss, onCapture, mode }: Props) => {
+export const CameraModal = ({ visible, onDismiss, onCapture, mode, maxDuration = APP_SETTINGS.VIDEO_DURATION_LIMIT }: Props) => {
   const device = useCameraDevice('back');
+  
+  const format = useCameraFormat(device, [
+    { videoResolution: { width: 640, height: 480 } },
+    { photoResolution: { width: 1280, height: 720 } },
+    { fps: 30 }
+  ]);
+
   const camera = useRef<Camera>(null);
   const [recording, setRecording] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -64,7 +72,7 @@ export const CameraModal = ({ visible, onDismiss, onCapture, mode }: Props) => {
     if (recording) {
       interval = setInterval(() => {
         setDuration((prev) => {
-          if (prev >= APP_SETTINGS.VIDEO_DURATION_LIMIT) {
+          if (prev >= maxDuration) {
             stopRecording();
             return prev;
           }
@@ -133,6 +141,7 @@ export const CameraModal = ({ visible, onDismiss, onCapture, mode }: Props) => {
             ref={camera}
             style={StyleSheet.absoluteFill}
             device={device}
+            format={format}
             isActive={visible}
             photo={mode === 'photo'}
             video={mode === 'video'}
@@ -158,7 +167,7 @@ export const CameraModal = ({ visible, onDismiss, onCapture, mode }: Props) => {
              
              {mode === 'video' && (
                  <View style={styles.timer}>
-                     <Text style={styles.timerText}>{duration}s / {APP_SETTINGS.VIDEO_DURATION_LIMIT}s</Text>
+                     <Text style={styles.timerText}>{duration}s / {maxDuration}s</Text>
                  </View>
              )}
           </View>
@@ -197,14 +206,14 @@ const styles = StyleSheet.create({
     borderColor: 'white',
   },
   timer: {
-      position: 'absolute',
-      top: -100,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      padding: 10,
-      borderRadius: 8,
+    position: 'absolute',
+    top: -100,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 10,
+    borderRadius: 8,
   },
   timerText: {
-      color: 'white',
-      fontWeight: 'bold',
+    color: 'white',
+    fontWeight: 'bold',
   }
 });

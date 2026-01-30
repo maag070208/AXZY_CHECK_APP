@@ -13,12 +13,18 @@ interface Task {
 interface Props {
     tasks: Task[];
     onTaskToggle: (taskId: number) => void;
+    isLocalOnly?: boolean;
 }
 
-export const TaskChecklist = ({ tasks, onTaskToggle }: Props) => {
+export const TaskChecklist = ({ tasks, onTaskToggle, isLocalOnly }: Props) => {
     const [toggling, setToggling] = useState<number | null>(null);
 
     const handleToggle = async (taskId: number) => {
+        if (isLocalOnly) {
+            onTaskToggle(taskId);
+            return;
+        }
+
         setToggling(taskId);
         try {
             await toggleTask(taskId);

@@ -20,6 +20,8 @@ registerTranslation('es', es);
 // SAFE AREA
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { StatusBar } from 'react-native';
+
 function App() {
   const persistored = persistStore(store);
 
@@ -31,7 +33,13 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1 }} edges={['top', 'right', 'left']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} edges={['top','right', 'left']}>
+          {/* Agrega StatusBar con fondo blanco */}
+          <StatusBar
+            barStyle="dark-content" // o "light-content" dependiendo de tu diseño
+            backgroundColor="white"
+            translucent={false}
+          />
           <Provider store={store}>
             <PersistGate persistor={persistored} loading={null}>
               <PaperProvider theme={themePaper}>

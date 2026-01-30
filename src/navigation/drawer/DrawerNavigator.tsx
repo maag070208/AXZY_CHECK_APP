@@ -10,6 +10,8 @@ import TabNavigator from '../tabs/TabNavigator';
 import DrawerContent from './DrawerContent';
 import { ProfileScreen } from '../../screens/profile/ProfileScreen';
 import { CheckStack } from '../../screens/check/stack/CheckStack';
+import { RecurringStack } from '../../screens/recurring/stack/RecurringStack';
+import { IncidentsStack } from '../../screens/assignments/stack/IncidentsStack';
 
 const Drawer = createDrawerNavigator();
 
@@ -98,6 +100,23 @@ const DrawerNavigator = () => {
         component={ProfileScreen}
         options={{
           drawerItemStyle: { display: 'none' },
+        }}
+      />
+
+      <Drawer.Screen
+        name="RECURRING_STACK"
+        component={RecurringStack}
+        options={({ route }) => ({
+            swipeEnabled: false, 
+            drawerItemStyle: { display: 'none' } 
+        })}
+      />
+
+      <Drawer.Screen
+        name="INCIDENTS_STACK"
+        component={IncidentsStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
         }}
       />
     </Drawer.Navigator>

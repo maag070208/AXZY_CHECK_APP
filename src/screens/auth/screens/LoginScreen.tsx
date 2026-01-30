@@ -26,13 +26,21 @@ const LoginScreen: React.FC = () => {
   const { loading } = useAppSelector(state => state.loaderState);
 
   const handleLogin = async (values: LoginFormComponentValues) => {
-    try {
       console.log('Login submit:', values);
       dispatch(showLoader(true));
-      const response = await loginService(
+      const response:any = await loginService(
         values.username,
         values.password,
-      ).finally(() => {
+      )
+      .catch(error => {
+        dispatch(showLoader(false));
+        return {
+          success: false,
+          data: null,
+          message: error.messages[0] || 'Error al inciar sesion',
+        };
+      })
+      .finally(() => {
         dispatch(showLoader(false));
       });
       console.log('Login response:', response);
@@ -44,19 +52,14 @@ const LoginScreen: React.FC = () => {
             message: 'Inicio de sesión exitoso',
           }),
         );
-      } else {
+      }else{
         dispatch(
           showToast({
             type: 'error',
-            message: 'Error en el inicio de sesión',
+            message: response.message,
           }),
         );
       }
-    } catch (error) {
-      console.error('Error en login:', error);
-      dispatch(showToast({ type: 'error', message: 'Error en el inicio de sesión' }));
-      dispatch(showLoader(false));
-    }
   };
 
   return (

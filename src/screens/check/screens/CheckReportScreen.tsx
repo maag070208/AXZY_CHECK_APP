@@ -1,22 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Image, Linking, TouchableOpacity, Dimensions } from 'react-native';
-import { Text, Button, TextInput, ActivityIndicator, IconButton, ProgressBar, Portal, Dialog, Surface } from 'react-native-paper';
-import { useSelector } from 'react-redux';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  Image,
+  Linking,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
+import {
+  Text,
+  Button,
+  TextInput,
+  ActivityIndicator,
+  IconButton,
+  ProgressBar,
+  Portal,
+  Dialog,
+  Surface,
+} from 'react-native-paper';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { uploadFile } from '../../../shared/service/upload.service';
 import { CameraModal } from '../components/CameraModal';
 import { registerCheck, updateCheck } from '../service/check.service';
 import Geolocation from '@react-native-community/geolocation';
-import { Platform, PermissionsAndroid } from 'react-native';
-import { getAllAssignments, updateAssignmentStatus } from '../../assignments/service/assignment.service';
+import { Platform, PermissionsAndroid, BackHandler } from 'react-native';
+import {
+  getAllAssignments,
+  updateAssignmentStatus,
+} from '../../assignments/service/assignment.service';
 import { TaskChecklist } from '../components/TaskChecklist';
+import { showToast } from '../../../core/store/slices/toast.slice';
 
 const { width } = Dimensions.get('window');
 
 export const CheckReportScreen = ({ route, navigation }: any) => {
   const { location, assignmentId } = route.params;
   const user = useSelector((state: RootState) => state.userState);
-  
+  const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [photos, setPhotos] = useState<any[]>([]);
   const [video, setVideo] = useState<any | null>(null);
@@ -30,179 +53,239 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
 
   useEffect(() => {
     initReport();
-    if (assignmentId) {
-        loadAssignmentTasks();
+    
+    // Prioritize passed tasks (e.g. from Recurring)
+    if (route.params.recurringTasks) {
+        setTasks(route.params.recurringTasks);
+    } else if (assignmentId) {
+      loadAssignmentTasks();
     }
   }, []);
 
   const loadAssignmentTasks = async () => {
     try {
-        const res = await getAllAssignments({ id: assignmentId });
-        if (res.success && res.data && res.data.length > 0) {
-            setTasks(res.data[0].tasks || []);
-        }
+      const res = await getAllAssignments({ id: assignmentId });
+      if (res.success && res.data && res.data.length > 0) {
+        setTasks(res.data[0].tasks || []);
+      }
     } catch (e) {
-        console.error("Error loading tasks", e);
+      console.error('Error loading tasks', e);
     }
   };
 
   const handleTaskToggle = (taskId: number) => {
-      setTasks(current => current.map(t => 
-          t.id === taskId ? { ...t, completed: !t.completed } : t
-      ));
+    setTasks(current =>
+      current.map(t =>
+        t.id === taskId ? { ...t, completed: !t.completed } : t,
+      ),
+    );
   };
 
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') {
-        Geolocation.requestAuthorization();
-        return true;
+      Geolocation.requestAuthorization();
+      return true;
     }
     try {
-        const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-            {
-                title: "Permiso de Ubicación",
-                message: "Necesitamos acceder a tu ubicación para el reporte.",
-                buttonNeutral: "Preguntar Luego",
-                buttonNegative: "Cancelar",
-                buttonPositive: "OK"
-            }
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Permiso de Ubicación',
+          message: 'Necesitamos acceder a tu ubicación para el reporte.',
+          buttonNeutral: 'Preguntar Luego',
+          buttonNegative: 'Cancelar',
+          buttonPositive: 'OK',
+        },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (err) {
-        console.warn(err);
-        return false;
+      console.warn(err);
+      return false;
     }
   };
 
-  const getCurrentLocation = (): Promise<{lat: number, lng: number} | null> => {
-      return new Promise((resolve) => {
-          Geolocation.getCurrentPosition(
-              (position) => {
-                  resolve({
-                      lat: position.coords.latitude,
-                      lng: position.coords.longitude
-                  });
-              },
-              (error) => {
-                  console.log("Location Error:", error);
-                  resolve(null);
-              },
-              { enableHighAccuracy: false, timeout: 5000, maximumAge: 10000 }
-          );
-      });
+  const getCurrentLocation = (): Promise<{
+    lat: number;
+    lng: number;
+  } | null> => {
+    return new Promise(resolve => {
+      Geolocation.getCurrentPosition(
+        position => {
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        error => {
+          console.log('Location Error:', error);
+          resolve(null);
+        },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 10000 },
+      );
+    });
   };
 
   const initReport = async () => {
-      try {
-          const hasPermission = await requestLocationPermission();
-          let coords = null;
-          if (hasPermission) {
-              coords = await getCurrentLocation();
-          }
-
-          // Create draft with empty notes
-          const res = await registerCheck(
-              location.id, 
-              Number(user.id), 
-              "", 
-              [], 
-              coords?.lat, 
-              coords?.lng,
-              route.params.assignmentId // Pass Assignment ID
-          );
-          
-          // Check if res.data has the id (based on log: res.data.id exists)
-          if (res.success && res.data?.id) {
-              setCurrentKardexId(res.data.id);
-          } else {
-              Alert.alert("Error", "No se pudo iniciar el reporte. Intenta de nuevo.", [
-                  { text: 'Salir', onPress: () => navigation.goBack() }
-              ]);
-          }
-      } catch (e) {
-        console.log(e);
-          Alert.alert("Error de Conexión", "Revisa tu internet.");
+    try {
+      const hasPermission = await requestLocationPermission();
+      let coords = null;
+      if (hasPermission) {
+        coords = await getCurrentLocation();
       }
+
+      // Create draft with empty notes
+      const res = await registerCheck(
+        location.id,
+        Number(user.id),
+        '',
+        [],
+        coords?.lat,
+        coords?.lng,
+        route.params.assignmentId, // Pass Assignment ID
+      );
+
+      // Check if res.data has the id (based on log: res.data.id exists)
+      // NOTE: check.service returns { success: true, data: response.data }. 
+      // If response.data is the entity, then res.data.id is correct.
+      if (res.success && res.data) {
+        console.log("Kardex Created:", res.data);
+        setCurrentKardexId(res.data.id);
+      } else {
+        Alert.alert(
+          'Error',
+          'No se pudo iniciar el reporte. Intenta de nuevo.',
+          [{ text: 'Salir', onPress: () => navigation.goBack() }],
+        );
+      }
+    } catch (e) {
+      console.log(e);
+      Alert.alert('Error de Conexión', 'Revisa tu internet.');
+    }
   };
 
   const syncMedia = async (updatedPhotos: any[], updatedVideo: any | null) => {
-      if (!currentKardexId) return;
-      
-      const mediaToSend: any[] = [];
-      
-      // Photos
-      updatedPhotos.forEach(p => {
-          if (p.url) mediaToSend.push({ type: 'IMAGE', url: p.url, description: p.description || '' });
+    if (!currentKardexId) return;
+
+    const mediaToSend: any[] = [];
+
+    // Photos
+    updatedPhotos.forEach(p => {
+      if (p.url)
+        mediaToSend.push({
+          type: 'IMAGE',
+          url: p.url,
+          description: p.description || '',
+        });
+    });
+
+    // Video
+    if (updatedVideo?.url) {
+      mediaToSend.push({
+        type: 'VIDEO',
+        url: updatedVideo.url,
+        description: 'Video de reporte',
       });
+    }
 
-      // Video
-      if (updatedVideo?.url) {
-          mediaToSend.push({ type: 'VIDEO', url: updatedVideo.url, description: 'Video de reporte' });
-      }
-
-      try {
-          await updateCheck(currentKardexId, undefined, mediaToSend);
-      } catch (e) {
-          console.log("Error syncing media", e);
-      }
+    try {
+      await updateCheck(currentKardexId, undefined, mediaToSend);
+    } catch (e) {
+      console.log('Error syncing media', e);
+    }
   };
 
   // Lógica se mantiene igual...
-  const handleCapture = async (file: { uri: string; type: 'video' | 'photo' }) => {
+  const handleCapture = async (file: {
+    uri: string;
+    type: 'video' | 'photo';
+  }) => {
     if (file.type === 'video') {
-        setVideo({ uri: file.uri, uploading: true });
-        await performVideoUpload(file.uri);
+      setVideo({ uri: file.uri, uploading: true });
+      await performVideoUpload(file.uri);
     } else {
-        const newPhoto = { uri: file.uri, description: tempDescription, uploading: true };
-        setPhotos(prev => [...prev, newPhoto]);
-        await performPhotoUpload(newPhoto);
+      const newPhoto = {
+        uri: file.uri,
+        description: tempDescription,
+        uploading: true,
+      };
+      setPhotos(prev => [...prev, newPhoto]);
+      await performPhotoUpload(newPhoto);
     }
   };
 
   const onDescriptionConfirmed = () => {
-      // Empty description is now allowed
-      setShowDescDialog(false);
-      setTimeout(() => { setCameraMode('photo'); setCameraVisible(true); }, 500);
+    // Empty description is now allowed
+    setShowDescDialog(false);
+    setTimeout(() => {
+      setCameraMode('photo');
+      setCameraVisible(true);
+    }, 500);
   };
 
   const performVideoUpload = async (uri: string) => {
     try {
-      const res = await uploadFile(uri, 'video');
-      const newVideo = res.success ? { ...video, uri: uri, url: res.url, uploading: false, error: false } : { ...video, uri: uri, uploading: false, error: true };
-      
-      setVideo((prev: any) => newVideo);
-      
-      if (res.success) {
-          // Sync with existing photos
-          syncMedia(photos, newVideo);
-      }
+      const res: any = await uploadFile(uri, 'video', location?.name).catch(
+        e => {
+          return { success: false, error: e.message };
+        },
+      );
 
-    } catch (e) { setVideo((prev: any) => ({ ...prev, uploading: false, error: true })); }
+      if (!res.success) {
+        dispatch(
+          showToast({ message: 'Error al subir el video', type: 'error' }),
+        );
+        return;
+      } else {
+        dispatch(
+          showToast({ message: 'Video subido correctamente', type: 'success' }),
+        );
+        const newVideo = res.success
+          ? { ...video, uri: uri, url: res.url, uploading: false, error: false }
+          : { ...video, uri: uri, uploading: false, error: true };
+
+        setVideo((prev: any) => newVideo);
+
+        syncMedia(photos, newVideo);
+      }
+    } catch (e) {
+      setVideo((prev: any) => ({ ...prev, uploading: false, error: true }));
+    }
   };
 
   const performPhotoUpload = async (photo: any) => {
     try {
-        const res = await uploadFile(photo.uri, 'image');
-        
+      const res: any = await uploadFile(
+        photo.uri,
+        'image',
+        location?.name,
+      ).catch(e => {
+        console.log('Error uploading photo', e);
+        return { success: false, error: e.message };
+      });
+
+      if (!res.success) {
+        dispatch(
+          showToast({ message: 'Error al subir la foto', type: 'error' }),
+        );
+        return;
+      } else {
+        dispatch(
+          showToast({ message: 'Foto subida correctamente', type: 'success' }),
+        );
         let updatedPhotos: any[] = [];
         setPhotos(current => {
-            updatedPhotos = current.map(p => p.uri === photo.uri ? 
-                { ...p, url: res.url, uploading: false, error: !res.success } : p);
-            return updatedPhotos;
+          updatedPhotos = current.map(p =>
+            p.uri === photo.uri
+              ? { ...p, url: res.url, uploading: false, error: !res.success }
+              : p,
+          );
+          return updatedPhotos;
         });
-
-        if (res.success) {
-            // Wait a tick for state update or use local var
-            // We need the *latest* state including this new photo.
-            // Since setPhotos is async, we use the local calculated variable for logic, 
-            // but we need to merge it with other potential updates if we were truly concurrent.
-            // For now, re-calculating based on current + this update is safer for the sync call.
-             
-            // We pass the calculated array directly
-            syncMedia(updatedPhotos, video);
-        }
-    } catch (e) { /* error */ }
+        syncMedia(updatedPhotos, video);
+      }
+    } catch (e) {
+      /* error */
+    }
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -211,223 +294,401 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     syncMedia(newPhotos, video);
   };
 
+  // Handle Back Navigation
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <IconButton
+          icon="arrow-left"
+          iconColor="#1A1C3D"
+          size={24}
+          onPress={handleBackPress}
+        />
+      ),
+    });
+  }, [navigation, currentKardexId, photos]); // Deps might need refinement based on when we want to warn
+
+  const handleBackPress = () => {
+      // IF report is started (id exists) but not finished, warn user
+      Alert.alert(
+          '¿Salir del reporte?',
+          'Si sales ahora, deberás escanear nuevamente para iniciar otro reporte. (Las evidencias subidas se conservan en el servidor)',
+          [
+              { text: 'Cancelar', style: 'cancel' },
+              { text: 'Salir', style: 'destructive', onPress: () => navigation.goBack() }
+          ]
+      );
+      return true;
+  };
+
+  // Android Back Button
+  useEffect(() => {
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+      return () => backHandler.remove();
+  }, []);
+
+
   const handleSubmit = async () => {
     if (loading || !currentKardexId) return;
 
     if (photos.length < 2) {
-        Alert.alert("Requisito", "Debes agregar al menos 2 fotos.");
-        return;
+      Alert.alert('Requisito', 'Debes agregar al menos 2 fotos.');
+      return;
     }
 
     // CHECK TASKS COMPLETION
     if (assignmentId && tasks.length > 0) {
-        const pendingTasks = tasks.filter(t => !t.completed);
-        if (pendingTasks.length > 0) {
-            Alert.alert("Tareas Pendientes", `Tienes ${pendingTasks.length} tarea(s) sin completar. Debes completarlas todas.`);
-            return;
-        }
+      const pendingTasks = tasks.filter(t => !t.completed);
+      if (pendingTasks.length > 0) {
+        Alert.alert(
+          'Tareas Pendientes',
+          `Tienes ${pendingTasks.length} tarea(s) sin completar. Debes completarlas todas.`,
+        );
+        return;
+      }
     }
-    
+
+    // Check for mandatory video
+    if (!video || !video.url || video.error) {
+      Alert.alert('Requisito', 'El video de evidencia es obligatorio y debe haberse subido correctamente.');
+      return;
+    }
+
     // Check pending uploads
     const pending = photos.some(p => p.uploading) || video?.uploading;
     if (pending) {
-        Alert.alert("Espera", "Por favor espera a que terminen de subir los archivos.");
-        return;
+      Alert.alert(
+        'Espera',
+        'Por favor espera a que terminen de subir los archivos.',
+      );
+      return;
     }
 
     setLoading(true);
 
     try {
-        // Final update with notes
-        const res = await updateCheck(currentKardexId, notes || "Reporte completado");
-        
-        if (res.success) {
-            
-            // IF ASSIGNMENT, UPDATE STATUS TO UNDER_REVIEW
-            if (assignmentId) {
-                try {
-                    await updateAssignmentStatus(assignmentId, 'UNDER_REVIEW' as any); // TODO: Import Enum
-                } catch (assignError) {
-                   console.error("Error updating assignment status", assignError);
-                   // Continue to exit, but maybe warn? For now assume it works or is secondary.
-                }
-            }
+      // PERMANENT STORAGE FOR RECURRING TASKS
+      // Since recurring tasks don't have a DB table for completion, we save them as text in notes.
+      let finalNotes = notes;
+      
+      console.log('Validating recurring tasks save:', { assignmentId, tasksLen: tasks.length });
 
-            Alert.alert("Reporte Completado", "La información se ha guardado.", [
-                 { 
-                    text: "OK", 
-                onPress: () => {
-                   // Ensure we navigate back to the Tabs, then to HomeStack
-                   navigation.navigate('Tabs', {
-                       screen: 'HOME_STACK',
-                        params: { screen: 'HOME_MAIN' }
-                   });
-                } 
-                }
-            ]);
-        } else {
-             Alert.alert("Error", "No se pudieron guardar las notas finales.");
+      if (!assignmentId && tasks.length > 0) {
+          const checklist = tasks.map(t => `[${t.completed ? 'x' : ' '}] ${t.description}`).join('\n');
+          finalNotes = `${finalNotes ? finalNotes + '\n\n' : ''}--- LISTA DE VERIFICACIÓN ---\n${checklist}`;
+          console.log('Generated Final Notes with Checklist:', finalNotes);
+      }
+
+      // Final update with notes
+      console.log('Sending updateCheck with:', { currentKardexId, finalNotes });
+      const res = await updateCheck(
+        currentKardexId,
+        finalNotes || 'Reporte completado',
+      );
+
+      if (res.success) {
+        // IF ASSIGNMENT, UPDATE STATUS TO UNDER_REVIEW
+        if (assignmentId) {
+          try {
+            await updateAssignmentStatus(assignmentId, 'UNDER_REVIEW' as any); // TODO: Import Enum
+          } catch (assignError) {
+            console.error('Error updating assignment status', assignError);
+            // Continue to exit, but maybe warn? For now assume it works or is secondary.
+          }
         }
 
+        Alert.alert('Reporte Completado', 'La información se ha guardado.', [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Reset navigation to prevent going back to this report
+              navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Tabs', params: { screen: 'HOME_STACK' } }],
+              });
+            },
+          },
+        ]);
+      } else {
+        Alert.alert('Error', 'No se pudieron guardar las notas finales.');
+      }
     } catch (e) {
-        Alert.alert("Error", "Ocurrió un error inesperado.");
+      Alert.alert('Error', 'Ocurrió un error inesperado.');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <View style={styles.mainContainer}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            
-            {/* HEADER PRO */}
-            <View style={styles.headerContainer}>
-                <View>
-                    <Text style={styles.headerSubtitle}>REPORTE TÉCNICO</Text>
-                    <Text style={styles.headerTitle}>{location?.name || 'Zona de Control'}</Text>
-                    <View style={styles.locationBadge}>
-                        <IconButton icon="map-marker" size={12} iconColor="#065911" style={{margin:0}} />
-                        <Text style={styles.locationText}>Verificación en tiempo real</Text>
-                    </View>
-                </View>
-                <Surface style={styles.userAvatar} elevation={2}>
-                    <Text style={styles.userInitial}>{user?.username?.charAt(0).toUpperCase()}</Text>
-                </Surface>
-            </View>
-
-            {/* TASKS CHECKLIST (If Assignment) */}
-            {tasks.length > 0 && (
-                <TaskChecklist tasks={tasks} onTaskToggle={handleTaskToggle} />
-            )}
-
-            {/* NOTAS - ESTILO CLEAN INPUT */}
-            <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Observaciones Generales</Text>
-                <TextInput
-                    mode="outlined"
-                    placeholder="Escribe los detalles de la revisión..."
-                    value={notes}
-                    onChangeText={setNotes}
-                    multiline
-                    numberOfLines={4}
-                    style={styles.inputGlass}
-                    outlineColor="transparent"
-                    activeOutlineColor="#065911"
-                    placeholderTextColor="#999"
-                />
-            </View>
-
-            {/* VIDEO SECTION - ESTILO CARD PREMIUM */}
-            <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Evidencia Multimedia</Text>
-                {video ? (
-                    <Surface style={styles.videoCardPro} elevation={1}>
-                        <View style={styles.videoHeader}>
-                            <View style={styles.iconCircle}>
-                                <IconButton icon="play-circle" iconColor="#065911" size={24} />
-                            </View>
-                            <View style={{flex: 1, marginLeft: 12}}>
-                                <Text style={styles.videoTitle}>Video de Inspección</Text>
-                                <Text style={[styles.videoStatus, video.error && {color:'#ff4444'}]}>
-                                    {video.uploading ? 'Procesando archivo...' : video.error ? 'Fallo en carga' : 'Subido correctamente'}
-                                </Text>
-                            </View>
-                            <IconButton icon="trash-can-outline" iconColor="#ff4444" onPress={() => setVideo(null)} />
-                        </View>
-                        {video.uploading && <ProgressBar indeterminate color="#065911" style={styles.proProgress} />}
-                    </Surface>
-                ) : (
-                    <TouchableOpacity 
-                        activeOpacity={0.7}
-                        style={styles.videoPlaceholder} 
-                        onPress={() => { setCameraMode('video'); setCameraVisible(true); }}
-                    >
-                        <IconButton icon="video-plus" size={32} iconColor="#065911" />
-                        <Text style={styles.videoPlaceholderText}>GRABAR VIDEO DE EVIDENCIA</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
-
-            {/* PHOTOS GRID PRO */}
-            <View style={styles.section}>
-                <View style={styles.rowBetween}>
-                    <Text style={styles.sectionLabel}>Galería de Capturas</Text>
-                    <View style={[styles.statusBadge, photos.length >= 2 ? styles.badgeSuccess : styles.badgePending]}>
-                        <Text style={styles.badgeText}>{photos.length}/2 Mínimo</Text>
-                    </View>
-                </View>
-
-                <View style={styles.photoGrid}>
-                    {photos.map((photo, index) => (
-                        <View key={index} style={styles.photoContainerPro}>
-                            <Image source={{ uri: photo.uri }} style={styles.photoImage} />
-                            {photo.uploading && (
-                                <View style={styles.photoLoader}>
-                                    <ActivityIndicator color="#065911" size="small" />
-                                </View>
-                            )}
-                            <TouchableOpacity style={styles.photoDeleteBtn} onPress={() => handleRemovePhoto(index)}>
-                                <IconButton icon="close" size={12} iconColor="#fff" style={{margin:0}} />
-                            </TouchableOpacity>
-                        </View>
-                    ))}
-                    
-                    <TouchableOpacity 
-                        style={styles.addPhotoCard} 
-                        onPress={() => { setTempDescription(''); setShowDescDialog(true); }}
-                    >
-                        <IconButton icon="plus" iconColor="#065911" size={28} />
-                        <Text style={styles.addPhotoText}>Añadir</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* SUBMIT BUTTON - ULTRA PRO */}
-            <TouchableOpacity 
-                activeOpacity={0.8} 
-                onPress={handleSubmit}
-                disabled={loading || !currentKardexId || photos.length < 2}
-                style={[
-                    styles.mainActionBtn, 
-                    (loading || !currentKardexId || photos.length < 2) && {opacity: 0.5, backgroundColor: '#c8c8c8', shadowOpacity: 0}
-                ]}
-            >
-                {loading ? <ActivityIndicator color="#fff" /> : (
-                    <Text style={styles.mainActionText}>
-                        {photos.length < 2 ? `Faltan ${2 - photos.length} fotos` : 'Guardar Reporte'}
-                    </Text>
-                )}
-            </TouchableOpacity>
-
-        </ScrollView>
-
-        <CameraModal 
-            visible={cameraVisible} 
-            onDismiss={() => setCameraVisible(false)} 
-            mode={cameraMode}
-            onCapture={handleCapture}
-        />
-
-        {/* DIALOG MODERNIZADO */}
-        <Portal>
-          <Dialog visible={showDescDialog} onDismiss={() => setShowDescDialog(false)} style={styles.modernDialog}>
-            <Dialog.Title style={styles.dialogTitlePro}>Anotación de Imagen</Dialog.Title>
-            <Dialog.Content>
-              <TextInput
-                mode="flat"
-                placeholder="¿Qué destaca en esta foto?"
-                value={tempDescription}
-                onChangeText={setTempDescription}
-                style={styles.dialogInput}
-                activeUnderlineColor="#065911"
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* HEADER PRO */}
+        <View style={styles.headerContainer}>
+          <View>
+            <Text style={styles.headerSubtitle}>REPORTE TÉCNICO</Text>
+            <Text style={styles.headerTitle}>
+              {location?.name || 'Zona de Control'}
+            </Text>
+            <View style={styles.locationBadge}>
+              <IconButton
+                icon="map-marker"
+                size={12}
+                iconColor="#065911"
+                style={{ margin: 0 }}
               />
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setShowDescDialog(false)} textColor="#999">Cancelar</Button>
-              <Button onPress={onDescriptionConfirmed} mode="text" labelStyle={{fontWeight:'bold'}} textColor="#065911">Capturar</Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
+              <Text style={styles.locationText}>
+                Verificación en tiempo real
+              </Text>
+            </View>
+          </View>
+          <Surface style={styles.userAvatar} elevation={2}>
+            <Text style={styles.userInitial}>
+              {user?.username?.charAt(0).toUpperCase()}
+            </Text>
+          </Surface>
+        </View>
+
+        {/* TASKS CHECKLIST (If Assignment or Recurring) */}
+        {tasks.length > 0 && (
+          <TaskChecklist 
+            tasks={tasks} 
+            onTaskToggle={handleTaskToggle} 
+            isLocalOnly={!!route.params?.recurringTasks}
+          />
+        )}
+
+        {/* NOTAS - ESTILO CLEAN INPUT */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Observaciones Generales</Text>
+          <TextInput
+            mode="outlined"
+            placeholder="Escribe los detalles de la revisión..."
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={4}
+            style={styles.inputGlass}
+            outlineColor="transparent"
+            activeOutlineColor="#065911"
+            placeholderTextColor="#999"
+          />
+        </View>
+
+        {/* VIDEO SECTION - ESTILO CARD PREMIUM */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Evidencia Multimedia</Text>
+          {video ? (
+            <Surface style={styles.videoCardPro} elevation={1}>
+              <View style={styles.videoHeader}>
+                <View style={styles.iconCircle}>
+                  <IconButton
+                    icon="play-circle"
+                    iconColor="#065911"
+                    size={24}
+                  />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.videoTitle}>Video de Inspección</Text>
+                  <Text
+                    style={[
+                      styles.videoStatus,
+                      video.error && { color: '#ff4444' },
+                    ]}
+                  >
+                    {video.uploading
+                      ? 'Procesando archivo...'
+                      : video.error
+                      ? 'Fallo en carga'
+                      : 'Subido correctamente'}
+                  </Text>
+                </View>
+                <IconButton
+                  icon="trash-can-outline"
+                  iconColor="#ff4444"
+                  onPress={() => setVideo(null)}
+                />
+              </View>
+              {video.uploading && (
+                <ProgressBar
+                  indeterminate
+                  color="#065911"
+                  style={styles.proProgress}
+                />
+              )}
+            </Surface>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.videoPlaceholder}
+              onPress={() => {
+                setCameraMode('video');
+                setCameraVisible(true);
+              }}
+            >
+              <IconButton icon="video-plus" size={32} iconColor="#065911" />
+              <Text style={styles.videoPlaceholderText}>
+                GRABAR VIDEO DE EVIDENCIA
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* PHOTOS GRID PRO */}
+        <View style={styles.section}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.sectionLabel}>Galería de Capturas</Text>
+            <View
+              style={[
+                styles.statusBadge,
+                photos.length >= 2 ? styles.badgeSuccess : styles.badgePending,
+              ]}
+            >
+              <Text style={styles.badgeText}>{photos.length}/2 Mínimo</Text>
+            </View>
+          </View>
+
+          <View style={styles.photoGrid}>
+            {photos.map((photo, index) => (
+              <View key={index} style={styles.photoContainerPro}>
+                <Image source={{ uri: photo.uri }} style={styles.photoImage} />
+                {photo.uploading && (
+                  <View style={styles.photoLoader}>
+                    <ActivityIndicator color="#065911" size="small" />
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.photoDeleteBtn}
+                  onPress={() => handleRemovePhoto(index)}
+                >
+                  <IconButton
+                    icon="close"
+                    size={12}
+                    iconColor="#fff"
+                    style={{ margin: 0 }}
+                  />
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={styles.addPhotoCard}
+              onPress={() => {
+                setTempDescription('');
+                setShowDescDialog(true);
+              }}
+            >
+              <IconButton icon="plus" iconColor="#065911" size={28} />
+              <Text style={styles.addPhotoText}>Añadir</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* SUBMIT BUTTON - ULTRA PRO */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={handleSubmit}
+          disabled={loading || !currentKardexId || photos.length < 2 || !video || !video.url || video.error}
+          style={[
+            styles.mainActionBtn,
+            (loading || !currentKardexId || photos.length < 2 || !video || !video.url || video.error) && {
+              opacity: 0.5,
+              backgroundColor: '#c8c8c8',
+              shadowOpacity: 0,
+            },
+          ]}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.mainActionText}>
+              {photos.length < 2
+                ? `Faltan ${2 - photos.length} fotos`
+                : 'Guardar Reporte'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+
+      <CameraModal
+        visible={cameraVisible}
+        onDismiss={() => setCameraVisible(false)}
+        mode={cameraMode}
+        onCapture={handleCapture}
+      />
+
+      {/* DIALOG MODERNIZADO */}
+      <Portal>
+        <Dialog
+          visible={showDescDialog}
+          onDismiss={() => setShowDescDialog(false)}
+          style={styles.modernDialog}
+        >
+          <Dialog.Title style={styles.dialogTitlePro}>
+            Anotación de Imagen
+          </Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              mode="flat"
+              placeholder="¿Qué destaca en esta foto?"
+              value={tempDescription}
+              onChangeText={setTempDescription}
+              style={styles.dialogInput}
+              activeUnderlineColor="#065911"
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowDescDialog(false)} textColor="#999">
+              Cancelar
+            </Button>
+            <Button
+              onPress={onDescriptionConfirmed}
+              mode="text"
+              labelStyle={{ fontWeight: 'bold' }}
+              textColor="#065911"
+            >
+              Capturar
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <Portal>
+        {(photos.some(p => p.uploading) || video?.uploading === true) && (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 9999,
+              },
+            ]}
+          >
+            <Surface
+              style={{
+                padding: 24,
+                borderRadius: 20,
+                alignItems: 'center',
+                elevation: 4,
+              }}
+            >
+              <ActivityIndicator size="large" color="#065911" />
+              <Text
+                style={{ marginTop: 16, fontWeight: 'bold', color: '#1A1C3D' }}
+              >
+                Subiendo archivo...
+              </Text>
+              <Text style={{ marginTop: 4, fontSize: 12, color: '#7E84A3' }}>
+                Por favor espera
+              </Text>
+            </Surface>
+          </View>
+        )}
+      </Portal>
     </View>
   );
 };
@@ -441,9 +702,25 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 32,
   },
-  headerSubtitle: { fontSize: 11, fontWeight: '700', color: '#065911', letterSpacing: 2, marginBottom: 4 },
-  headerTitle: { fontSize: 28, fontWeight: '800', color: '#1A1C3D', letterSpacing: -0.5 },
-  locationBadge: { flexDirection: 'row', alignItems: 'center', marginLeft: -8, marginTop: 2 },
+  headerSubtitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#065911',
+    letterSpacing: 2,
+    marginBottom: 4,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1A1C3D',
+    letterSpacing: -0.5,
+  },
+  locationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: -8,
+    marginTop: 2,
+  },
   locationText: { fontSize: 12, color: '#7E84A3', fontWeight: '500' },
   userAvatar: {
     width: 52,
@@ -458,7 +735,12 @@ const styles = StyleSheet.create({
   },
   userInitial: { color: '#065911', fontWeight: '800', fontSize: 20 },
   section: { marginBottom: 32 },
-  sectionLabel: { fontSize: 16, fontWeight: '800', color: '#1A1C3D', marginBottom: 16 },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1A1C3D',
+    marginBottom: 16,
+  },
   inputGlass: {
     backgroundColor: '#FFF',
     borderRadius: 16,
@@ -477,7 +759,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  videoPlaceholderText: { fontSize: 11, fontWeight: '800', color: '#065911', letterSpacing: 1 },
+  videoPlaceholderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#065911',
+    letterSpacing: 1,
+  },
   videoCardPro: {
     borderRadius: 20,
     backgroundColor: '#FFF',
@@ -489,7 +776,12 @@ const styles = StyleSheet.create({
   videoTitle: { fontWeight: '700', fontSize: 15, color: '#1A1C3D' },
   videoStatus: { fontSize: 12, color: '#2e7d32', marginTop: 2 },
   proProgress: { height: 4, borderRadius: 2 },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   badgePending: { backgroundColor: '#FFDAD6' },
   badgeSuccess: { backgroundColor: '#d0f8d3' },
@@ -514,7 +806,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1C3D',
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#FFF'
+    borderColor: '#FFF',
   },
   addPhotoCard: {
     width: (width - 48 - 28) / 3,
@@ -526,8 +818,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addPhotoText: { fontSize: 12, fontWeight: '700', color: '#065911', marginTop: -8 },
-  photoLoader: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center', borderRadius: 18 },
+  addPhotoText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#065911',
+    marginTop: -8,
+  },
+  photoLoader: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 18,
+  },
   mainActionBtn: {
     backgroundColor: '#065911',
     height: 62,
@@ -542,8 +845,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     elevation: 8, // Added for Android shadow match
   },
-  mainActionText: { color: '#FFF', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
+  mainActionText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   modernDialog: { borderRadius: 28, backgroundColor: '#FFF', padding: 8 },
-  dialogTitlePro: { textAlign: 'center', fontWeight: '800', fontSize: 20, color: '#1A1C3D' },
-  dialogInput: { backgroundColor: '#F8F9FD', borderRadius: 12, marginTop: 10 }
+  dialogTitlePro: {
+    textAlign: 'center',
+    fontWeight: '800',
+    fontSize: 20,
+    color: '#1A1C3D',
+  },
+  dialogInput: { backgroundColor: '#F8F9FD', borderRadius: 12, marginTop: 10 },
 });
