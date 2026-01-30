@@ -2,8 +2,8 @@ import { post, put, get } from '../../../core/axios';
 import { API_CONSTANTS } from '../../../core/constants/API_CONSTANTS';
 import { TResult } from '../../../core/types/TResult';
 
-export const startRound = async (guardId: number): Promise<TResult<any>> => {
-  return await post(API_CONSTANTS.URLS.ROUNDS.START, { guardId });
+export const startRound = async (guardId: number, recurringConfigId?: number): Promise<TResult<any>> => {
+  return await post(API_CONSTANTS.URLS.ROUNDS.START, { guardId, recurringConfigId });
 };
 
 export const endRound = async (roundId: number): Promise<TResult<any>> => {
