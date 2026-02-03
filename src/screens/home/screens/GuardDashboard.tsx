@@ -33,6 +33,7 @@ import {
   startRound,
   endRound,
   getCurrentRound,
+  getActiveRounds,
 } from '../../home/service/round.service';
 import { getMyAssignments } from '../../assignments/service/assignment.service';
 import { useDispatch, useSelector } from 'react-redux';
@@ -82,8 +83,23 @@ export const GuardDashboard = () => {
   }; 
 
   const cooldownMinutes = getCooldownRemaining();
-  // Allow start if completed AND cooldown is 0
-  const isLocked = activeRound?.status === 'COMPLETED' && cooldownMinutes > 0;
+  // Lock ONLY if we have a single route AND that specific route is in cooldown.
+  // If we have multiple routes, we must allow opening the menu (Cooldowns are checked per-route by API).
+  const isSingleRoute = configs.length === 1;
+  const isSameRoute = isSingleRoute && activeRound?.recurringConfigurationId === configs[0].id;
+  
+  console.log('DEBUG DASHBOARD:', {
+      configsLen: configs.length,
+      configId: configs[0]?.id,
+      activeRoundConfigId: activeRound?.recurringConfigurationId,
+      status: activeRound?.status,
+      isSingleRoute,
+      isSameRoute,
+      cooldownMinutes,
+      activeRound
+  });
+
+  const isLocked = isSingleRoute && isSameRoute && activeRound?.status === 'COMPLETED' && cooldownMinutes > 0;
 
   // Helper checks
   const isRoundActive = activeRound && activeRound.status === 'IN_PROGRESS';
@@ -93,7 +109,7 @@ export const GuardDashboard = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [recurringRes, assignRes, roundRes] = await Promise.all([
+      const [recurringRes, assignRes, roundRes, activeRoundsRes] = await Promise.all([
         getMyRecurringAssignments().catch(err => {
           console.warn('Recurring Error:', err);
           return { success: false, data: [] };
@@ -106,10 +122,29 @@ export const GuardDashboard = () => {
           console.warn('Round Error:', err);
           return { success: false, data: null };
         }),
+        getActiveRounds().catch(err => {
+           console.warn('Active Rounds Error:', err);
+           return { success: false, data: [] };
+        }),
       ]);
 
       // Safe assignments with Fallbacks
-      setConfigs(recurringRes?.data || []);
+      const allConfigs = recurringRes?.data || [];
+      const activeGlobalRounds = activeRoundsRes?.data || [];
+
+      // Filter out configs that are active by OTHER guards
+      // Keep my own active config so I can see the checklist
+      const filteredConfigs = allConfigs.filter((c: any) => {
+           const activeForThisConfig = activeGlobalRounds.find((r: any) => r.recurringConfigurationId === c.id && r.status === 'IN_PROGRESS');
+           
+           // If no active round for this config, keep it
+           if (!activeForThisConfig) return true;
+
+           // If there is an active round, ONLY keep it if it is MINE
+           return Number(activeForThisConfig.guardId) === Number(user.id);
+      });
+
+      setConfigs(filteredConfigs);
       setSpecialAssignments(assignRes?.data || []);
 
       // For round, we check if it is valid
@@ -143,9 +178,9 @@ export const GuardDashboard = () => {
           loadData();
         }
       } catch (e: any) {
-        const msg = e.response?.data?.messages?.[0] || e.message || 'Error inesperado al iniciar';
-        Alert.alert('Error', msg);
-        console.log("Start Round Error:", e.response?.data || e);
+        console.log("Start Round Error:", e);
+        const msg = e?.messages?.[0] || e.message || 'Error inesperado al iniciar';
+        dispatch(showToast({ message: msg, type: 'error' }));
       } finally {
         setRoundLoading(false);
       }
@@ -155,19 +190,15 @@ export const GuardDashboard = () => {
     // START LOGIC IF: No Active Round OR Round is LIMIT (COMPLETED)
     if (!activeRound || activeRound.status === 'COMPLETED') {
         const cooldown = getCooldownRemaining();
-        if (activeRound?.status === 'COMPLETED' && cooldown > 0) {
-             Alert.alert('Espera', `Debes esperar ${cooldown} minutos para iniciar otra ronda.`);
-             return;
-        }
-
-        // 1. Check assignments
+        
+        // Check assignments
         if (configs.length === 0) {
-            Alert.alert('Sin Rutas', 'No tienes rutas asignadas para iniciar.');
+            Alert.alert('Sin Rutas', 'No tienes rutas asignadas disponibles para iniciar (o están ocupadas).');
             return;
         }
 
         if (configs.length === 1) {
-            // Auto-select the only one
+            // Auto-select the only one - Let API Validate Cooldown
             onStartRoundConfirmed(configs[0].id);
         } else {
             // Multiple routes: Show Selection Dialog
@@ -542,8 +573,8 @@ export const GuardDashboard = () => {
                   loading={roundLoading}
                   disabled={
                     configs.length === 0 ||
-                    (isRoundActive && !isMyRound) ||
-                    isLocked 
+                    (isRoundActive && !isMyRound)
+                    // REMOVED isLocked
                   }
                   style={[
                     styles.roundMainBtn,
@@ -553,7 +584,7 @@ export const GuardDashboard = () => {
                         ? { backgroundColor: '#D32F2F' }
                         : { backgroundColor: '#1976D2', opacity: 0.8 }
                       : isLocked
-                      ? { backgroundColor: '#757575', opacity: 0.8 }
+                      ? { backgroundColor: '#F57F17' } // Orange
                       : { backgroundColor: '#2E7D32' },
                   ]}
                   contentStyle={{ height: 56 }}
@@ -581,7 +612,7 @@ export const GuardDashboard = () => {
                           'OTRO GUARDIA'
                         }`
                     : isLocked
-                    ? `ESPERAR ${cooldownMinutes} MIN`
+                    ? `ESPERAR ${cooldownMinutes} MIN (${configs[0]?.title || 'Ruta'})`
                     : 'INICIAR RONDA'}
                 </Button>
 

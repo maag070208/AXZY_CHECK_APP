@@ -72,8 +72,10 @@ export const post = async <T>(
 ): Promise<TResult<T>> => {
   try {
     const response = await axiosInstance.post(url, data, config);
+    console.log('Response:', response);
     return response.data;
   } catch (error) {
+    console.log('Error:', error);
     return handleError<T>(error);
   }
 };
