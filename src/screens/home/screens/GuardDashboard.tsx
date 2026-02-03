@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
   Dimensions,
   StatusBar,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import {
   Text,
@@ -32,12 +33,14 @@ import {
   startRound,
   endRound,
   getCurrentRound,
+  getActiveRounds,
 } from '../../home/service/round.service';
 import { getMyAssignments } from '../../assignments/service/assignment.service';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { theme } from '../../../shared/theme/theme';
+import { API_CONSTANTS } from '../../../core/constants/API_CONSTANTS';
 
 const { width } = Dimensions.get('window');
 
@@ -49,12 +52,54 @@ export const GuardDashboard = () => {
 
   const device = useCameraDevice('back');
   const [hasPermission, setHasPermission] = useState(false);
+  
+  // State Variables
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
   const [roundLoading, setRoundLoading] = useState(false);
+  
   const [activeRound, setActiveRound] = useState<any>(null); // { id, startTime }
   const [configs, setConfigs] = useState<any[]>([]);
   const [specialAssignments, setSpecialAssignments] = useState<any[]>([]);
+  const [routeSelectionVisible, setRouteSelectionVisible] = useState(false);
+
+  // Timer for cooldown updates
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+      const timer = setInterval(() => setCurrentTime(new Date()), 30000); // 30s update
+      return () => clearInterval(timer);
+  }, []);
+
+  const getCooldownRemaining = () => {
+       if (activeRound?.status === 'COMPLETED' && activeRound.endTime) {
+           const end = new Date(activeRound.endTime);
+           const diffMs = currentTime.getTime() - end.getTime();
+           const diffMins = diffMs / 60000;
+           const remaining = Math.ceil(API_CONSTANTS.ROUND_COOLDOWN_MINUTES - diffMins);
+           return remaining > 0 ? remaining : 0;
+       }
+       return 0;
+  }; 
+
+  const cooldownMinutes = getCooldownRemaining();
+  // Lock ONLY if we have a single route AND that specific route is in cooldown.
+  // If we have multiple routes, we must allow opening the menu (Cooldowns are checked per-route by API).
+  const isSingleRoute = configs.length === 1;
+  const isSameRoute = isSingleRoute && activeRound?.recurringConfigurationId === configs[0].id;
+  
+  console.log('DEBUG DASHBOARD:', {
+      configsLen: configs.length,
+      configId: configs[0]?.id,
+      activeRoundConfigId: activeRound?.recurringConfigurationId,
+      status: activeRound?.status,
+      isSingleRoute,
+      isSameRoute,
+      cooldownMinutes,
+      activeRound
+  });
+
+  const isLocked = isSingleRoute && isSameRoute && activeRound?.status === 'COMPLETED' && cooldownMinutes > 0;
 
   // Helper checks
   const isRoundActive = activeRound && activeRound.status === 'IN_PROGRESS';
@@ -64,7 +109,7 @@ export const GuardDashboard = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [recurringRes, assignRes, roundRes] = await Promise.all([
+      const [recurringRes, assignRes, roundRes, activeRoundsRes] = await Promise.all([
         getMyRecurringAssignments().catch(err => {
           console.warn('Recurring Error:', err);
           return { success: false, data: [] };
@@ -77,10 +122,29 @@ export const GuardDashboard = () => {
           console.warn('Round Error:', err);
           return { success: false, data: null };
         }),
+        getActiveRounds().catch(err => {
+           console.warn('Active Rounds Error:', err);
+           return { success: false, data: [] };
+        }),
       ]);
 
       // Safe assignments with Fallbacks
-      setConfigs(recurringRes?.data || []);
+      const allConfigs = recurringRes?.data || [];
+      const activeGlobalRounds = activeRoundsRes?.data || [];
+
+      // Filter out configs that are active by OTHER guards
+      // Keep my own active config so I can see the checklist
+      const filteredConfigs = allConfigs.filter((c: any) => {
+           const activeForThisConfig = activeGlobalRounds.find((r: any) => r.recurringConfigurationId === c.id && r.status === 'IN_PROGRESS');
+           
+           // If no active round for this config, keep it
+           if (!activeForThisConfig) return true;
+
+           // If there is an active round, ONLY keep it if it is MINE
+           return Number(activeForThisConfig.guardId) === Number(user.id);
+      });
+
+      setConfigs(filteredConfigs);
       setSpecialAssignments(assignRes?.data || []);
 
       // For round, we check if it is valid
@@ -98,43 +162,79 @@ export const GuardDashboard = () => {
     }
   };
 
-  const handleToggleRound = async () => {
-    setRoundLoading(true);
-    try {
-      if (activeRound) {
-        if (activeRound.status === 'COMPLETED') {
-          return; // Should be disabled anyway, but safety check
-        }
-        // End Round
-        const res = await endRound(activeRound.id);
-        if (res.success) {
-          setActiveRound(res.data); // Update with completed data
-          dispatch(showToast({ message: 'Ronda finalizada', type: 'success' }));
-        } else {
-          const msg =
-            res.messages && res.messages.length > 0
-              ? res.messages[0]
-              : 'No se pudo finalizar la ronda';
-          Alert.alert('Error', msg);
-        }
-      } else {
-        // Start Round
-        const res = await startRound(Number(user.id));
+  const onStartRoundConfirmed = async (configId?: number) => {
+      setRouteSelectionVisible(false); // Close dialog if open
+      setRoundLoading(true);
+      try {
+        const res = await startRound(Number(user.id), configId);
         if (res.success) {
           setActiveRound(res.data);
+          loadData(); // Refresh list to update "Pending" status based on new round
           dispatch(showToast({ message: 'Ronda iniciada', type: 'success' }));
         } else {
-          const msg =
-            res.messages && res.messages.length > 0
-              ? res.messages[0]
-              : 'No se pudo iniciar la ronda';
+          // If error says "Active round", refresh data
+          const msg = res.messages && res.messages.length > 0 ? res.messages[0] : 'No se pudo iniciar la ronda';
           Alert.alert('Error', msg);
+          loadData();
         }
+      } catch (e: any) {
+        console.log("Start Round Error:", e);
+        const msg = e?.messages?.[0] || e.message || 'Error inesperado al iniciar';
+        dispatch(showToast({ message: msg, type: 'error' }));
+      } finally {
+        setRoundLoading(false);
       }
-    } catch (error) {
-      Alert.alert('Error', 'Ocurrió un error inesperado');
-    } finally {
-      setRoundLoading(false);
+  };
+
+  const handleToggleRound = async () => {
+    // START LOGIC IF: No Active Round OR Round is LIMIT (COMPLETED)
+    if (!activeRound || activeRound.status === 'COMPLETED') {
+        const cooldown = getCooldownRemaining();
+        
+        // Check assignments
+        if (configs.length === 0) {
+            Alert.alert('Sin Rutas', 'No tienes rutas asignadas disponibles para iniciar (o están ocupadas).');
+            return;
+        }
+
+        if (configs.length === 1) {
+            // Auto-select the only one - Let API Validate Cooldown
+            onStartRoundConfirmed(configs[0].id);
+        } else {
+            // Multiple routes: Show Selection Dialog
+            setRouteSelectionVisible(true);
+        }
+    } else {
+        // STOP LOGIC (IN_PROGRESS)
+        
+        // Confirm End
+        Alert.alert(
+            'Finalizar Ronda', 
+            '¿Estás seguro de finalizar tu ronda actual?', 
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                { 
+                    text: 'Finalizar', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        setRoundLoading(true);
+                        try {
+                            const res = await endRound(activeRound.id);
+                            if (res.success) {
+                                setActiveRound(res.data);
+                                dispatch(showToast({ message: 'Ronda finalizada', type: 'success' }));
+                            } else {
+                                Alert.alert('Error', res.messages?.[0] || 'Error al finalizar');
+                            }
+                        } catch(e: any) { 
+                             const msg = e.response?.data?.messages?.[0] || 'Fallo de conexión';
+                             Alert.alert('Error', msg); 
+                        }
+                        finally { setRoundLoading(false); }
+                    }
+                }
+            ]
+        );
     }
   };
 
@@ -277,27 +377,43 @@ export const GuardDashboard = () => {
       (l: any) => l.completed,
     ).length;
     const progress = total > 0 ? completed / total : 0;
+    
+    // Only show content if this IS the active round config
+    // We added recurringConfigurationId to Round logic, but current frontend might need to know which one is active.
+    // The activeRound object now has `recurringConfiguration`.
+    // If activeRound exists, we only show content for the MATCHING config.
+    const isActiveConfig = activeRound && activeRound.recurringConfigurationId === item.id;
+    
+    // Fallback: If legacy round without ID, implies global? NO, user wants strict separation.
+    // If no active round, we show nothing expanded? Or maybe preview?
+    // Let's hide content unless active.
+    
+    const showContent = isMyRound && isActiveConfig;
 
     return (
-      <View style={styles.configSection}>
+      <View style={[styles.configSection, showContent ? {borderColor: theme.colors.primary, borderWidth: 2} : {}]}>
         <View style={styles.configHeader}>
           <View style={{ flex: 1 }}>
             <Text style={styles.configTitle}>{item.title}</Text>
-            <ProgressBar
-              progress={progress}
-              color={theme.colors.primary}
-              style={styles.progressBar}
-            />
+            {showContent && (
+                 <ProgressBar
+                    progress={progress}
+                    color={theme.colors.primary}
+                    style={styles.progressBar}
+                />
+            )}
           </View>
-          <View style={styles.progressBadge}>
-            <Text style={styles.progressText}>
-              {completed}/{total}
-            </Text>
-          </View>
+           {showContent && (
+             <View style={styles.progressBadge}>
+                <Text style={styles.progressText}>
+                {completed}/{total}
+                </Text>
+            </View>
+           )}
         </View>
 
-        {/* MODIFIED: Show content only if activeRound is true */}
-        {activeRound && (
+        {/* MODIFIED: Show content only if activeRound matches */}
+        {showContent && (
           <View style={{ paddingBottom: 10 }}>
             {item.recurringLocations.map((loc: any) => (
               <View key={loc.id}>{renderLocationItem({ item: loc })}</View>
@@ -307,6 +423,39 @@ export const GuardDashboard = () => {
       </View>
     );
   };
+  
+  // -- Route Selection Modal Render --
+  const renderRouteSelectionModal = () => (
+      <View style={routeSelectionVisible ? styles.modalOverlay : { display: 'none' }}>
+          <Surface style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Selecciona una Ruta</Text>
+              <Text style={styles.modalSubtitle}>Tienes múltiples rutas asignadas. Elige cuál iniciar:</Text>
+              
+              <FlatList
+                  data={configs}
+                  keyExtractor={item => String(item.id)}
+                  style={{ maxHeight: 300, marginVertical: 10 }}
+                  renderItem={({ item }) => (
+                      <TouchableOpacity 
+                          style={styles.modalOption} 
+                          onPress={() => onStartRoundConfirmed(item.id)}
+                      >
+                          <Icon source="map-marker-path" size={24} color={theme.colors.primary} />
+                          <View style={{marginLeft: 10, flex: 1}}>
+                              <Text style={styles.optionTitle}>{item.title}</Text>
+                              <Text style={styles.optionSub}>{item.recurringLocations?.length || 0} ubicaciones</Text>
+                          </View>
+                          <Icon source="chevron-right" size={20} color="#ccc" />
+                      </TouchableOpacity>
+                  )}
+              />
+              
+              <Button mode="text" onPress={() => setRouteSelectionVisible(false)} textColor="#666">
+                  Cancelar
+              </Button>
+          </Surface>
+      </View>
+  );
 
   return (
     <View style={loading ? {
@@ -348,7 +497,7 @@ export const GuardDashboard = () => {
                       ? isRoundCompleted
                         ? 'RONDA COMPLETADA'
                         : 'INICIA RONDA PARA HABILITAR'
-                      : configs.length > 0 ? 'RONDA YA TOMADA' : 'NO HAY RONDAS'}
+                      : configs.length > 0 ? (isRoundActive ? 'OTRA RONDA ACTIVA' : 'INICIAR RONDA') : 'NO HAY RONDAS'}
                   </Text>
                 </View>
               ) : (
@@ -418,13 +567,15 @@ export const GuardDashboard = () => {
 
               {/* BOTONES DE ACCIÓN: RONDAS + INCIDENCIAS */}
               <View style={styles.actionSection}>
-                <Button
+<Button
                   mode="contained"
                   onPress={handleToggleRound}
                   loading={roundLoading}
                   disabled={
                     configs.length === 0 ||
-                    isRoundCompleted || (isRoundActive && !isMyRound)}
+                    (isRoundActive && !isMyRound)
+                    // REMOVED isLocked
+                  }
                   style={[
                     styles.roundMainBtn,
                     configs.length === 0 && { backgroundColor: '#757575', opacity: 0.8 },
@@ -432,8 +583,8 @@ export const GuardDashboard = () => {
                       ? isMyRound
                         ? { backgroundColor: '#D32F2F' }
                         : { backgroundColor: '#1976D2', opacity: 0.8 }
-                      : isRoundCompleted
-                      ? { backgroundColor: '#757575', opacity: 0.8 }
+                      : isLocked
+                      ? { backgroundColor: '#F57F17' } // Orange
                       : { backgroundColor: '#2E7D32' },
                   ]}
                   contentStyle={{ height: 56 }}
@@ -443,8 +594,8 @@ export const GuardDashboard = () => {
                       ? isMyRound
                         ? 'stop-circle-outline'
                         : 'account-clock'
-                      : isRoundCompleted
-                      ? 'check-circle-outline'
+                      : isLocked
+                      ? 'clock-time-four-outline'
                       : 'play-circle-outline'
                   }
                 >
@@ -460,8 +611,8 @@ export const GuardDashboard = () => {
                           activeRound.guard?.name?.toUpperCase() ||
                           'OTRO GUARDIA'
                         }`
-                    : isRoundCompleted
-                    ? 'RONDA FINALIZADA HOY'
+                    : isLocked
+                    ? `ESPERAR ${cooldownMinutes} MIN (${configs[0]?.title || 'Ruta'})`
                     : 'INICIAR RONDA'}
                 </Button>
 
@@ -497,7 +648,12 @@ export const GuardDashboard = () => {
 
               <FlatList
                 data={configs}
-                renderItem={isMyRound ? renderConfigSection : () => <></>}
+                // Show items if active round and matches, OR if NO round is active (but collapsed) - Logic inside renderConfigSection should handle visibility
+                // Actually, if we want to show available routes as "locked" or "pending" when inactive, we can.
+                // But the requested flow is: Start Round -> Select Route.
+                // So maybe when NO round active, we just show the "My Routes" list collapsed or similar?
+                // Let's keep logic: if active, show active details. If not active, show list of available routes (collapsed/summary).
+                renderItem={renderConfigSection} 
                 keyExtractor={item => String(item.id)}
                 contentContainerStyle={{ paddingBottom: 100 }}
                 refreshControl={
@@ -580,7 +736,8 @@ export const GuardDashboard = () => {
                       </View>
                     )}
 
-                    {isMyRound ? (
+                    {/* ALWAYS show the list header if we have recurring items, regardless of round status */}
+                    {configs.length > 0 && (
                       <View style={styles.listHeaderLeft}>
                         <Icon
                           source="clipboard-list"
@@ -588,11 +745,9 @@ export const GuardDashboard = () => {
                           color={theme.colors.primary}
                         />
                         <Text style={styles.sectionTitle}>
-                          MIS RONDAS PENDIENTES
+                          MIS RONDAS ({configs.length})
                         </Text>
                       </View>
-                    ) : (
-                      <></>
                     )}
                   </>
                 }
@@ -601,6 +756,7 @@ export const GuardDashboard = () => {
           </>
         )}
       </>
+      {renderRouteSelectionModal()}
     </View>
   );
 };
@@ -783,4 +939,35 @@ const styles = StyleSheet.create({
   completedTaskCount: { color: '#43A047' },
   timeContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   timeText: { fontSize: 11, color: '#999' },
+  
+  // Modal selection styles
+  modalOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 1000,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
+  },
+  modalContent: {
+      backgroundColor: 'white',
+      borderRadius: 16,
+      padding: 20,
+      width: '100%',
+      maxHeight: '80%',
+      elevation: 5
+  },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8, textAlign: 'center' },
+  modalSubtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 15 },
+  modalOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 15,
+      paddingHorizontal: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: '#f0f0f0'
+  },
+  optionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  optionSub: { fontSize: 12, color: '#666' }
 });

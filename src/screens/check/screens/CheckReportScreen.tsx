@@ -590,10 +590,10 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={handleSubmit}
-          disabled={loading || !currentKardexId || photos.length < 2 || !video || !video.url || video.error}
+          disabled={loading || !currentKardexId || photos.length < 2 || !video || !video.url || video.error || (assignmentId && tasks.some(t => !t.completed))}
           style={[
             styles.mainActionBtn,
-            (loading || !currentKardexId || photos.length < 2 || !video || !video.url || video.error) && {
+            (loading || !currentKardexId || photos.length < 2 || !video || !video.url || video.error || (assignmentId && tasks.some(t=> !t.completed))) && {
               opacity: 0.5,
               backgroundColor: '#c8c8c8',
               shadowOpacity: 0,
@@ -606,6 +606,10 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
             <Text style={styles.mainActionText}>
               {photos.length < 2
                 ? `Faltan ${2 - photos.length} fotos`
+                : !video?.url
+                ? 'Falta Video'
+                : (assignmentId && tasks.some(t => !t.completed))
+                ? 'Tareas Pendientes'
                 : 'Guardar Reporte'}
             </Text>
           )}

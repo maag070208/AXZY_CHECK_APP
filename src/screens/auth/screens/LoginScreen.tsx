@@ -33,6 +33,7 @@ const LoginScreen: React.FC = () => {
         values.password,
       )
       .catch(error => {
+        console.log('Login error:', error);
         dispatch(showLoader(false));
         return {
           success: false,
