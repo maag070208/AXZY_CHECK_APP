@@ -117,7 +117,7 @@ const DrawerContent = ({ navigation }: { navigation: any }) => {
   const userRole = userState.role;
 
   const filteredMenuItems = MENU_ITEMS.filter(item =>
-    item.roles.includes(userRole as any) 
+    item.roles.includes(userRole as any),
   );
 
   return (
@@ -159,7 +159,10 @@ const DrawerContent = ({ navigation }: { navigation: any }) => {
             key={index}
             style={styles.menuItem}
             onPress={() => {
-              const params = item.label === 'Contactos' ? { residentId: Number(userState.id) } : undefined;
+              const params =
+                item.label === 'Contactos'
+                  ? { residentId: Number(userState.id) }
+                  : undefined;
               resetToModule(item.route as any, item.screen, params);
             }}
           >
@@ -180,13 +183,15 @@ const DrawerContent = ({ navigation }: { navigation: any }) => {
           style={styles.logoutBtn}
           onPress={async () => {
             try {
-               const { logout: logoutApi } = require('../../screens/auth/services/AuthService');
-               if (userState.id) {
-                   await logoutApi(userState.id);
-               }
+              const {
+                logout: logoutApi,
+              } = require('../../screens/auth/services/AuthService');
+              if (userState.id) {
+                await logoutApi(userState.id);
+              }
             } catch (e) {
             } finally {
-               dispatch(logout());
+              dispatch(logout());
             }
           }}
         >
@@ -194,7 +199,7 @@ const DrawerContent = ({ navigation }: { navigation: any }) => {
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>v1.0.19</Text>
+        <Text style={styles.versionText}>v1.0.25</Text>
       </View>
     </View>
   );

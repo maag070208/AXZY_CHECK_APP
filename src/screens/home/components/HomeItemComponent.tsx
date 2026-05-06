@@ -1,8 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Icon } from 'react-native-paper';
 import { useAppNavigation } from '../../../navigation/hooks/useAppNavigation';
-import ModernStyles from '../../../shared/theme/app.styles';
+import { ITText } from '../../../shared/components';
 
 interface HomeItemComponentProps {
   icon: string;
@@ -10,107 +10,97 @@ interface HomeItemComponentProps {
   stack: any;
   screen: any;
   color?: string;
-  gradient?: string[];
   badge?: number;
+  params?: any;
 }
 
-// HomeItemComponent sin gradient
-export const HomeItemComponent = ({ icon, label, stack, screen, color, badge }: HomeItemComponentProps) => {
+export const HomeItemComponent = ({
+  icon,
+  label,
+  stack,
+  screen,
+  color = '#6366F1',
+  badge,
+  params,
+}: HomeItemComponentProps) => {
   const { resetToModule } = useAppNavigation();
+
+  // Color de fondo suave para el icono
+  const softBg = `${color}15`;
 
   return (
     <TouchableOpacity
-      style={[
-        styles.cardContainer,
-        ModernStyles.shadowLg,
-        { backgroundColor: color },
-      ]}
-      activeOpacity={0.8}
-      onPress={() => resetToModule(stack, screen)}
+      style={styles.cardContainer}
+      activeOpacity={0.7}
+      onPress={() => resetToModule(stack, screen, params)}
     >
       <View style={styles.contentContainer}>
-        {/* Icono */}
-        <View
-          style={[
-            styles.iconContainer,
-            { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
-          ]}
-        >
-          <Icon source={icon} size={24} color="#ffffff" />
+        <View style={[styles.iconWrapper, { backgroundColor: softBg }]}>
+          <Icon source={icon} size={22} color={color} />
         </View>
 
-        {/* Label */}
-        <Text style={styles.cardLabel}>{label}</Text>
+        <ITText
+          variant="labelMedium"
+          weight="bold"
+          color="#1E293B"
+          numberOfLines={1}
+          style={styles.label}
+        >
+          {label}
+        </ITText>
 
-        {/* Badge de contador (Prioridad sobre acceso rápido si existe) */}
         {badge ? (
-           <View style={styles.notificationBadge}>
-             <Text style={styles.notificationText}>{badge > 99 ? '+99' : badge}</Text>
-           </View>
-        ) : (
-          <View style={styles.accessBadge}>
-            <Icon source="chevron-right" size={16} color={color} />
+          <View style={[styles.notificationBadge, { backgroundColor: color }]}>
+            <ITText variant="labelSmall" weight="bold" color="#FFFFFF">
+              {badge > 99 ? '+99' : badge}
+            </ITText>
           </View>
-        )}
+        ) : null}
       </View>
     </TouchableOpacity>
   );
-
-}
+};
 
 const styles = StyleSheet.create({
   cardContainer: {
-    flex: 1,
+    height: 100,
     borderRadius: 20,
-    padding: 20,
-    marginHorizontal: 8,
-    minHeight: 140,
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
   contentContainer: {
     flex: 1,
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  iconContainer: {
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  cardLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
-    textAlign: 'left',
-    marginTop: 'auto',
-  },
-  accessBadge: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#ffffff',
+  iconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  label: {
+    textAlign: 'center',
+    width: '100%',
   },
   notificationBadge: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    minWidth: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#ffffff',
+    top: -4,
+    right: -4,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
-    borderWidth: 2,
-    borderColor: 'rgba(0,0,0,0.1)'
+    paddingHorizontal: 4,
   },
-  notificationText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#d32f2f',
-  }
 });

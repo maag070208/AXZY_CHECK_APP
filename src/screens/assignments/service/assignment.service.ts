@@ -14,7 +14,7 @@ export const getMyAssignments = async (
   if (guardId) queryParams.push(`guardId=${guardId}`);
   if (queryParams.length) query = '?' + queryParams.join('&');
 
-  return await get<IAssignment[]>(`/assignments/me${query}`);
+  return await get<IAssignment[]>(`/assignments/my${query}`);
 };
 
 export const createAssignment = async (

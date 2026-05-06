@@ -1,129 +1,109 @@
 import React from 'react';
-import {
-  View,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Image,
-  ScrollView,
-  Text,
-} from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import { useDispatch } from 'react-redux';
+import { useAppSelector } from '../../../core/store/hooks';
+import { showLoader } from '../../../core/store/slices/loader.slice';
+import { showToast } from '../../../core/store/slices/toast.slice';
+import { login } from '../../../core/store/slices/user.slice';
+import Logo from '../../../shared/assets/logo.png';
+import { ITScreenWrapper, ITText } from '../../../shared/components';
+import { LoaderComponent } from '../../../shared/components/LoaderComponent';
 import {
   LoginFormComponent,
   LoginFormComponentValues,
 } from '../components/LoginFormComponent';
 import { login as loginService } from '../services/AuthService';
-import { useDispatch } from 'react-redux';
-import { login } from '../../../core/store/slices/user.slice';
-import { useAppSelector } from '../../../core/store/hooks';
-import { showToast } from '../../../core/store/slices/toast.slice';
-import Logo from '../../../shared/assets/logo.png';
-import { showLoader } from '../../../core/store/slices/loader.slice';
-import LoaderComponent from '../../../shared/components/LoaderComponent';
 
 const LoginScreen: React.FC = () => {
   const dispatch = useDispatch();
   const { loading } = useAppSelector(state => state.loaderState);
 
   const handleLogin = async (values: LoginFormComponentValues) => {
-      console.log('Login submit:', values);
-      dispatch(showLoader(true));
-      const response:any = await loginService(
+    dispatch(showLoader(true));
+    try {
+      const response: any = await loginService(
         values.username,
         values.password,
-      )
-      .catch(error => {
-        console.log('Login error:', error);
-        dispatch(showLoader(false));
-        return {
-          success: false,
-          data: null,
-          message: error.messages[0] || 'Error al inciar sesion',
-        };
-      })
-      .finally(() => {
-        dispatch(showLoader(false));
-      });
-      console.log('Login response:', response);
+      );
+
       if (response.success && response.data) {
         dispatch(login(response.data));
         dispatch(
           showToast({
             type: 'success',
-            message: 'Inicio de sesión exitoso',
+            message: 'Bienvenido de nuevo',
           }),
         );
-      }else{
+      } else {
+        const errorMsg = response.error || 'Error desconocido';
         dispatch(
           showToast({
             type: 'error',
-            message: response.message,
+            message: errorMsg,
           }),
         );
       }
+    } catch (error: any) {
+      console.log('Login Exception:', error);
+      const errorMsg =
+        error?.error || 'Error de conexión con el servidor';
+      dispatch(
+        showToast({
+          type: 'error',
+          message: errorMsg,
+        }),
+      );
+    } finally {
+      dispatch(showLoader(false));
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+    <ITScreenWrapper contentContainerStyle={styles.scrollContent}>
+      <View style={styles.logoContainer}>
+        <Image source={Logo} resizeMode="contain" style={styles.logo} />
+        <ITText
+          variant="headlineLarge"
+          weight="bold"
+          style={styles.welcomeTitle}
         >
-          <View style={styles.logoContainer}>
-            <Image source={Logo} resizeMode="contain" style={styles.logo} />
-            <Text style={styles.welcomeTitle}>Bienvenido a CheckApp</Text>
-            <Text style={styles.welcomeSubtitle}>
-              Inicia sesión para continuar
-            </Text>
-          </View>
+          Bienvenido a CheckApp
+        </ITText>
+        <ITText variant="bodyLarge" style={styles.welcomeSubtitle}>
+          Inicia sesión para continuar
+        </ITText>
+      </View>
 
-          <View style={styles.formContainer}>
-            <LoginFormComponent onSubmit={handleLogin} loading={loading} />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      <View style={styles.formContainer}>
+        <LoginFormComponent onSubmit={handleLogin} loading={loading} />
+      </View>
       <LoaderComponent />
-    </View>
+    </ITScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f6fbf4',
-  },
-  keyboardView: {
-    flex: 1,
-  },
   scrollContent: {
-    flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingBottom: 40,
   },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
+    marginTop: 20,
   },
   logo: {
-    width: 250,
-    height: 250,
+    width: 180,
+    height: 180,
   },
   welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1e293b', // Slate-800
-    marginBottom: 8,
+    marginTop: 20,
     textAlign: 'center',
   },
   welcomeSubtitle: {
-    fontSize: 16,
-    color: '#64748b', // Slate-500
+    marginTop: 8,
     textAlign: 'center',
+    opacity: 0.7,
   },
   formContainer: {
     width: '100%',

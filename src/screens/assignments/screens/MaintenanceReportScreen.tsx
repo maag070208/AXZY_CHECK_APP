@@ -8,7 +8,7 @@ import { CameraModal } from '../../check/components/CameraModal';
 import { createMaintenance } from '../service/maintenance.service';
 import { useDispatch } from 'react-redux';
 import { showToast } from '../../../core/store/slices/toast.slice';
-import { uploadFile } from '../../../shared/service/upload.service';
+import { ITMediaPicker, MediaItem } from '../../../shared/components/ITMediaPicker';
 import Geolocation from '@react-native-community/geolocation';
 
 const { width } = Dimensions.get('window');
@@ -25,10 +25,7 @@ export const MaintenanceReportScreen = () => {
     const [selectedType, setSelectedType] = useState<string>('');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
-    const [media, setMedia] = useState<any[]>([]);
-    
-    const [cameraVisible, setCameraVisible] = useState(false);
-    const [cameraMode, setCameraMode] = useState<'photo' | 'video'>('photo');
+    const [media, setMedia] = useState<MediaItem[]>([]);
 
     // Reset state when leaving the screen
     useFocusEffect(
@@ -44,82 +41,7 @@ export const MaintenanceReportScreen = () => {
         }, [])
     );
 
-    const handleCapture = async (file: { uri: string; type: 'video' | 'photo' }) => {
-        // optimistically add to list with uploading flag
-        const tempId = Date.now().toString();
-        const newItem = { 
-            id: tempId,
-            uri: file.uri, 
-            type: file.type, 
-            uploading: true, 
-            error: false 
-        };
-        
-        setMedia(prev => [...prev, newItem]);
-
-        try {
-            const res = await uploadFile(file.uri, file.type === 'video' ? 'video' : 'image', 'incident');
-            
-            setMedia(prev => prev.map(item => {
-                if (item.id === tempId) {
-                    if (res.success && res.url) {
-                         return { ...item, url: res.url, uploading: false };
-                    } else {
-                         return { ...item, uploading: false, error: true };
-                    }
-                }
-                return item;
-            }));
-
-            if (!res.success) {
-                dispatch(showToast({ message: 'Error al subir archivo', type: 'error' }));
-            }
-
-        } catch (e) {
-            setMedia(prev => prev.map(item => {
-                if (item.id === tempId) return { ...item, uploading: false, error: true };
-                return item;
-            }));
-        }
-    };
-
-    const retryUpload = async (index: number) => {
-        const item = media[index];
-        if (!item.error || item.uploading) return;
-
-        setMedia(prev => {
-            const newMedia = [...prev];
-            newMedia[index] = { ...newMedia[index], error: false, uploading: true };
-            return newMedia;
-        });
-
-        try {
-            const res = await uploadFile(item.uri, item.type === 'video' ? 'video' : 'image', 'incident');
-            
-            setMedia(prev => {
-                const newMedia = [...prev];
-                if (res.success && res.url) {
-                    newMedia[index] = { ...newMedia[index], url: res.url, uploading: false };
-                } else {
-                    newMedia[index] = { ...newMedia[index], uploading: false, error: true };
-                }
-                return newMedia;
-            });
-
-            if (res.success) {
-                dispatch(showToast({ message: 'Evidencia subida correctamente', type: 'success' }));
-            } else {
-                dispatch(showToast({ message: 'Error al reintentar', type: 'error' }));
-            }
-
-        } catch (e) {
-            setMedia(prev => {
-                const newMedia = [...prev];
-                newMedia[index] = { ...newMedia[index], uploading: false, error: true };
-                return newMedia;
-            });
-        }
-    };
+    // Handled by ITMediaPicker
 
     const handleSubmit = async () => {
         if (!selectedType) {
@@ -190,9 +112,7 @@ export const MaintenanceReportScreen = () => {
     };
 
     const removeMedia = (index: number) => {
-        const newMedia = [...media];
-        newMedia.splice(index, 1);
-        setMedia(newMedia);
+        setMedia(prev => prev.filter((_, i) => i !== index));
     };
 
     const isUploading = media.some(m => m.uploading);
@@ -226,63 +146,11 @@ export const MaintenanceReportScreen = () => {
                     ))}
                 </View>
 
-                <Text style={styles.label}>2. EVIDENCIA</Text>
-                <View style={styles.photoActionRow}>
-                    <TouchableOpacity 
-                        activeOpacity={0.8}
-                        style={[styles.bigCaptureBtn, { backgroundColor: '#FFFFFF', borderColor: theme.colors.primary, borderWidth: 2 }]}
-                        onPress={() => { setCameraMode('photo'); setCameraVisible(true); }}
-                    >
-                        <Icon source="camera" size={32} color={theme.colors.primary} />
-                        <Text style={[styles.bigCaptureText, { color: theme.colors.primary }]}>FOTO</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        activeOpacity={0.8}
-                        style={[styles.bigCaptureBtn, { backgroundColor: '#455A64' }]}
-                        onPress={() => { setCameraMode('video'); setCameraVisible(true); }}
-                    >
-                        <Icon source="video" size={32} color="white" />
-                        <Text style={styles.bigCaptureText}>VIDEO</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {media.length > 0 && (
-                    <ScrollView horizontal style={styles.mediaList} showsHorizontalScrollIndicator={false}>
-                        {media.map((item, index) => (
-                            <View key={index} style={styles.mediaItem}>
-                                <Image source={{ uri: item.uri }} style={styles.mediaImg} />
-                                {item.type === 'video' && (
-                                    <View style={styles.videoIconOverlay}><Icon source="play-circle" color="white" size={30} /></View>
-                                )}
-                                {item.uploading && (
-                                    <View style={styles.loaderOverlay}>
-                                        <ActivityIndicator size="small" color="white" />
-                                    </View>
-                                )}
-                                {item.error && (
-                                    <View style={styles.errorOverlay}>
-                                        <IconButton 
-                                            icon="refresh" 
-                                            iconColor="white" 
-                                            size={28} 
-                                            onPress={() => retryUpload(index)}
-                                            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-                                        />
-                                    </View>
-                                )}
-                                <IconButton 
-                                    icon="close-circle" 
-                                    size={22} 
-                                    containerColor="white" 
-                                    iconColor="#E53935"
-                                    style={styles.deleteMedia} 
-                                    onPress={() => removeMedia(index)} 
-                                />
-                            </View>
-                        ))}
-                    </ScrollView>
-                )}
+                <ITMediaPicker 
+                    media={media}
+                    onMediaChange={setMedia}
+                    uploadPath="incident"
+                />
 
                 <Text style={styles.label}>3. OBSERVACIONES ADICIONALES</Text>
                 <TextInput
@@ -309,13 +177,7 @@ export const MaintenanceReportScreen = () => {
                 </ScrollView>
             </KeyboardAvoidingView>
 
-            <CameraModal
-                visible={cameraVisible}
-                mode={cameraMode}
-                onDismiss={() => setCameraVisible(false)}
-                onCapture={handleCapture}
-                maxDuration={APP_SETTINGS.INCIDENT_VIDEO_DURATION_LIMIT}
-            />
+            {/* Camera handled by ITMediaPicker */}
             
              <Portal>
                          <Dialog visible={isUploading || loading} dismissable={false} style={{ backgroundColor: 'white', borderRadius: 20 }}>

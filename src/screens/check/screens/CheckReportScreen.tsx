@@ -37,6 +37,7 @@ import {
 } from '../../assignments/service/assignment.service';
 import { TaskChecklist } from '../components/TaskChecklist';
 import { showToast } from '../../../core/store/slices/toast.slice';
+import { ITAlert } from '../../../shared/components/ITAlert';
 
 const { width } = Dimensions.get('window');
 
@@ -62,6 +63,14 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       label: string;
       level: number;
   }>({ minPhotos: 0, videoRequired: false, label: 'Libre', level: 0 });
+
+  const [alertConfig, setAlertConfig] = useState<any>({
+    visible: false,
+    title: '',
+    description: '',
+    type: 'info',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     initReport();
@@ -154,6 +163,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         coords?.lat,
         coords?.lng,
         route.params.assignmentId, // Pass Assignment ID
+        route.params.roundId, // Pass Round ID
       );
 
       // Check if res.data has the id (based on log: res.data.id exists)
@@ -163,15 +173,26 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         console.log("Kardex Created:", res.data);
         setCurrentKardexId(res.data.id);
       } else {
-        Alert.alert(
-          'Error',
-          'No se pudo iniciar el reporte. Intenta de nuevo.',
-          [{ text: 'Salir', onPress: () => navigation.goBack() }],
-        );
+        setAlertConfig({
+          visible: true,
+          title: 'Error',
+          description: 'No se pudo iniciar el reporte. Intenta de nuevo.',
+          type: 'danger',
+          onConfirm: () => {
+            setAlertConfig((prev: any) => ({ ...prev, visible: false }));
+            navigation.goBack();
+          },
+        });
       }
     } catch (e) {
       console.log(e);
-      Alert.alert('Error de Conexión', 'Revisa tu internet.');
+      setAlertConfig({
+        visible: true,
+        title: 'Error de Conexión',
+        description: 'Revisa tu internet.',
+        type: 'danger',
+        onConfirm: () => setAlertConfig((prev: any) => ({ ...prev, visible: false })),
+      });
     }
   };
 
@@ -336,14 +357,18 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
 
   const handleBackPress = () => {
       // IF report is started (id exists) but not finished, warn user
-      Alert.alert(
-          '¿Salir del reporte?',
-          'Si sales ahora, deberás escanear nuevamente para iniciar otro reporte. (Las evidencias subidas se conservan en el servidor)',
-          [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Salir', style: 'destructive', onPress: () => navigation.goBack() }
-          ]
-      );
+      setAlertConfig({
+        visible: true,
+        title: '¿Salir del reporte?',
+        description: 'Si sales ahora, deberás escanear nuevamente para iniciar otro reporte. (Las evidencias subidas se conservan en el servidor)',
+        type: 'danger',
+        confirmLabel: 'Salir',
+        cancelLabel: 'Cancelar',
+        onConfirm: () => {
+          setAlertConfig((prev: any) => ({ ...prev, visible: false }));
+          navigation.goBack();
+        }
+      });
       return true;
   };
 
@@ -360,7 +385,13 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     if (loading || !currentKardexId) return;
 
     if (photos.length < requirements.minPhotos) {
-      Alert.alert('Requisito', `Debes agregar al menos ${requirements.minPhotos} foto(s).`);
+      setAlertConfig({
+        visible: true,
+        title: 'Requisito',
+        description: `Debes agregar al menos ${requirements.minPhotos} foto(s).`,
+        type: 'info',
+        onConfirm: () => setAlertConfig((prev: any) => ({ ...prev, visible: false })),
+      });
       return;
     }
 
@@ -368,10 +399,13 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     if (assignmentId && tasks.length > 0) {
       const pendingTasks = tasks.filter(t => !t.completed);
       if (pendingTasks.length > 0) {
-        Alert.alert(
-          'Tareas Pendientes',
-          `Tienes ${pendingTasks.length} tarea(s) sin completar. Debes completarlas todas.`,
-        );
+        setAlertConfig({
+          visible: true,
+          title: 'Tareas Pendientes',
+          description: `Tienes ${pendingTasks.length} tarea(s) sin completar. Debes completarlas todas.`,
+          type: 'info',
+          onConfirm: () => setAlertConfig((prev: any) => ({ ...prev, visible: false })),
+        });
         return;
       }
     }
@@ -379,7 +413,13 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     // Check for mandatory video if required
     if (requirements.videoRequired) {
         if (!video || !video.url || video.error) {
-            Alert.alert('Requisito', 'El video de evidencia es obligatorio en este nivel de reporte.');
+            setAlertConfig({
+              visible: true,
+              title: 'Requisito',
+              description: 'El video de evidencia es obligatorio en este nivel de reporte.',
+              type: 'info',
+              onConfirm: () => setAlertConfig((prev: any) => ({ ...prev, visible: false })),
+            });
             return;
         }
     }
@@ -387,10 +427,13 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     // Check pending uploads
     const pending = photos.some(p => p.uploading) || video?.uploading;
     if (pending) {
-      Alert.alert(
-        'Espera',
-        'Por favor espera a que terminen de subir los archivos.',
-      );
+      setAlertConfig({
+        visible: true,
+        title: 'Espera',
+        description: 'Por favor espera a que terminen de subir los archivos.',
+        type: 'info',
+        onConfirm: () => setAlertConfig((prev: any) => ({ ...prev, visible: false })),
+      });
       return;
     }
 
@@ -435,10 +478,22 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
             routes: [{ name: 'Tabs', params: { screen: 'HOME_STACK' } }],
         });
       } else {
-        Alert.alert('Error', 'No se pudieron guardar las notas finales.');
+        setAlertConfig({
+          visible: true,
+          title: 'Error',
+          description: 'No se pudieron guardar las notas finales.',
+          type: 'danger',
+          onConfirm: () => setAlertConfig((prev: any) => ({ ...prev, visible: false })),
+        });
       }
     } catch (e) {
-      Alert.alert('Error', 'Ocurrió un error inesperado.');
+      setAlertConfig({
+        visible: true,
+        title: 'Error',
+        description: 'Ocurrió un error inesperado.',
+        type: 'danger',
+        onConfirm: () => setAlertConfig((prev: any) => ({ ...prev, visible: false })),
+      });
     } finally {
       setLoading(false);
     }
@@ -592,7 +647,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
 
           <View style={styles.photoGrid}>
             {photos.map((photo, index) => (
-              <View key={index} style={styles.photoContainerPro}>
+              <View key={photo.uri} style={styles.photoContainerPro}>
                 <Image source={{ uri: photo.uri }} style={styles.photoImage} />
                 {photo.uploading && (
                   <View style={styles.photoLoader}>
@@ -754,6 +809,17 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
           </View>
         )}
       </Portal>
+
+      <ITAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        description={alertConfig.description}
+        type={alertConfig.type}
+        confirmLabel={alertConfig.confirmLabel}
+        cancelLabel={alertConfig.cancelLabel}
+        onConfirm={alertConfig.onConfirm}
+        onDismiss={() => setAlertConfig((prev: any) => ({ ...prev, visible: false }))}
+      />
     </View>
   );
 };

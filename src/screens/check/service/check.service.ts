@@ -1,6 +1,6 @@
 import { post, patch } from '../../../core/axios';
 
-export const registerCheck = async (locationId: number, userId: number, notes?: string, media?: any[], latitude?: number, longitude?: number, assignmentId?: number): Promise<{ success: boolean; data: any }> => {
+export const registerCheck = async (locationId: number, userId: number, notes?: string, media?: any[], latitude?: number, longitude?: number, assignmentId?: number, roundId?: number): Promise<{ success: boolean; data: any }> => {
   const response = await post('/kardex', {
     locationId,
     userId,
@@ -9,6 +9,7 @@ export const registerCheck = async (locationId: number, userId: number, notes?: 
     latitude,
     longitude,
     assignmentId,
+    roundId,
   });
   return { success: true, data: response.data };
 };

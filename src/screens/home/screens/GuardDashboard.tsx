@@ -1,49 +1,39 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  RefreshControl,
-  Alert,
-  Dimensions,
-  StatusBar,
-  ActivityIndicator,
-  TouchableOpacity,
-} from 'react-native';
-import {
-  Text,
-  Card,
-  ProgressBar,
-  Icon,
-  Button,
-  Surface,
-  Portal,
-  Modal,
-} from 'react-native-paper';
 import {
   useFocusEffect,
   useIsFocused,
   useNavigation,
 } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import {
+  Dimensions,
+  FlatList,
+  RefreshControl,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Icon, Portal, Surface, useTheme, Modal } from 'react-native-paper';
 import {
   Camera,
   useCameraDevice,
   useCodeScanner,
 } from 'react-native-vision-camera';
-import { getMyRecurringAssignments } from '../../recurring/service/recurring.service';
-import {
-  startRound,
-  endRound,
-  getCurrentRound,
-  getActiveRounds,
-} from '../../home/service/round.service';
-import { getMyAssignments } from '../../assignments/service/assignment.service';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { showToast } from '../../../core/store/slices/toast.slice';
-import { theme } from '../../../shared/theme/theme';
-import { API_CONSTANTS } from '../../../core/constants/API_CONSTANTS';
 import { UserRole } from '../../../core/types/IUser';
+import { COLORS } from '../../../shared/utils/constants';
+import {
+  endRound,
+  getActiveRounds,
+  getCurrentRound,
+  startRound,
+} from '../../home/service/round.service';
+import { getRecurringByGuard } from '../service/recurring.service';
+import { getMyAssignments } from '../../assignments/service/assignment.service';
+import { IAssignment } from '../../assignments/service/assignment.types';
+import { ITText, ITButton, ITCard, ITScreenWrapper, LoaderComponent } from '../../../shared/components';
 
 const { width } = Dimensions.get('window');
 
@@ -52,148 +42,106 @@ export const GuardDashboard = () => {
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.userState);
   const isFocused = useIsFocused();
+  const theme = useTheme();
 
   const device = useCameraDevice('back');
-  const [hasPermission, setHasPermission] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
-  
-  // State Variables
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
   const [roundLoading, setRoundLoading] = useState(false);
-  
-  const [activeRound, setActiveRound] = useState<any>(null); // { id, startTime }
-  const [configs, setConfigs] = useState<any[]>([]);
-  const [specialAssignments, setSpecialAssignments] = useState<any[]>([]);
+
+  const [activeRound, setActiveRound] = useState<any>(null);
+  const [clients, setClients] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<IAssignment[]>([]);
   const [routeSelectionVisible, setRouteSelectionVisible] = useState(false);
   const [endRoundVisible, setEndRoundVisible] = useState(false);
-
-  // Cooldown logic has been removed as per user request.
-  const cooldownMinutes = 0;
-  
-  // Lock ONLY if we have a single route AND that specific route is in cooldown.
-  // If we have multiple routes, we must allow opening the menu (Cooldowns are checked per-route by API).
-  const isSingleRoute = configs.length === 1;
-  const isSameRoute = isSingleRoute && activeRound?.recurringConfigurationId === configs[0].id;
-  
-  console.log('DEBUG DASHBOARD:', {
-      configsLen: configs.length,
-      configId: configs[0]?.id,
-      activeRoundConfigId: activeRound?.recurringConfigurationId,
-      status: activeRound?.status,
-      isSingleRoute,
-      isSameRoute,
-      cooldownMinutes,
-      activeRound
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'error' | 'success' | 'warning' | 'info';
+    onConfirm?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'warning',
   });
 
-  const isLocked = false;
-
-  // Helper checks
   const isRoundActive = activeRound && activeRound.status === 'IN_PROGRESS';
-  const isRoundCompleted = activeRound && activeRound.status === 'COMPLETED';
-  const isMyRound = isRoundActive && Number(activeRound.guardId) === Number(user.id);
+  const isMyRound = isRoundActive && activeRound.guardId == user.id;
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [recurringRes, assignRes, roundRes, activeRoundsRes] = await Promise.all([
-        getMyRecurringAssignments().catch(err => {
-          console.warn('Recurring Error:', err);
-          return { success: false, data: [] };
-        }),
-        getMyAssignments().catch(err => {
-          console.warn('Assignments Error:', err);
-          return { success: false, data: [] };
-        }),
-        getCurrentRound().catch(err => {
-          console.warn('Round Error:', err);
-          return { success: false, data: null };
-        }),
-        getActiveRounds().catch(err => {
-           console.warn('Active Rounds Error:', err);
-           return { success: false, data: [] };
-        }),
+      const [recurringRes, roundRes, activeRoundsRes, assignmentsRes] = await Promise.all([
+        getRecurringByGuard(user.id).catch(() => ({ success: false, data: [] })),
+        getCurrentRound().catch(() => ({ success: false, data: null })),
+        getActiveRounds().catch(() => ({ success: false, data: [] })),
+        getMyAssignments(user.id?.toString()).catch(() => ({ success: false, data: [] })),
       ]);
 
-      // Safe assignments with Fallbacks
-      const allConfigs = recurringRes?.data || [];
+      const allRecurring = recurringRes?.data || [];
       const activeGlobalRounds = activeRoundsRes?.data || [];
 
-      // Filter out configs that are active by OTHER guards
-      // Keep my own active config so I can see the checklist
-      const filteredConfigs = allConfigs.filter((c: any) => {
-           const activeForThisConfig = activeGlobalRounds.find((r: any) => r.recurringConfigurationId === c.id && r.status === 'IN_PROGRESS');
-           
-           // If no active round for this config, keep it
-           if (!activeForThisConfig) return true;
-
-           // If there is an active round, ONLY keep it if it is MINE
-           return Number(activeForThisConfig.guardId) === Number(user.id);
+      const filteredRecurring = allRecurring.filter((config: any) => {
+        const activeForThisConfig = activeGlobalRounds.find(
+          (r: any) =>
+            r.recurringConfigurationId == config.id &&
+            r.status === 'IN_PROGRESS',
+        );
+        if (!activeForThisConfig) return true;
+        return activeForThisConfig.guardId == user.id;
       });
 
-      setConfigs(filteredConfigs);
-      setSpecialAssignments(assignRes?.data || []);
-
-      // For round, we check if it is valid
-      if (roundRes?.success && roundRes.data) {
-        setActiveRound(roundRes.data);
-      } else {
-        setActiveRound(null);
-      }
+      setClients(filteredRecurring);
+      setAssignments(assignmentsRes?.data || []);
+      const currentRound = roundRes?.success && roundRes.data ? roundRes.data : null;
+      console.log("[DASHBOARD] Clients:", filteredRecurring.length);
+      console.log("[DASHBOARD] Active Round ID:", currentRound?.id);
+      console.log("[DASHBOARD] Active Round Config ID:", currentRound?.recurringConfigurationId);
+      setActiveRound(currentRound);
     } catch (e) {
-      console.log('Critical Error loading data:', e);
-      // Fallbacks are already handled by initial state
+      console.error("[DASHBOARD] Load Error:", e);
       dispatch(showToast({ message: 'Error de conexión', type: 'error' }));
     } finally {
       setLoading(false);
     }
   };
 
-  const onStartRoundConfirmed = async (configId?: number) => {
-      setRouteSelectionVisible(false); // Close dialog if open
-      setRoundLoading(true);
-      try {
-        const res = await startRound(Number(user.id), configId);
-        if (res.success) {
-          setActiveRound(res.data);
-          loadData(); // Refresh list to update "Pending" status based on new round
-          dispatch(showToast({ message: 'Ronda iniciada', type: 'success' }));
-        } else {
-          // If error says "Active round", refresh data
-          const msg = res.messages && res.messages.length > 0 ? res.messages[0] : 'No se pudo iniciar la ronda';
-          Alert.alert('Error', msg);
-          loadData();
-        }
-      } catch (e: any) {
-        console.log("Start Round Error:", e);
-        const msg = e?.messages?.[0] || e.message || 'Error inesperado al iniciar';
-        dispatch(showToast({ message: msg, type: 'error' }));
-      } finally {
-        setRoundLoading(false);
+  const handleToggleRound = async () => {
+    if (!isRoundActive) {
+      if (clients.length === 0) {
+        setAlertConfig({
+          visible: true,
+          title: 'Sin Rutas',
+          message: 'No tienes rutas asignadas para hoy.',
+          type: 'warning',
+        });
+        return;
       }
+      clients.length === 1
+        ? onStartRoundConfirmed(clients[0].id)
+        : setRouteSelectionVisible(true);
+    } else {
+      setEndRoundVisible(true);
+    }
   };
 
-  const handleToggleRound = async () => {
-    // START LOGIC IF: No Active Round OR Round is LIMIT (COMPLETED)
-    if (!activeRound || activeRound.status === 'COMPLETED') {
-        
-        // Check assignments
-        if (configs.length === 0) {
-            Alert.alert('Sin Rutas', 'No tienes rutas asignadas disponibles para iniciar (o están ocupadas).');
-            return;
-        }
-
-        if (configs.length === 1) {
-            // Auto-select the only one - Let API Validate Cooldown
-            onStartRoundConfirmed(configs[0].id);
-        } else {
-            // Multiple routes: Show Selection Dialog
-            setRouteSelectionVisible(true);
-        }
-    } else {
-        // STOP LOGIC (IN_PROGRESS)
-        setEndRoundVisible(true);
+  const onStartRoundConfirmed = async (configId?: number) => {
+    setRouteSelectionVisible(false);
+    setRoundLoading(true);
+    try {
+      const res = await startRound(user.id as any, undefined, configId);
+      if (res.success) {
+        setActiveRound(res.data);
+        loadData();
+        dispatch(showToast({ message: 'Ronda iniciada con éxito', type: 'success' }));
+      }
+    } catch (e) {
+      dispatch(showToast({ message: 'Error al iniciar ronda', type: 'error' }));
+    } finally {
+      setRoundLoading(false);
     }
   };
 
@@ -201,40 +149,28 @@ export const GuardDashboard = () => {
     setEndRoundVisible(false);
     setRoundLoading(true);
     try {
-        const res = await endRound(activeRound.id);
-        if (res.success) {
-            setActiveRound(res.data);
-            dispatch(showToast({ message: 'Ronda finalizada', type: 'success' }));
-        } else {
-            dispatch(showToast({ message: res.messages?.[0] || 'Error al finalizar', type: 'error' }));
-        }
-    } catch (error: any) {
-        dispatch(showToast({ message: error?.messages?.[0] || 'Error de conexión', type: 'error' }));
+      const res = await endRound(activeRound.id);
+      if (res.success) {
+        setActiveRound(null);
+        loadData();
+        dispatch(showToast({ message: 'Ronda finalizada', type: 'success' }));
+      }
+    } catch (error) {
+      dispatch(showToast({ message: 'Error al finalizar', type: 'error' }));
     } finally {
-        setRoundLoading(false);
+      setRoundLoading(false);
     }
   };
 
   useFocusEffect(
     useCallback(() => {
-      checkPermission();
       loadData();
-      setScanned(false);
-      setCameraActive(false); // Ensure camera is off when returning
-      
-      return () => {
-          setCameraActive(false);
-      };
+      return () => setCameraActive(false);
     }, []),
   );
 
-  const checkPermission = async () => {
-    const status = await Camera.requestCameraPermission();
-    setHasPermission(status === 'granted');
-  };
-
   const codeScanner = useCodeScanner({
-    codeTypes: ['qr', 'ean-13'],
+    codeTypes: ['qr'],
     onCodeScanned: codes => {
       if (scanned || codes.length === 0 || !codes[0].value) return;
       handleCodeScanned(codes[0].value);
@@ -242,873 +178,398 @@ export const GuardDashboard = () => {
   });
 
   const handleCodeScanned = (code: string) => {
-    if (scanned) return;
     setScanned(true);
-    setCameraActive(false); // Turn off camera immediately after scan
-
-    console.log("Scanned Code:", code);
-    let foundLocation: any = null;
-    console.log("Configs:", configs);
-    
-    let scannedId: number | null = null;
+    setCameraActive(false);
+    let scannedName: string | null = null;
+    let scannedId: string | null = null;
     try {
-        const parsed = JSON.parse(code);
-        if (parsed && parsed.id !== undefined && parsed.id !== null) {
-            scannedId = Number(parsed.id);
-        }
+      const parsed = JSON.parse(code);
+      if (parsed?.name) scannedName = String(parsed.name);
+      if (parsed?.id) scannedId = String(parsed.id);
     } catch (e) {
-        console.log("Scanned code is not JSON");
+      scannedName = code;
     }
 
-    // Validar SOLO en la configuración de la ronda activa
-    const activeConfig = configs.find(c => c.id === activeRound?.recurringConfigurationId);
-
-    if (!activeConfig) {       
-       Alert.alert('Error', 'No se encontró la configuración de la ronda activa.', [{ text: 'OK', onPress: () => setScanned(false) }]);
-       return;
-    }
-
-    const match = activeConfig.recurringLocations.find(
-      (l: any) => {
-           if (scannedId !== null) {
-               return l.location.id === scannedId && !l.completed;
-           }
-           return l.location.name === code && !l.completed;
-      },
+    const locations =
+      activeRound?.recurringConfiguration?.recurringLocations?.map(
+        (rl: any) => ({ ...rl.location, tasks: rl.tasks }),
+      );
+    const foundLocation = locations?.find(
+      (l: any) => 
+        (scannedName && l.name.toUpperCase() === scannedName.toUpperCase()) || 
+        (scannedId && String(l.id) === String(scannedId)),
     );
 
-    if (match) {
-        foundLocation = match;
-    }
-
     if (foundLocation) {
+      const checks =
+        activeRound?.kardex?.filter(
+          (c: any) => String(c.locationId) === String(foundLocation.id),
+        ) || [];
+      const isCompleted = checks.some(
+        (c: any) => Array.isArray(c.media) && c.media.length > 0,
+      );
+
+      if (isCompleted) {
+        setAlertConfig({
+          visible: true,
+          title: 'Ya Verificado',
+          message: 'Este punto de control ya fue completado.',
+          type: 'info',
+          onConfirm: () => setScanned(false),
+        });
+        return;
+      }
+      setScanned(false);
       navigation.navigate('CHECK_STACK', {
         screen: 'CHECK_MAIN',
         params: {
-          location: foundLocation.location,
+          location: foundLocation,
           recurringTasks: foundLocation.tasks,
+          roundId: activeRound?.id,
         },
       });
     } else {
-      Alert.alert(
-        '❌ No encontrado',
-        'La ubicación escaneada no pertenece a la ronda activa o ya fue completada.',
-        [{ text: 'OK', onPress: () => setScanned(false) }],
-      );
+      setAlertConfig({
+        visible: true,
+        title: 'Código Inválido',
+        message: 'Este código no pertenece a la ruta actual.',
+        type: 'error',
+        onConfirm: () => setScanned(false),
+      });
     }
   };
 
-  // --- RENDERS ORIGINALES CON DISEÑO MEJORADO ---
-
   const renderLocationItem = ({ item }: { item: any }) => {
-    const isCompleted = item.completed;
-    const taskCount = item.tasks?.length || 0;
-
-    return (
-      <Surface
-        style={[styles.locCard, isCompleted && styles.completedCard]}
-        elevation={0}
-      >
-        <View style={styles.locContent}>
-          <View style={styles.locMainInfo}>
-            <View style={styles.locHeader}>
-              <View
-                style={[
-                  styles.statusDot,
-                  isCompleted ? styles.completedDot : styles.pendingDot,
-                ]}
-              />
-              <Text
-                style={[styles.locName, isCompleted && styles.completedText]}
-                numberOfLines={1}
-              >
-                {item.location?.name}
-              </Text>
-            </View>
-
-            <View style={styles.metaContainer}>
-              <View
-                style={[
-                  styles.taskBadge,
-                  isCompleted && styles.completedTaskBadge,
-                ]}
-              >
-                <Icon
-                  source={isCompleted ? 'check-circle' : 'clipboard-list'}
-                  size={14}
-                  color={
-                    isCompleted ? theme.colors.primary : theme.colors.secondary
-                  }
-                />
-                <Text
-                  style={[
-                    styles.taskCount,
-                    isCompleted && styles.completedTaskCount,
-                  ]}
-                >
-                  {taskCount} {taskCount === 1 ? 'tarea' : 'tareas'}
-                </Text>
-              </View>
-              {item.lastCompleted && (
-                <View style={styles.timeContainer}>
-                  <Icon
-                    source="clock-outline"
-                    size={12}
-                    color={theme.colors.outline}
-                  />
-                  <Text style={styles.timeText}>
-                    {new Date(item.lastCompleted).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-          {isCompleted && (
-            <Icon
-              source="check-circle"
-              size={24}
-              color={theme.colors.primary}
-            />
-          )}
-        </View>
-      </Surface>
+    const checks =
+      activeRound?.kardex?.filter(
+        (c: any) => String(c.locationId) === String(item.id),
+      ) || [];
+    const isCompleted = checks.some(
+      (c: any) => Array.isArray(c.media) && c.media.length > 0,
     );
-  };
-
-  const renderConfigSection = ({ item }: { item: any }) => {
-    const total = item.recurringLocations.length;
-    const completed = item.recurringLocations.filter(
-      (l: any) => l.completed,
-    ).length;
-    const progress = total > 0 ? completed / total : 0;
-    
-    // Only show content if this IS the active round config
-    // We added recurringConfigurationId to Round logic, but current frontend might need to know which one is active.
-    // The activeRound object now has `recurringConfiguration`.
-    // If activeRound exists, we only show content for the MATCHING config.
-    const isActiveConfig = activeRound && activeRound.recurringConfigurationId === item.id;
-    
-    // Fallback: If legacy round without ID, implies global? NO, user wants strict separation.
-    // If no active round, we show nothing expanded? Or maybe preview?
-    // Let's hide content unless active.
-    
-    const showContent = isMyRound && isActiveConfig;
+    const isIncomplete = !isCompleted && checks.length > 0;
 
     return (
-      <View style={[styles.configSection, showContent ? {borderColor: theme.colors.primary, borderWidth: 2} : {}]}>
-        <View style={styles.configHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.configTitle}>{item.title}</Text>
-            {showContent && (
-                 <ProgressBar
-                    progress={progress}
-                    color={theme.colors.primary}
-                    style={styles.progressBar}
-                />
-            )}
-          </View>
-           {showContent && (
-             <View style={styles.progressBadge}>
-                <Text style={styles.progressText}>
-                {completed}/{total}
-                </Text>
-            </View>
-           )}
+      <View style={[styles.locCard, isCompleted && styles.completedCard]}>
+        <View
+          style={[
+            styles.statusIndicator,
+            isCompleted
+              ? styles.bgSuccess
+              : isIncomplete
+              ? styles.bgIncomplete
+              : styles.bgPending,
+          ]}
+        />
+        <View style={styles.locMainInfo}>
+          <ITText variant="bodyMedium" weight="bold">{item.name}</ITText>
+          <ITText variant="bodySmall" style={{ opacity: 0.6 }}>
+            {isCompleted ? 'Verificado' : `${item.tasks?.length || 0} tareas pendientes`}
+          </ITText>
         </View>
-
-        {/* MODIFIED: Show content only if activeRound matches */}
-        {showContent && (
-          <View style={{ paddingBottom: 10 }}>
-            {item.recurringLocations.map((loc: any) => (
-              <View key={loc.id}>{renderLocationItem({ item: loc })}</View>
-            ))}
-          </View>
-        )}
+        <Icon
+          source={isCompleted ? 'check-circle' : 'chevron-right'}
+          size={20}
+          color={isCompleted ? COLORS.emerald : '#CBD5E1'}
+        />
       </View>
     );
   };
-  
-  const renderEndRoundModal = () => (
-    <Portal>
-        <Modal 
-            visible={endRoundVisible} 
-            onDismiss={() => setEndRoundVisible(false)}
-            contentContainerStyle={styles.modernModalContent}
-        >
-            <View style={styles.modalIconContainer}>
-                <View style={[styles.iconCircle, { backgroundColor: '#FEF2F2' }]}>
-                    <Icon source="alert-circle-outline" size={40} color="#EF4444" />
-                </View>
-            </View>
-
-            <Text style={styles.modalTitle}>¿Finalizar Ronda?</Text>
-            <Text style={styles.modalSubtitle}>
-                Estás a punto de terminar tu recorrido actual. ¿Deseas confirmar la finalización?
-            </Text>
-
-            <View style={styles.modalActionRow}>
-                <Button 
-                    mode="outlined" 
-                    onPress={() => setEndRoundVisible(false)} 
-                    style={styles.modalBtn}
-                    textColor="#64748B"
-                >
-                    Cancelar
-                </Button>
-                <Button 
-                    mode="contained" 
-                    onPress={onEndRoundConfirmed} 
-                    style={[styles.modalBtn, { backgroundColor: '#EF4444' }]}
-                    textColor="white"
-                >
-                    Finalizar
-                </Button>
-            </View>
-        </Modal>
-    </Portal>
-  );
-
-  // -- Route Selection Modal Render --
-  const renderRouteSelectionModal = () => (
-    <Portal>
-        <Modal 
-            visible={routeSelectionVisible} 
-            onDismiss={() => setRouteSelectionVisible(false)}
-            contentContainerStyle={styles.modernModalContent}
-        >
-            <View style={styles.modalIconContainer}>
-                <View style={[styles.iconCircle, { backgroundColor: '#F0FDF4' }]}>
-                    <Icon source="map-marker-path" size={40} color={theme.colors.primary} />
-                </View>
-            </View>
-
-            <Text style={styles.modalTitle}>Selecciona una Ruta</Text>
-            <Text style={styles.modalSubtitle}>Tienes múltiples rutas asignadas. Elige cuál iniciar:</Text>
-            
-            <FlatList
-                data={configs}
-                keyExtractor={item => String(item.id)}
-                style={{ maxHeight: 300, marginVertical: 10 }}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => (
-                    <TouchableOpacity 
-                        style={styles.modernModalOption} 
-                        onPress={() => {
-                            setRouteSelectionVisible(false);
-                            onStartRoundConfirmed(item.id);
-                        }}
-                    >
-                        <View style={styles.optionIconBox}>
-                            <Icon source="navigation-variant-outline" size={20} color={theme.colors.primary} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.optionTitle}>{item.title}</Text>
-                            <Text style={styles.optionSub}>{item.recurringLocations?.length || 0} ubicaciones registradas</Text>
-                        </View>
-                        <Icon source="chevron-right" size={20} color="#CBD5E1" />
-                    </TouchableOpacity>
-                )}
-            />
-            
-            <Button 
-                mode="text" 
-                onPress={() => setRouteSelectionVisible(false)} 
-                textColor="#64748B"
-                style={{ marginTop: 8 }}
-            >
-                Cancelar
-            </Button>
-        </Modal>
-    </Portal>
-  );
 
   return (
-    <View style={loading ? {
-        display: 'flex',
-              justifyContent:'center',
-              alignItems: 'center',
-              height: '100%'
-    } : styles.container}>
-      <StatusBar barStyle="light-content" />
-      <>
-        {loading ? (
-          <>
-            <ActivityIndicator 
-            size={50} color="#28c444ff" />
-          </>
+    <ITScreenWrapper 
+      scrollable={false} 
+      padding={false} 
+      style={styles.container}
+      edges={['left', 'right']}
+    >
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+
+      {/* Header / Cámara */}
+      <View
+        style={[
+          styles.headerContainer,
+          isMyRound && cameraActive ? { height: '40%' } : { height: '25%' },
+        ]}
+      >
+        {!isMyRound ? (
+          <View style={styles.lockedCamera}>
+            <Surface style={styles.lockCircle} elevation={0}>
+              <Icon source="shield-lock" size={30} color="#555" />
+            </Surface>
+            <ITText variant="bodySmall" center color="#888">
+              Inicia una ruta para habilitar escáner
+            </ITText>
+          </View>
+        ) : !cameraActive ? (
+          <TouchableOpacity
+            style={styles.activateCameraBtn}
+            onPress={() => {
+              setScanned(false);
+              setCameraActive(true);
+            }}
+          >
+            <Surface style={styles.cameraIconCircle} elevation={4}>
+              <Icon
+                source="qrcode-scan"
+                size={32}
+                color={theme.colors.primary}
+              />
+            </Surface>
+            <ITText variant="labelLarge" weight="bold" color="#FFF" style={{ letterSpacing: 1 }}>
+              TOCA PARA ESCANEAR CÓDIGO
+            </ITText>
+          </TouchableOpacity>
         ) : (
-          <>
-            <View style={styles.scannerContainer}>
-              {!activeRound || isRoundCompleted ? (
-                <View
-                  style={{
-                    flex: 1,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: '#111',
-                  }}
-                >
-                  <Icon source="lock-alert" size={48} color="#555" />
-                  <Text
-                    style={{
-                      color: '#777',
-                      marginTop: 16,
-                      fontWeight: 'bold',
-                      fontSize: 16,
-                      letterSpacing: 1,
-                    }}
-                  >
-                    {isMyRound
-                      ? isRoundCompleted
-                        ? 'RONDA COMPLETADA'
-                        : 'INICIA RONDA PARA HABILITAR'
-                      : configs.length > 0 ? (isRoundActive ? 'OTRA RONDA ACTIVA' : 'INICIAR RECORRIDO') : 'NO HAY RECORRIDOS'}
-                  </Text>
-                </View>
-              ) : (
-                <>
-                  {!cameraActive ? (
-                      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
-                          <Button 
-                              mode="contained" 
-                              icon="qrcode-scan"
-                              onPress={() => {
-                                  setScanned(false);
-                                  setCameraActive(true);
-                              }}
-                              style={{ backgroundColor: theme.colors.primary, paddingVertical: 8, paddingHorizontal: 16 }}
-                              labelStyle={{ fontSize: 18, fontWeight: 'bold' }}
-                          >
-                              ESCANEAR QR
-                          </Button>
-                          <Text style={{ color: '#aaa', marginTop: 12, fontSize: 14 }}>
-                              Presiona para activar la cámara
-                          </Text>
-                      </View>
-                  ) : (
-                      <>
-                        {isFocused && device && (
-                            <Camera
-                            style={[StyleSheet.absoluteFill]}
-                            device={device}
-                            isActive={cameraActive && isFocused && !scanned}
-                            codeScanner={codeScanner}
-                            />
-                        )}
-                        <View style={styles.scanOverlay}>
-                            <View style={styles.targetBox}>
-                            <View
-                                style={[
-                                styles.corner,
-                                {
-                                    top: 0,
-                                    left: 0,
-                                    borderTopWidth: 4,
-                                    borderLeftWidth: 4,
-                                },
-                                ]}
-                            />
-                            <View
-                                style={[
-                                styles.corner,
-                                {
-                                    top: 0,
-                                    right: 0,
-                                    borderTopWidth: 4,
-                                    borderRightWidth: 4,
-                                },
-                                ]}
-                            />
-                            <View
-                                style={[
-                                styles.corner,
-                                {
-                                    bottom: 0,
-                                    left: 0,
-                                    borderBottomWidth: 4,
-                                    borderLeftWidth: 4,
-                                },
-                                ]}
-                            />
-                            <View
-                                style={[
-                                styles.corner,
-                                {
-                                    bottom: 0,
-                                    right: 0,
-                                    borderBottomWidth: 4,
-                                    borderRightWidth: 4,
-                                },
-                                ]}
-                            />
-                            </View>
-                            
-                            <Button 
-                                mode="contained" 
-                                onPress={() => setCameraActive(false)}
-                                style={{ position: 'absolute', bottom: 20, backgroundColor: 'rgba(255,255,255,0.2)' }}
-                                textColor="white"
-                            >
-                                CANCELAR
-                            </Button>
-                        </View>
-                      </>
-                  )}
-                </>
-              )}
+          <View style={StyleSheet.absoluteFill}>
+            {isFocused && device && (
+              <Camera
+                style={StyleSheet.absoluteFill}
+                device={device}
+                isActive={!scanned}
+                codeScanner={codeScanner}
+              />
+            )}
+            <View style={styles.scanOverlay}>
+              <View style={styles.targetFrame} />
+              <ITButton
+                mode="text"
+                color="#FFF"
+                label="Cancelar"
+                onPress={() => setCameraActive(false)}
+                style={styles.closeCamBtn}
+              />
             </View>
+          </View>
+        )}
+      </View>
 
-            <View style={styles.contentSheet}>
-              <View style={styles.dragIndicator} />
+      {/* Panel de Contenido */}
+      <View style={styles.contentSheet}>
+        <View style={styles.dragIndicator} />
 
-              {/* BOTONES DE ACCIÓN: RONDAS + INCIDENCIAS */}
-              <View style={styles.actionSection}>
-<Button
-                  mode="contained"
-                  onPress={handleToggleRound}
-                  loading={roundLoading}
-                  disabled={
-                    configs.length === 0 ||
-                    (isRoundActive && !isMyRound)
+        <View style={styles.actionSection}>
+          <ITButton
+            label={isRoundActive ? (isMyRound ? 'FINALIZAR RUTA' : 'RONDA EN CURSO') : 'INICIAR RUTA'}
+            onPress={handleToggleRound}
+            loading={roundLoading}
+            icon={isRoundActive ? 'stop-circle' : 'play'}
+            color={isRoundActive ? (isMyRound ? COLORS.red : '#94A3B8') : theme.colors.primary}
+            style={styles.mainActionBtn}
+          />
+
+          <View style={styles.secondaryActions}>
+            <QuickAction
+              icon="alert-octagon"
+              label="Incidencia"
+              color={COLORS.red}
+              bg="#FEF2F2"
+              onPress={() =>
+                navigation.navigate('INCIDENTS_STACK', {
+                  screen: 'INCIDENT_REPORT',
+                  params: {
+                    initialCategory: 'FALTAS',
+                    roundId: activeRound?.id,
                   }
-                  style={[
-                    styles.roundMainBtn,
-                    configs.length === 0 && { backgroundColor: '#757575', opacity: 0.8 },
-                    isRoundActive
-                      ? isMyRound
-                        ? { backgroundColor: '#D32F2F' }
-                        : { backgroundColor: '#1976D2', opacity: 0.8 }
-                      : { backgroundColor: '#2E7D32' },
-                  ]}
-                  contentStyle={{ height: 56 }}
-                  labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
-                  icon={
-                    isRoundActive
-                      ? isMyRound
-                        ? 'stop-circle-outline'
-                        : 'account-clock'
-                      : 'play-circle-outline'
-                  }
-                >
-                  {isRoundActive
-                    ? isMyRound
-                      ? `TERMINAR RONDA (${new Date(
-                          activeRound.startTime,
-                        ).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })})`
-                      : `RONDA EN CURSO POR ${
-                          activeRound.guard?.name?.toUpperCase() ||
-                          'OTRO GUARDIA'
-                        }`
-                    : 'INICIAR RONDA'}
-                </Button>
+                })
+              }
+            />
+            {(user.role === UserRole.MAINT || user.role === UserRole.ADMIN) && (
+              <QuickAction
+                icon="wrench"
+                label="Mantenimiento"
+                color={COLORS.orange}
+                bg="#FFFBEB"
+                onPress={() => navigation.navigate('MAINTENANCE_STACK', { 
+                  screen: 'MAINTENANCE_REPORT',
+                  params: { roundId: activeRound?.id } 
+                })}
+              />
+            )}
+          </View>
+        </View>
 
-                <View style={styles.actionRow}>
-                  <Button
-                    mode="contained"
-                    onPress={() =>
-                      navigation.navigate('INCIDENT_REPORT', { initialCategory: 'FALTAS' })
+        <FlatList
+          data={
+            (isMyRound && activeRound?.recurringConfiguration
+              ? [activeRound.recurringConfiguration]
+              : isMyRound
+              ? clients.filter(c => c && c.id == activeRound?.recurringConfigurationId)
+              : clients).filter(Boolean)
+          }
+          keyExtractor={item => String(item.id)}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <View>
+              {assignments.length > 0 && (
+                <View style={{ marginBottom: 32 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <ITText variant="labelSmall" weight="bold" style={styles.sectionTitle}>
+                      TAREAS ESPECIALES PENDIENTES
+                    </ITText>
+                    <TouchableOpacity onPress={() => navigation.navigate('ASSIGNMENTS_STACK', { screen: 'MY_ASSIGNMENTS_MAIN' })}>
+                      <ITText variant="labelSmall" weight="bold" color={theme.colors.primary} style={{ letterSpacing: 0.5 }}>VER TODAS</ITText>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={{ gap: 12 }}>
+                    {assignments
+                      .filter(a => a.status === 'PENDING' || a.status === 'CHECKING' || a.status === 'ANOMALY')
+                      .slice(0, 3)
+                      .map((item) => (
+                        <TouchableOpacity 
+                          key={item.id}
+                          activeOpacity={0.8}
+                          onPress={() => navigation.navigate('CHECK_STACK', {
+                            screen: 'CHECK_SCAN',
+                            params: {
+                                assignmentId: item.id,
+                                expectedLocationId: item.locationId,
+                                expectedLocationName: item.location?.name
+                            }
+                          })}
+                          style={styles.specialTaskCard}
+                        >
+                          <Surface style={styles.specialTaskSurface} elevation={1}>
+                            <View style={[styles.priorityIndicator, { backgroundColor: item.status === 'ANOMALY' ? COLORS.red : COLORS.emerald }]} />
+                            
+                            <View style={styles.specialTaskContent}>
+                              <View style={styles.specialTaskHeader}>
+                                <View style={styles.iconBox}>
+                                  <Icon source="clipboard-alert" size={20} color={item.status === 'ANOMALY' ? COLORS.red : theme.colors.primary} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                  <ITText variant="bodyMedium" weight="bold" numberOfLines={1}>{item.location?.name}</ITText>
+                                  <ITText variant="labelSmall" style={{ opacity: 0.5 }}>
+                                    {item.tasks?.length} tareas por verificar
+                                  </ITText>
+                                </View>
+                                <Icon source="chevron-right" size={20} color="#CBD5E1" />
+                              </View>
+                            </View>
+                          </Surface>
+                        </TouchableOpacity>
+                      ))
                     }
-                    style={[styles.roundBtn, { backgroundColor: '#E53935' }]}
-                    icon="alert-circle"
-                  >
-                    INCIDENCIA
-                  </Button>
-                  {(user.role === UserRole.MAINT || user.role === UserRole.ADMIN) && (
-                    <Button
-                      mode="contained"
-                      onPress={() =>
-                        navigation.navigate('MAINTENANCE_REPORT')
-                      }
-                      style={[styles.roundBtn, { backgroundColor: '#FB8C00' }]}
-                      icon="wrench"
-                    >
-                      MANTENIMIENTO
-                    </Button>
-                  )}
+                  </View>
+                </View>
+              )}
+
+              <ITText variant="labelSmall" weight="bold" style={styles.sectionTitle}>
+                {isMyRound ? 'RUTA ACTUAL EN PROCESO' : 'RUTAS ASIGNADAS'}
+              </ITText>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <ITCard style={styles.routeCard} mode="contained">
+              <View style={styles.routeHeader}>
+                <Icon source="map-marker-distance" size={20} color={theme.colors.primary} />
+                <ITText variant="titleMedium" weight="bold" style={{ flex: 1 }}>{item.title}</ITText>
+                <View style={styles.ptsBadge}>
+                  <ITText variant="labelSmall" weight="bold" color="#475569">
+                    {item.recurringLocations?.length || 0} pts
+                  </ITText>
                 </View>
               </View>
 
-              <FlatList
-                data={configs}
-                // Show items if active round and matches, OR if NO round is active (but collapsed) - Logic inside renderConfigSection should handle visibility
-                // Actually, if we want to show available routes as "locked" or "pending" when inactive, we can.
-                // But the requested flow is: Start Round -> Select Route.
-                // So maybe when NO round active, we just show the "My Routes" list collapsed or similar?
-                // Let's keep logic: if active, show active details. If not active, show list of available routes (collapsed/summary).
-                renderItem={renderConfigSection} 
-                keyExtractor={item => String(item.id)}
-                contentContainerStyle={{ paddingBottom: 100 }}
-                refreshControl={
-                  <RefreshControl refreshing={loading} onRefresh={loadData} />
-                }
-                ListHeaderComponent={
-                  <>
-                    {/* ASIGNACIONES ESPECIALES - SE MANTIENEN TODAS */}
-                    {specialAssignments.length > 0 && (
-                      <View style={styles.specialSection}>
-                        <View style={styles.listHeaderLeft}>
-                          <Icon source="star" size={20} color="#FBC02D" />
-                          <Text style={styles.sectionTitle}>
-                            ASIGNACIONES ESPECIALES
-                          </Text>
-                        </View>
-                        {specialAssignments.map(assignment => (
-                          <Card
-                            key={assignment.id}
-                            style={styles.specialCard}
-                            mode="contained"
-                          >
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: 12,
-                              }}
-                            >
-                              <View style={{ flex: 1, marginRight: 8 }}>
-                                <Text
-                                  style={styles.specialLocName}
-                                  numberOfLines={1}
-                                >
-                                  {assignment.location?.name}
-                                </Text>
-                                {assignment.notes && (
-                                  <Text
-                                    style={styles.specialNotes}
-                                    numberOfLines={1}
-                                  >
-                                    "{assignment.notes}"
-                                  </Text>
-                                )}
-                                <View style={styles.specialBadge}>
-                                  <Text style={styles.specialBadgeText}>
-                                    {assignment.tasks?.length || 0} TAREAS
-                                  </Text>
-                                </View>
-                              </View>
-                              <Button
-                                mode="contained"
-                                onPress={() =>
-                                  navigation.navigate('ASSIGNMENTS_STACK', {
-                                    screen: 'ASSIGNMENT_SCAN',
-                                    params: {
-                                      targetLocation: assignment.location,
-                                      assignmentId: assignment.id,
-                                      tasks: assignment.tasks,
-                                    },
-                                  })
-                                }
-                                compact
-                                contentStyle={{ height: 36 }}
-                                style={{ borderRadius: 8 }}
-                                buttonColor="#FBC02D"
-                                textColor="#000"
-                                labelStyle={{
-                                  fontWeight: 'bold',
-                                  fontSize: 12,
-                                }}
-                                icon="qrcode-scan"
-                              >
-                                ESCANEAR
-                              </Button>
-                            </View>
-                          </Card>
-                        ))}
-                      </View>
-                    )}
-
-                    {/* ALWAYS show the list header if we have recurring items, regardless of round status */}
-                    {configs.length > 0 && (
-                      <View style={styles.listHeaderLeft}>
-                        <Icon
-                          source="clipboard-list"
-                          size={20}
-                          color={theme.colors.primary}
-                        />
-                        <Text style={styles.sectionTitle}>
-                          MIS RECORRIDOS ({configs.length})
-                        </Text>
-                      </View>
-                    )}
-                  </>
-                }
-              />
+              {isMyRound && (
+                <View style={styles.locationList}>
+                  {(item.recurringLocations || []).map((rl: any) =>
+                    renderLocationItem({ item: { ...rl.location, tasks: rl.tasks } }),
+                  )}
+                </View>
+              )}
+            </ITCard>
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Icon source="clipboard-text-outline" size={48} color="#E2E8F0" />
+              <ITText variant="bodyMedium" color="#94A3B8">No hay rutas programadas</ITText>
             </View>
-          </>
-        )}
-      </>
-      {renderRouteSelectionModal()}
-      {renderEndRoundModal()}
-    </View>
+          }
+          contentContainerStyle={{ paddingBottom: 40 }}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} />}
+        />
+      </View>
+
+      {/* Diálogos / Modales */}
+      <Portal>
+        <Modal visible={routeSelectionVisible} onDismiss={() => setRouteSelectionVisible(false)} contentContainerStyle={styles.modalBase}>
+          <ITText variant="headlineSmall" weight="bold" center style={{ marginBottom: 16 }}>Seleccionar Ruta</ITText>
+          {clients.map(item => (
+            <TouchableOpacity key={item.id} style={styles.modalOption} onPress={() => onStartRoundConfirmed(item.id)}>
+              <Icon source="arrow-right-circle" size={24} color={theme.colors.primary} />
+              <ITText variant="bodyLarge" weight="bold">{item.title}</ITText>
+            </TouchableOpacity>
+          ))}
+        </Modal>
+
+        <Modal visible={endRoundVisible} onDismiss={() => setEndRoundVisible(false)} contentContainerStyle={styles.modalBase}>
+          <ITText variant="headlineSmall" weight="bold" center style={{ marginBottom: 8 }}>¿Finalizar Ruta?</ITText>
+          <ITText variant="bodyMedium" center style={{ marginBottom: 24, opacity: 0.7 }}>
+            Asegúrate de haber verificado todos los puntos antes de concluir.
+          </ITText>
+          <View style={styles.modalActions}>
+            <ITButton mode="outlined" label="Cancelar" onPress={() => setEndRoundVisible(false)} style={{ flex: 1 }} />
+            <ITButton label="Sí, terminar" color={COLORS.red} onPress={onEndRoundConfirmed} style={{ flex: 1 }} />
+          </View>
+        </Modal>
+
+        <Modal visible={alertConfig.visible} onDismiss={() => setAlertConfig({ ...alertConfig, visible: false })} contentContainerStyle={styles.modalBase}>
+          <ITText variant="headlineSmall" weight="bold" center style={{ marginBottom: 8 }}>{alertConfig.title}</ITText>
+          <ITText variant="bodyMedium" center style={{ marginBottom: 24, opacity: 0.7 }}>{alertConfig.message}</ITText>
+          <ITButton label="Entendido" onPress={() => { setAlertConfig({ ...alertConfig, visible: false }); alertConfig.onConfirm?.(); }} />
+        </Modal>
+      </Portal>
+
+      <LoaderComponent visible={loading || roundLoading} />
+    </ITScreenWrapper>
   );
 };
 
+const QuickAction = ({ icon, label, color, bg, onPress }: any) => (
+  <TouchableOpacity style={[styles.quickBtn, { backgroundColor: bg }]} onPress={onPress}>
+    <Icon source={icon} size={22} color={color} />
+    <ITText variant="labelMedium" weight="bold" style={{ color }}>{label}</ITText>
+  </TouchableOpacity>
+);
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffffff' },
-
-  // Escáner
-  scannerContainer: {
-    height: '35%',
-    backgroundColor: '#000',
-    marginBottom: 10,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  scanOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  targetBox: { width: 180, height: 180, position: 'relative' },
-  corner: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderColor: theme.colors.primary,
-  },
-  scanTip: {
-    position: 'absolute',
-    bottom: 20,
-    backgroundColor: 'white',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  scanTipText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#333',
-    letterSpacing: 1,
-  },
-
-  // Cuerpo de la pantalla
-  contentSheet: {
-    flex: 1,
-    backgroundColor: '#F4F7F9',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    marginTop: -20,
-    paddingHorizontal: 15,
-  },
-  dragIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#CCC',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginVertical: 10,
-  },
-
-  actionSection: {
-    marginBottom: 20,
-    marginTop: 10,
-  },
-  roundMainBtn: {
-    borderRadius: 16,
-    marginBottom: 12,
-    justifyContent: 'center',
-    elevation: 4,
-  },
-  actionRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  roundBtn: { flex: 1, borderRadius: 12, height: 48, justifyContent: 'center' },
-
-  // Secciones
-  specialSection: { marginBottom: 20 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#555',
-    marginLeft: 8,
-    letterSpacing: 0.5,
-  },
-  listHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    marginTop: 10,
-  },
-
-  // Tarjetas Especiales
-  specialCard: {
-    backgroundColor: '#FFF',
-    borderLeftWidth: 5,
-    borderLeftColor: '#FBC02D',
-    marginBottom: 8,
-    borderRadius: 12,
-    overflow: 'hidden', // Ensure border radius clips content
-  },
-  specialLocName: { fontSize: 16, fontWeight: '800', color: '#333' },
-  specialNotes: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-  specialBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FFF9C4',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 8,
-  },
-  specialBadgeText: { fontSize: 10, fontWeight: '800', color: '#F57F17' },
-
-  // Rondas (Configs)
-  configSection: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    marginBottom: 15,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E0E6ED',
-  },
-  configHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  configTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#222',
-    marginBottom: 5,
-  },
-  progressBar: { height: 6, borderRadius: 3, backgroundColor: '#ECEFF1' },
-  progressBadge: {
-    marginLeft: 15,
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  progressText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: theme.colors.primary,
-  },
-
-  // Items de ubicación
-  locCard: {
-    backgroundColor: '#FAFAFA',
-    borderRadius: 12,
-    marginHorizontal: 0,
-    marginVertical: 4,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
-  completedCard: { backgroundColor: '#F1F8E9', borderColor: '#DCEDC8' },
-  locContent: { flexDirection: 'row', alignItems: 'center', padding: 12 },
+  container: { flex: 1, backgroundColor: '#000' },
+  headerContainer: { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  lockedCamera: { alignItems: 'center', opacity: 0.6, padding: 20 },
+  lockCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#1A1A1A', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  activateCameraBtn: { alignItems: 'center' },
+  cameraIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  scanOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' },
+  targetFrame: { width: 240, height: 240, borderWidth: 2, borderColor: '#FFF', borderRadius: 32, backgroundColor: 'transparent' },
+  closeCamBtn: { position: 'absolute', bottom: 30 },
+  contentSheet: { flex: 1, backgroundColor: '#FFFFFF', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20 },
+  dragIndicator: { width: 40, height: 5, backgroundColor: '#E2E8F0', borderRadius: 3, alignSelf: 'center', marginVertical: 14 },
+  actionSection: { marginBottom: 20 },
+  mainActionBtn: { borderRadius: 16, height: 56, justifyContent: 'center' },
+  secondaryActions: { flexDirection: 'row', gap: 12, marginTop: 14 },
+  quickBtn: { flex: 1, height: 54, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  sectionTitle: { color: '#94A3B8', marginBottom: 14, letterSpacing: 1, textTransform: 'uppercase' },
+  routeCard: { borderRadius: 24, padding: 16, marginBottom: 16 },
+  routeHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  ptsBadge: { backgroundColor: '#E2E8F0', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  locationList: { marginTop: 18, gap: 10 },
+  locCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 16, gap: 14, borderWidth: 1, borderColor: '#F1F5F9' },
+  completedCard: { opacity: 0.5, backgroundColor: '#F8FAFC' },
+  statusIndicator: { width: 4, height: 28, borderRadius: 2 },
+  bgPending: { backgroundColor: '#CBD5E1' },
+  bgIncomplete: { backgroundColor: COLORS.orange },
+  bgSuccess: { backgroundColor: COLORS.emerald },
   locMainInfo: { flex: 1 },
-  locHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  pendingDot: { backgroundColor: '#FFA000' },
-  completedDot: { backgroundColor: '#4CAF50' },
-  locName: { fontSize: 14, fontWeight: '700', color: '#333' },
-  completedText: { color: '#888', textDecorationLine: 'line-through' },
-  metaContainer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  taskBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F0F4F8',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  completedTaskBadge: { backgroundColor: '#E8F5E9' },
-  taskCount: { fontSize: 11, fontWeight: '700', color: '#546E7A' },
-  completedTaskCount: { color: '#43A047' },
-  timeContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  timeText: { fontSize: 11, color: '#999' },
-  
-  // Modern Modal Styles
-  modernModalContent: {
-      backgroundColor: 'white',
-      borderRadius: 24,
-      padding: 24,
-      width: '90%',
-      alignSelf: 'center',
-      elevation: 10,
-  },
-  modalIconContainer: {
-      alignItems: 'center',
-      marginBottom: 16,
-  },
-  iconCircle: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      justifyContent: 'center',
-      alignItems: 'center',
-  },
-  modalActionRow: {
-      flexDirection: 'row',
-      gap: 12,
-      marginTop: 10,
-  },
-  modalBtn: {
-      flex: 1,
-      borderRadius: 14,
-      height: 48,
-      justifyContent: 'center',
-  },
-  modernModalOption: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 14,
-      paddingHorizontal: 12,
-      backgroundColor: '#F8FAFC',
-      borderRadius: 16,
-      marginBottom: 10,
-      borderWidth: 1,
-      borderColor: '#F1F5F9',
-  },
-  optionIconBox: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      backgroundColor: '#E8F5E9',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 12,
-  },
-
-  // Modal selection styles
-  modalOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    zIndex: 1000,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20
-  },
-  modalContent: {
-      backgroundColor: 'white',
-      borderRadius: 16,
-      padding: 20,
-      width: '100%',
-      maxHeight: '80%',
-      elevation: 5
-  },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1E293B', marginBottom: 8, textAlign: 'center' },
-  modalSubtitle: { fontSize: 14, color: '#64748B', textAlign: 'center', marginBottom: 20, lineHeight: 20 },
-  modalOption: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 15,
-      paddingHorizontal: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: '#f0f0f0'
-  },
-  optionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  optionSub: { fontSize: 12, color: '#666' }
+  emptyContainer: { alignItems: 'center', padding: 50 },
+  modalBase: { backgroundColor: '#fff', margin: 24, borderRadius: 28, padding: 28 },
+  modalOption: { flexDirection: 'row', alignItems: 'center', padding: 18, backgroundColor: '#F8FAFC', borderRadius: 16, marginBottom: 10, gap: 14 },
+  modalActions: { flexDirection: 'row', gap: 12 },
+  specialTaskCard: { borderRadius: 16, overflow: 'hidden' },
+  specialTaskSurface: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden' },
+  priorityIndicator: { width: 4, height: '100%' },
+  specialTaskContent: { flex: 1, padding: 16 },
+  specialTaskHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' },
 });

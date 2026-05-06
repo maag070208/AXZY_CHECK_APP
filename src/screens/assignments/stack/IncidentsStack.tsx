@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { IncidentListScreen } from '../screens/IncidentListScreen';
 import { IncidentDetailScreen } from '../screens/IncidentDetailScreen';
+import { IncidentReportScreen } from '../screens/IncidentReportScreen';
 import { HeaderBack } from '../../../navigation/header/HeaderBack';
 
 const Stack = createNativeStackNavigator();
@@ -30,6 +31,11 @@ export const IncidentsStack = () => {
                         />
                       ),
                     })}
+            />
+            <Stack.Screen name="INCIDENT_REPORT" component={IncidentReportScreen} 
+             options={{
+                 headerShown: false
+             }}
             />
         </Stack.Navigator>
     );

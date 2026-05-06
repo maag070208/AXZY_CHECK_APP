@@ -5,7 +5,7 @@ import { TResult } from '../../../core/types/TResult';
 export const login = async (
   username: string,
   password: string,
-): Promise<TResult<string>> => {
+): Promise<TResult<any>> => {
   return await post(API_CONSTANTS.URLS.AUTH.LOGIN, {
     username,
     password,
