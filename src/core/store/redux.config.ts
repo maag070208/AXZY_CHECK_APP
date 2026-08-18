@@ -14,11 +14,13 @@ import { APP_SETTINGS } from '../constants/APP_SETTINGS';
 import userReducer from './slices/user.slice';
 import loaderReducer from './slices/loader.slice';
 import toastReducer from './slices/toast.slice';
+import syncReducer from './slices/sync.slice';
 
 const rootReducer = combineReducers({
   userState: userReducer,
   loaderState: loaderReducer,
   toastState: toastReducer,
+  syncState: syncReducer,
 });
 
 const persistConfig = {

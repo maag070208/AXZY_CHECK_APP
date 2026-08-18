@@ -1,5 +1,5 @@
 {
-  "name": "checkapp",
+  "name": "CheckApp",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -7,7 +7,9 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "android:build:dev": "bash scripts/build-android.sh dev",
+    "android:build:prod": "bash scripts/build-android.sh prod"
   },
   "dependencies": {
     "@babel/runtime": "7.28.4",
@@ -24,6 +26,7 @@
     "@react-navigation/native": "7.1.19",
     "@react-navigation/native-stack": "7.6.0",
     "@reduxjs/toolkit": "2.9.2",
+    "ably": "^2.26.0",
     "axios": "1.13.0",
     "dayjs": "1.11.18",
     "formik": "2.4.9",

@@ -161,33 +161,83 @@ export const RoundsListScreen = ({ navigation }: any) => {
     appliedFilters.guardId ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
-  const getStatusInfo = (status: string) => {
-    if (status === 'COMPLETED') {
-        return { label: 'Finalizada', color: '#10B981', icon: 'check-circle' };
+  const getCompletionBadge = (round: IRound) => {
+    const expected = round.expectedPoints ?? 0;
+    const completed = round.completedPoints ?? 0;
+
+    if (expected === 0) {
+      return {
+        label: 'Sin puntos',
+        color: '#94A3B8',
+        bgColor: '#F1F5F9',
+        icon: 'help-circle',
+        pct: 0,
+        completed,
+        expected,
+        showBar: false,
+      };
     }
-    return { label: 'En curso', color: '#F59E0B', icon: 'clock-outline' };
+
+    const pct = Math.round((completed / expected) * 100);
+
+    if (pct <= 33) {
+      return {
+        label: 'INCOMPLETA',
+        color: '#EF4444',
+        bgColor: '#FEE2E2',
+        icon: 'alert-circle',
+        pct,
+        completed,
+        expected,
+        showBar: true,
+      };
+    }
+
+    if (pct <= 66) {
+      return {
+        label: 'ACEPTABLE',
+        color: '#F59E0B',
+        bgColor: '#FEF3C7',
+        icon: 'clock-alert',
+        pct,
+        completed,
+        expected,
+        showBar: true,
+      };
+    }
+
+    return {
+      label: 'EXCELENTE',
+      color: '#10B981',
+      bgColor: '#D1FAE5',
+      icon: 'check-circle',
+      pct,
+      completed,
+      expected,
+      showBar: true,
+    };
   };
 
   const renderItem = ({ item }: { item: IRound }) => {
-    const statusInfo = getStatusInfo(item.status);
+    const badge = getCompletionBadge(item);
     const routeTitle = item.recurringConfiguration?.title || 'Recorrido General';
     const guardName = `${item.guard.name} ${item.guard.lastName || ''}`;
 
     return (
-      <Card 
-        style={styles.card} 
+      <Card
+        style={styles.card}
         onPress={() => navigation.navigate('ROUND_DETAIL', { id: item.id })}
         elevation={1}
       >
         <View style={styles.cardLayout}>
             <View style={styles.avatarSection}>
-                <Avatar.Text 
-                    size={56} 
-                    label={item.guard.name.substring(0, 2).toUpperCase()} 
-                    style={styles.avatar} 
+                <Avatar.Text
+                    size={56}
+                    label={item.guard.name.substring(0, 2).toUpperCase()}
+                    style={styles.avatar}
                     labelStyle={{ color: '#64748B', fontWeight: 'bold' }}
                 />
-                <View style={[styles.statusIndicator, { backgroundColor: statusInfo.color }]} />
+                <View style={[styles.statusIndicator, { backgroundColor: badge.color }]} />
             </View>
 
             <View style={styles.infoSection}>
@@ -195,10 +245,10 @@ export const RoundsListScreen = ({ navigation }: any) => {
                     <Text style={styles.locationName} numberOfLines={1}>
                         {routeTitle}
                     </Text>
-                    <View style={styles.badgeContainer}>
-                        <Icon source={statusInfo.icon} size={14} color={statusInfo.color} />
-                        <Text style={[styles.statusLabel, { color: statusInfo.color }]}>
-                            {statusInfo.label}
+                    <View style={[styles.badgeContainer, { backgroundColor: badge.bgColor }]}>
+                        <Icon source={badge.icon} size={14} color={badge.color} />
+                        <Text style={[styles.statusLabel, { color: badge.color }]}>
+                            {badge.label}
                         </Text>
                     </View>
                 </View>
@@ -227,6 +277,28 @@ export const RoundsListScreen = ({ navigation }: any) => {
                       </View>
                     )}
                 </View>
+
+                {badge.showBar && (
+                  <View style={styles.progressBlock}>
+                    <View style={styles.progressHeader}>
+                      <Text style={styles.progressLabel}>CUMPLIMIENTO</Text>
+                      <Text style={[styles.progressPercent, { color: badge.color }]}>
+                        {badge.pct}%
+                      </Text>
+                    </View>
+                    <View style={styles.progressBarBg}>
+                      <View
+                        style={[
+                          styles.progressBarFill,
+                          { width: `${badge.pct}%`, backgroundColor: badge.color },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.progressCaption}>
+                      {badge.completed} / {badge.expected} puntos
+                    </Text>
+                  </View>
+                )}
             </View>
         </View>
       </Card>
@@ -540,6 +612,44 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 12,
     color: '#64748B',
+    fontWeight: '500',
+  },
+  progressBlock: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  progressLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+  },
+  progressPercent: {
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  progressBarBg: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#E0E6ED',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressCaption: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 6,
     fontWeight: '500',
   },
   // Modal Styles

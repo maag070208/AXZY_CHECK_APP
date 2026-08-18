@@ -91,6 +91,12 @@ export type RootStackParamList = {
       location?: any;
     }>;
   };
+  NOVEDADES_STACK: {
+    NOVEDADES_SCREEN: ScreenParams;
+  };
+  SYNC_STATUS_STACK: {
+    SYNC_STATUS: ScreenParams;
+  };
   PROFILE_SCREEN: undefined;
 };
 
@@ -148,6 +154,12 @@ export const AppStacks: RootStackParamList = {
   CHECK_STACK: {
     CHECK_SCAN: {},
     CHECK_MAIN: {},
+  },
+  NOVEDADES_STACK: {
+    NOVEDADES_SCREEN: {},
+  },
+  SYNC_STATUS_STACK: {
+    SYNC_STATUS: {},
   },
   PROFILE_SCREEN: undefined,
 };

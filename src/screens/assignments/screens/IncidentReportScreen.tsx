@@ -19,7 +19,6 @@ import {
   Chip,
   IconButton,
   Surface,
-  TouchableRipple,
   Icon,
   Portal,
   Dialog,
@@ -36,8 +35,12 @@ import { createIncident } from '../service/incident.service';
 import { useDispatch } from 'react-redux';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { uploadFile } from '../../../shared/service/upload.service';
-import { getCatalog } from '../../../shared/service/catalog.service';
+import { getTypesByCategoryType } from '../../../shared/service/catalog.service';
 import Geolocation from '@react-native-community/geolocation';
+import { useConnectivity } from '../../../core/offline/useConnectivity';
+import { queueIncident } from '../../../core/offline/offline.ops';
+import { OfflineMediaRef } from '../../../core/offline/offline.types';
+import { getCatalogsCache, saveCatalogsCache } from '../../../core/offline/offline.queue';
 
 const { width } = Dimensions.get('window');
 
@@ -58,19 +61,19 @@ interface MediaItem {
   uploading: boolean;
   error: boolean;
   url?: string;
+  local?: boolean;
 }
 
 export const IncidentReportScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const dispatch = useDispatch();
+  const { connected } = useConnectivity();
 
   const { initialCategory } = route.params || {};
 
-  const [categories, setCategories] = useState<CatalogItem[]>([]);
   const [allTypes, setAllTypes] = useState<CatalogItem[]>([]);
 
-  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [typeId, setTypeId] = useState<number | null>(null);
 
   const [description, setDescription] = useState('');
@@ -80,28 +83,34 @@ export const IncidentReportScreen = () => {
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<'photo' | 'video'>('photo');
 
-  // Fetch catalogs
   useFocusEffect(
     useCallback(() => {
       const fetchCatalogs = async () => {
         try {
-          const [catRes, typeRes] = await Promise.all([
-            getCatalog('incident_category'),
-            getCatalog('incident_type'),
-          ]);
-          console.log('incident_category', catRes);
-          console.log('incident_type', typeRes);
-          if (catRes.success && catRes.data) {
-            // Filter only INCIDENT type for this screen
-            setCategories(
-              catRes.data.filter((c: CatalogItem) => c.type === 'INCIDENT'),
-            );
-          }
-          if (typeRes.success && typeRes.data) {
-            setAllTypes(typeRes.data);
+          const types = await getTypesByCategoryType('INCIDENT');
+          if (types.length > 0) {
+            setAllTypes(types);
+            // Guardar caché para operar offline.
+            void saveCatalogsCache({
+              incidentTypes: types,
+              incidentCategories: [],
+              maintenanceTypes: [],
+              savedAt: new Date().toISOString(),
+            });
+          } else if (!connected) {
+            const cache = await getCatalogsCache();
+            if (cache?.incidentTypes?.length) {
+              setAllTypes(cache.incidentTypes as CatalogItem[]);
+            }
           }
         } catch (e) {
           console.error('Error fetching incident catalogs:', e);
+          if (!connected) {
+            const cache = await getCatalogsCache();
+            if (cache?.incidentTypes?.length) {
+              setAllTypes(cache.incidentTypes as CatalogItem[]);
+            }
+          }
         }
       };
 
@@ -109,8 +118,6 @@ export const IncidentReportScreen = () => {
       fetchCatalogs();
 
       return () => {
-        // Cleanup on blur
-        setCategoryId(null);
         setTypeId(null);
         setDescription('');
         setMedia([]);
@@ -123,8 +130,30 @@ export const IncidentReportScreen = () => {
     uri: string;
     type: 'video' | 'photo';
   }) => {
-    // optimistically add to list with uploading flag
     const tempId = Date.now().toString();
+
+    // SIN CONEXIÓN: guardar la evidencia localmente; se subirá al sincronizar.
+    if (!connected) {
+      setMedia(prev => [
+        ...prev,
+        {
+          id: tempId,
+          uri: file.uri,
+          type: file.type,
+          uploading: false,
+          error: false,
+          local: true,
+        },
+      ]);
+      dispatch(
+        showToast({
+          message: 'Evidencia guardada (se subirá al tener WiFi)',
+          type: 'success',
+        }),
+      );
+      return;
+    }
+
     const newItem: MediaItem = {
       id: tempId,
       uri: file.uri,
@@ -241,6 +270,42 @@ export const IncidentReportScreen = () => {
       return;
     }
 
+    const selectedType = allTypes.find(t => t.id === typeId);
+    if (!selectedType?.categoryId) {
+      Alert.alert(
+        'Tipo sin categoría',
+        'El tipo seleccionado no tiene una categoría asociada. Contacta al administrador.',
+      );
+      return;
+    }
+
+    // OFFLINE o con evidencia aún no subida: encolar la incidencia (se sube al sync).
+    const hasLocalMedia = media.some(m => !m.url);
+    if (!connected || hasLocalMedia) {
+      const mediaRefs: OfflineMediaRef[] = media.map(m => ({
+        localUri: m.uri,
+        type: m.type === 'video' ? 'VIDEO' : 'IMAGE',
+        uploaded: m.url
+          ? { type: m.type === 'video' ? 'VIDEO' : 'IMAGE', url: m.url }
+          : undefined,
+      }));
+      await queueIncident({
+        title: selectedType.value || 'Incidencia',
+        categoryId: Number(selectedType.categoryId),
+        typeId,
+        description,
+        media: mediaRefs,
+      });
+      dispatch(
+        showToast({
+          message: 'Reporte guardado (se sincronizará al tener WiFi)',
+          type: 'success',
+        }),
+      );
+      navigation.goBack();
+      return;
+    }
+
     const pending = media.some(m => m.uploading);
     if (pending) {
       Alert.alert('Espera', 'Hay archivos subiéndose, por favor espera.');
@@ -256,25 +321,22 @@ export const IncidentReportScreen = () => {
       return;
     }
 
-    // Filter only valid uploaded media
     const validMedia = media
       .filter(m => m.url)
       .map(m => ({
         type: m.type === 'video' ? 'VIDEO' : 'IMAGE',
-        url: m.url,
+        url: m.url as string,
       }));
 
     setLoading(true);
 
-    const selectedType = allTypes.find(t => t.id === typeId);
-
     Geolocation.getCurrentPosition(
       async position => {
         const res = await createIncident({
-          title: selectedType?.value || 'Incidencia',
-          categoryId: categoryId as number,
-          typeId: typeId as number,
-          description: description,
+          title: selectedType.value || 'Incidencia',
+          categoryId: Number(selectedType.categoryId),
+          typeId,
+          description,
           media: validMedia,
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -294,13 +356,12 @@ export const IncidentReportScreen = () => {
           Alert.alert('Error', 'No se pudo enviar el reporte.');
         }
       },
-      async error => {
-        // Si falla la ubicación, enviar de todos modos
+      async () => {
         const res = await createIncident({
-          title: selectedType?.value || 'Incidencia',
-          categoryId: categoryId as number,
-          typeId: typeId as number,
-          description: description,
+          title: selectedType.value || 'Incidencia',
+          categoryId: Number(selectedType.categoryId),
+          typeId,
+          description,
           media: validMedia,
         });
 
@@ -328,8 +389,6 @@ export const IncidentReportScreen = () => {
     setMedia(newMedia);
   };
 
-  const currentCat = categories.find(c => c.id === categoryId);
-  const filteredTypes = allTypes.filter(t => t.categoryId === categoryId);
   const isUploading = media.some(m => m.uploading);
 
   return (
@@ -353,78 +412,33 @@ export const IncidentReportScreen = () => {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.label}>1. CATEGORÍA</Text>
-          <View style={styles.categoryGrid}>
-            {categories.map(item => {
-              const isSelected = categoryId === item.id;
-              return (
-                <Surface
-                  key={item.id}
-                  elevation={isSelected ? 4 : 0}
-                  style={[
-                    styles.catCardWrapper,
-                    isSelected && { backgroundColor: item.color || '#E0E0E0' },
-                  ]}
-                >
-                  <TouchableRipple
-                    onPress={() => {
-                      setCategoryId(item.id);
-                      setTypeId(null);
-                    }}
-                    style={styles.catRipple}
-                  >
-                    <View style={styles.catCardContent}>
-                      <Icon
-                        source={item.icon || 'alert-circle'}
-                        size={26}
-                        color={isSelected ? 'white' : '#757575'}
-                      />
-                      <Text
-                        style={[
-                          styles.catText,
-                          isSelected && { color: 'white' },
-                        ]}
-                      >
-                        {item.value}
-                      </Text>
-                    </View>
-                  </TouchableRipple>
-                </Surface>
-              );
-            })}
+          <Text style={styles.label}>1. TIPO DE INCIDENCIA</Text>
+          <View style={styles.typeWrapper}>
+            {allTypes.map(type => (
+              <Chip
+                key={type.id}
+                selected={typeId === type.id}
+                onPress={() => setTypeId(type.id)}
+                style={[
+                  styles.typeChip,
+                  typeId === type.id && {
+                    backgroundColor: theme.colors.primaryContainer,
+                    borderColor: theme.colors.primary,
+                  },
+                ]}
+                textStyle={[
+                  styles.typeChipText,
+                  typeId === type.id && { color: theme.colors.primary },
+                ]}
+                showSelectedCheck={false}
+                mode="outlined"
+              >
+                {type.value}
+              </Chip>
+            ))}
           </View>
 
-          {categoryId && (
-            <>
-              <Text style={styles.label}>2. TIPO DE INCIDENCIA</Text>
-              <View style={styles.typeWrapper}>
-                {filteredTypes.map(type => (
-                  <Chip
-                    key={type.id}
-                    selected={typeId === type.id}
-                    onPress={() => setTypeId(type.id)}
-                    style={[
-                      styles.typeChip,
-                      typeId === type.id && {
-                        backgroundColor: theme.colors.primaryContainer,
-                        borderColor: theme.colors.primary,
-                      },
-                    ]}
-                    textStyle={[
-                      styles.typeChipText,
-                      typeId === type.id && { color: theme.colors.primary },
-                    ]}
-                    showSelectedCheck={false}
-                    mode="outlined"
-                  >
-                    {type.value}
-                  </Chip>
-                ))}
-              </View>
-            </>
-          )}
-
-          <Text style={styles.label}>3. EVIDENCIA</Text>
+          <Text style={styles.label}>2. EVIDENCIA</Text>
           <View style={styles.photoActionRow}>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -481,6 +495,12 @@ export const IncidentReportScreen = () => {
                       <ActivityIndicator size="small" color="white" />
                     </View>
                   )}
+                  {item.local && (
+                    <View style={styles.localOverlay}>
+                      <Icon source="cloud-upload-outline" color="white" size={16} />
+                      <Text style={styles.localOverlayText}>Pendiente</Text>
+                    </View>
+                  )}
                   {item.error && (
                     <View style={styles.errorOverlay}>
                       <IconButton
@@ -505,7 +525,7 @@ export const IncidentReportScreen = () => {
             </ScrollView>
           )}
 
-          <Text style={styles.label}>4. OBSERVACIONES ADICIONALES</Text>
+          <Text style={styles.label}>3. OBSERVACIONES ADICIONALES</Text>
           <TextInput
             mode="outlined"
             multiline
@@ -592,24 +612,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
 
-  categoryGrid: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  catCardWrapper: {
-    flex: 1,
-    height: 90,
-    borderRadius: 16,
-    backgroundColor: '#F5F5F5',
-    overflow: 'hidden',
-  },
-  catRipple: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  catCardContent: { alignItems: 'center' },
-  catText: {
-    fontSize: 10,
-    fontWeight: '800',
-    marginTop: 8,
-    textAlign: 'center',
-    color: '#616161',
-  },
-
   typeWrapper: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -667,6 +669,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 12,
+  },
+  localOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245,158,11,0.75)',
+    borderRadius: 12,
+    gap: 4,
+  },
+  localOverlayText: {
+    color: 'white',
+    fontSize: 9,
+    fontWeight: '800',
   },
   errorOverlay: {
     ...StyleSheet.absoluteFillObject,

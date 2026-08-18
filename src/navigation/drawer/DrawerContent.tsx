@@ -96,6 +96,20 @@ const MENU_ITEMS: MenuItem[] = [
     roles: ['ADMIN', 'SHIFT'],
   },
   {
+    label: 'Novedades',
+    icon: 'message-text-outline',
+    route: 'NOVEDADES_STACK',
+    screen: 'NOVEDADES_SCREEN',
+    roles: ['ADMIN', 'SHIFT', 'GUARD', 'MAINT'],
+  },
+  {
+    label: 'Pendientes / Sync',
+    icon: 'cloud-sync-outline',
+    route: 'SYNC_STATUS_STACK',
+    screen: 'SYNC_STATUS',
+    roles: ['ADMIN', 'SHIFT', 'GUARD', 'MAINT'],
+  },
+  {
     label: 'Horarios',
     icon: 'clock-outline',
     route: 'SCHEDULES_STACK',

@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "checkapp.app"
-               BlueprintName = "checkapp"
-               ReferencedContainer = "container:checkapp.xcodeproj">
+               BuildableName = "CheckApp.app"
+               BlueprintName = "CheckApp"
+               ReferencedContainer = "container:CheckApp.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "checkappTests.xctest"
-               BlueprintName = "checkappTests"
-               ReferencedContainer = "container:checkapp.xcodeproj">
+               BuildableName = "CheckAppTests.xctest"
+               BlueprintName = "CheckAppTests"
+               ReferencedContainer = "container:CheckApp.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "checkapp.app"
-            BlueprintName = "checkapp"
-            ReferencedContainer = "container:checkapp.xcodeproj">
+            BuildableName = "CheckApp.app"
+            BlueprintName = "CheckApp"
+            ReferencedContainer = "container:CheckApp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "checkapp.app"
-            BlueprintName = "checkapp"
-            ReferencedContainer = "container:checkapp.xcodeproj">
+            BuildableName = "CheckApp.app"
+            BlueprintName = "CheckApp"
+            ReferencedContainer = "container:CheckApp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

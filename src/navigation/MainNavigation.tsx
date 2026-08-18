@@ -1,16 +1,30 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { jwtDecode } from 'jwt-decode';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../core/store/hooks';
 import { logout } from '../core/store/slices/user.slice';
 import { IAuthToken } from '../core/types/IUser';
 import LoginScreen from '../screens/auth/screens/LoginScreen';
 import LoaderComponent from '../shared/components/LoaderComponent';
 import DrawerNavigator from './drawer/DrawerNavigator';
+import { PermissionGateScreen } from '../screens/permissions/PermissionGateScreen';
+import { checkAllPermissions } from '../screens/permissions/permissions.service';
 
 const MainNavigation = () => {
   const { isSignedIn, token } = useAppSelector(state => state.userState);
   const dispatch = useAppDispatch();
+
+  // Bloquea el acceso hasta que todos los permisos estén aprobados.
+  const [permissionsChecked, setPermissionsChecked] = useState(false);
+  const [permissionsReady, setPermissionsReady] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const allGranted = await checkAllPermissions();
+      setPermissionsChecked(true);
+      if (allGranted) setPermissionsReady(true);
+    })();
+  }, []);
 
   const validateToken = () => {
     if (isSignedIn && token) {
@@ -52,9 +66,15 @@ const MainNavigation = () => {
   return (
     <>
       <LoaderComponent />
-      <NavigationContainer onStateChange={validateToken}>
-        {isSignedIn ? <DrawerNavigator /> : <LoginScreen />}
-      </NavigationContainer>
+      {!permissionsChecked ? (
+        <LoaderComponent />
+      ) : !permissionsReady ? (
+        <PermissionGateScreen onComplete={() => setPermissionsReady(true)} />
+      ) : (
+        <NavigationContainer onStateChange={validateToken}>
+          {isSignedIn ? <DrawerNavigator /> : <LoginScreen />}
+        </NavigationContainer>
+      )}
     </>
   );
 };

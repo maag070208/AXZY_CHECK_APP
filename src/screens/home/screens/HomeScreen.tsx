@@ -99,6 +99,16 @@ export const HomeScreen = () => {
       badge: pendingIncidents > 0 ? pendingIncidents : undefined,
     },
     {
+      id: 'novedades',
+      label: 'Novedades',
+      icon: 'message-text-outline',
+      stack: 'NOVEDADES_STACK',
+      screen: 'NOVEDADES_SCREEN',
+      color: '#059669',
+      gradient: ['#059669', '#10b981'],
+      roles: [UserRole.ADMIN, UserRole.SHIFT],
+    },
+    {
       id: 'maintenance',
       label: 'Mantenimiento',
       icon: 'toolbox-outline',

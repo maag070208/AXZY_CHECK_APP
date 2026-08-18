@@ -1,0 +1,148 @@
+/**
+ * @description Helpers para encolar operaciones de campo (queue-always). La
+ * sincronización es manual: el guardia presiona "Sincronizar".
+ */
+import { createClientRef, enqueueOperation } from './offline.queue';
+import { OfflineMediaRef, OfflineOperation, OfflineOpType } from './offline.types';
+
+/** @description Genera un id local legible para refs de rondas. */
+const makeLocalRef = (prefix: string): string =>
+  `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+/** @description Construye una operación base. */
+const buildOperation = (
+  type: OfflineOpType,
+  payload: Record<string, unknown>,
+  opts: { localRef?: string; dependsOn?: string; media?: OfflineMediaRef[] } = {},
+): OfflineOperation => ({
+  id: createClientRef('op'),
+  type,
+  clientRef: createClientRef(type.toLowerCase()),
+  localRef: opts.localRef,
+  dependsOn: opts.dependsOn,
+  media: opts.media,
+  payload,
+  createdAt: new Date().toISOString(),
+  attempts: 0,
+  status: 'PENDING',
+});
+
+/**
+ * @description Encola el inicio de una ronda.
+ * @param recurringConfigId Id de la configuración de recorrido.
+ * @param localRef Referencia local pre-existente. Si se omite, se genera una
+ *                 nueva. Es importante pasar la MISMA referencia que se usará
+ *                 en `saveLocalRound` para que los SCANs encolados queden
+ *                 correctamente vinculados a la ronda.
+ */
+export const queueStartRound = async (
+  recurringConfigId?: number,
+  localRef?: string,
+): Promise<OfflineOperation> => {
+  const op = buildOperation('ROUND_START', { recurringConfigId }, {
+    localRef: localRef || makeLocalRef('round'),
+  });
+  await enqueueOperation(op);
+  return op;
+};
+
+/** @description Encola el registro de un escaneo (kardex) de una ronda. */
+export const queueScan = async (params: {
+  locationId: number;
+  notes?: string;
+  latitude?: number;
+  longitude?: number;
+  assignmentId?: number;
+  roundLocalRef?: string;
+  /**
+   * @description Id de la ronda en el servidor (si la ronda ya está sincronizada
+   * o se inició online). Se envía al backend al sincronizar para asociar el
+   * kardex a la ronda correcta incluso si la cola se procesa antes/después
+   * del `ROUND_START`.
+   */
+  roundId?: number;
+  media?: OfflineMediaRef[];
+}): Promise<OfflineOperation> => {
+  const op = buildOperation(
+    'SCAN',
+    {
+      locationId: params.locationId,
+      notes: params.notes,
+      latitude: params.latitude,
+      longitude: params.longitude,
+      assignmentId: params.assignmentId,
+      roundId: params.roundId,
+    },
+    { dependsOn: params.roundLocalRef, media: params.media },
+  );
+  await enqueueOperation(op);
+  return op;
+};
+
+/** @description Encola la finalización de una ronda (local o ya sincronizada). */
+export const queueEndRound = async (params: {
+  roundId?: number;
+  roundLocalRef?: string;
+}): Promise<OfflineOperation> => {
+  const op = buildOperation(
+    'ROUND_END',
+    { roundId: params.roundId },
+    { dependsOn: params.roundLocalRef || undefined },
+  );
+  await enqueueOperation(op);
+  return op;
+};
+
+/** @description Encola una incidencia. */
+export const queueIncident = async (params: {
+  title: string;
+  categoryId: number;
+  typeId: number;
+  description: string;
+  latitude?: number;
+  longitude?: number;
+  media?: OfflineMediaRef[];
+}): Promise<OfflineOperation> => {
+  const op = buildOperation(
+    'INCIDENT',
+    {
+      title: params.title,
+      categoryId: params.categoryId,
+      typeId: params.typeId,
+      description: params.description,
+      latitude: params.latitude,
+      longitude: params.longitude,
+    },
+    { media: params.media },
+  );
+  await enqueueOperation(op);
+  return op;
+};
+
+/** @description Encola un mantenimiento. */
+export const queueMaintenance = async (params: {
+  title: string;
+  category: string;
+  categoryId?: number;
+  typeId?: number;
+  description: string;
+  latitude?: number;
+  longitude?: number;
+  media?: OfflineMediaRef[];
+}): Promise<OfflineOperation> => {
+  const op = buildOperation(
+    'MAINTENANCE',
+    {
+      title: params.title,
+      category: params.category,
+      categoryId: params.categoryId,
+      typeId: params.typeId,
+      description: params.description,
+      latitude: params.latitude,
+      longitude: params.longitude,
+    },
+    { media: params.media },
+  );
+  await enqueueOperation(op);
+  return op;
+};

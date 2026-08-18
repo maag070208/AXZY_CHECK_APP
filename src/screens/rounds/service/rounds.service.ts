@@ -28,6 +28,8 @@ export interface IRound {
     name: string;
     lastName: string | null;
   };
+  expectedPoints?: number;
+  completedPoints?: number;
 }
 
 export interface IRoundEvent {

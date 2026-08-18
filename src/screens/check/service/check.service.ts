@@ -1,6 +1,17 @@
 import { post, patch } from '../../../core/axios';
 
-export const registerCheck = async (locationId: number, userId: number, notes?: string, media?: any[], latitude?: number, longitude?: number, assignmentId?: number): Promise<{ success: boolean; data: any }> => {
+export const registerCheck = async (
+  locationId: number,
+  userId: number,
+  notes?: string,
+  media?: any[],
+  latitude?: number,
+  longitude?: number,
+  assignmentId?: number,
+  clientRef?: string,
+  timestamp?: Date,
+  roundId?: number,
+): Promise<any> => {
   const response = await post('/kardex', {
     locationId,
     userId,
@@ -9,8 +20,11 @@ export const registerCheck = async (locationId: number, userId: number, notes?: 
     latitude,
     longitude,
     assignmentId,
+    roundId,
+    clientRef,
+    timestamp: timestamp ? timestamp.toISOString() : undefined,
   });
-  return { success: true, data: response.data };
+  return response;
 };
 
 export const updateCheck = async (kardexId: number, notes?: string, media?: any[]): Promise<{ success: boolean; data: any }> => {

@@ -1,4 +1,4 @@
-package com.checkapp
+package com.axzydev.bonaterra.checkapp
 
 import android.app.Application
 import com.facebook.react.PackageList

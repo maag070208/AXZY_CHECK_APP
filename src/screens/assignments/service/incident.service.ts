@@ -8,6 +8,8 @@ export const createIncident = async (data: {
     media: any[];
     latitude?: number;
     longitude?: number;
+    clientRef?: string;
+    createdAt?: Date;
 }) => {
     try {
         const payload = {
@@ -17,7 +19,9 @@ export const createIncident = async (data: {
             description: data.description,
             media: data.media,
             latitude: data.latitude,
-            longitude: data.longitude
+            longitude: data.longitude,
+            clientRef: data.clientRef,
+            createdAt: data.createdAt ? data.createdAt.toISOString() : undefined,
         };
 
         const response = await post('/incidents', payload);

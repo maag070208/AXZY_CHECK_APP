@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Image, Dimensions, StatusBar, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { Text, TextInput, Button, Chip, IconButton, Surface, TouchableRipple, Icon, Portal, Dialog } from 'react-native-paper';
+import { Text, TextInput, Button, Chip, IconButton, Surface, Icon, Portal, Dialog } from 'react-native-paper';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { theme } from '../../../shared/theme/theme';
 import { APP_SETTINGS } from '../../../core/constants/APP_SETTINGS';
@@ -9,26 +9,50 @@ import { createMaintenance } from '../service/maintenance.service';
 import { useDispatch } from 'react-redux';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { uploadFile } from '../../../shared/service/upload.service';
-import { getCatalog } from '../../../shared/service/catalog.service';
+import { getTypesByCategoryType, CatalogTypeItem } from '../../../shared/service/catalog.service';
 import Geolocation from '@react-native-community/geolocation';
+import { useConnectivity } from '../../../core/offline/useConnectivity';
+import { getCatalogsCache, saveCatalogsCache } from '../../../core/offline/offline.queue';
+import { queueMaintenance } from '../../../core/offline/offline.ops';
+import { OfflineMediaRef } from '../../../core/offline/offline.types';
 
 const { width } = Dimensions.get('window');
+
+interface CatalogItem {
+  id: number;
+  name: string;
+  value: string;
+  color?: string;
+  icon?: string;
+  type?: string;
+  categoryId?: number;
+}
+
+interface MediaItem {
+  id: string;
+  uri: string;
+  type: 'video' | 'photo';
+  uploading: boolean;
+  error: boolean;
+  url?: string;
+  local?: boolean;
+}
+
 export const MaintenanceReportScreen = () => {
     const navigation = useNavigation();
     const route = useRoute<any>();
     const dispatch = useDispatch();
-    
+    const { connected } = useConnectivity();
+
     const { initialCategory } = route.params || {};
 
-    const [categories, setCategories] = useState<any[]>([]);
-    const [allTypes, setAllTypes] = useState<any[]>([]);
-    
-    const [categoryId, setCategoryId] = useState<number | null>(null);
+    const [allTypes, setAllTypes] = useState<CatalogItem[]>([]);
+
     const [typeId, setTypeId] = useState<number | null>(null);
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
-    const [media, setMedia] = useState<any[]>([]);
-    
+    const [media, setMedia] = useState<MediaItem[]>([]);
+
     const [cameraVisible, setCameraVisible] = useState(false);
     const [cameraMode, setCameraMode] = useState<'photo' | 'video'>('photo');
 
@@ -36,31 +60,36 @@ export const MaintenanceReportScreen = () => {
         useCallback(() => {
             const fetchCatalogs = async () => {
                 try {
-                    const [catRes, typeRes] = await Promise.all([
-                        getCatalog('incident_category'),
-                        getCatalog('incident_type')
-                    ]);
-                    
-                    if (catRes.success) {
-                        const maintCats = catRes.data.filter((c: any) => c.type === 'MAINTENANCE');
-                        setCategories(maintCats);
-                        if (maintCats.length > 0 && !categoryId) {
-                            setCategoryId(maintCats[0].id);
+                    const types = await getTypesByCategoryType('MAINTENANCE');
+                    if (types.length > 0) {
+                        setAllTypes(types);
+                        // Guardar caché para operar offline.
+                        void saveCatalogsCache({
+                            incidentTypes: [],
+                            incidentCategories: [],
+                            maintenanceTypes: types,
+                            savedAt: new Date().toISOString(),
+                        });
+                    } else if (!connected) {
+                        const cache = await getCatalogsCache();
+                        if (cache?.maintenanceTypes?.length) {
+                            setAllTypes(cache.maintenanceTypes as CatalogItem[]);
                         }
-                    }
-                    
-                    if (typeRes.success) {
-                        setAllTypes(typeRes.data);
                     }
                 } catch (error) {
                     console.error('Error fetching maintenance catalogs:', error);
+                    if (!connected) {
+                        const cache = await getCatalogsCache();
+                        if (cache?.maintenanceTypes?.length) {
+                            setAllTypes(cache.maintenanceTypes as CatalogItem[]);
+                        }
+                    }
                 }
             };
 
             fetchCatalogs();
 
             return () => {
-                setCategoryId(null);
                 setTypeId(null);
                 setDescription('');
                 setMedia([]);
@@ -71,7 +100,22 @@ export const MaintenanceReportScreen = () => {
 
     const handleCapture = async (file: { uri: string; type: 'video' | 'photo' }) => {
         const tempId = Date.now().toString();
-        const newItem = { id: tempId, uri: file.uri, type: file.type, uploading: true, error: false };
+
+        // SIN CONEXIÓN: guardar la evidencia localmente; se subirá al sincronizar.
+        if (!connected) {
+            setMedia(prev => [...prev, {
+                id: tempId,
+                uri: file.uri,
+                type: file.type,
+                uploading: false,
+                error: false,
+                local: true,
+            }]);
+            dispatch(showToast({ message: 'Evidencia guardada (se subirá al tener WiFi)', type: 'success' }));
+            return;
+        }
+
+        const newItem: MediaItem = { id: tempId, uri: file.uri, type: file.type, uploading: true, error: false };
         setMedia(prev => [...prev, newItem]);
 
         try {
@@ -100,6 +144,38 @@ export const MaintenanceReportScreen = () => {
             return;
         }
 
+        const selectedType = allTypes.find(t => t.id === typeId);
+        if (!selectedType?.categoryId) {
+            Alert.alert(
+                'Tipo sin categoría',
+                'El tipo seleccionado no tiene una categoría asociada. Contacta al administrador.',
+            );
+            return;
+        }
+
+        // OFFLINE o con evidencia aún no subida: encolar el mantenimiento.
+        const hasLocalMedia = media.some(m => !m.url);
+        if (!connected || hasLocalMedia) {
+            const mediaRefs: OfflineMediaRef[] = media.map(m => ({
+                localUri: m.uri,
+                type: m.type === 'video' ? 'VIDEO' : 'IMAGE',
+                uploaded: m.url
+                    ? { type: m.type === 'video' ? 'VIDEO' : 'IMAGE', url: m.url }
+                    : undefined,
+            }));
+            await queueMaintenance({
+                title: selectedType.value || 'Mantenimiento',
+                category: 'MANTENIMIENTO',
+                categoryId: Number(selectedType.categoryId),
+                typeId,
+                description,
+                media: mediaRefs,
+            });
+            dispatch(showToast({ message: 'Mantenimiento guardado (se sincronizará al tener WiFi)', type: 'success' }));
+            navigation.goBack();
+            return;
+        }
+
         const pending = media.some(m => m.uploading);
         if (pending) {
             Alert.alert('Espera', 'Hay archivos subiéndose, por favor espera.');
@@ -111,22 +187,21 @@ export const MaintenanceReportScreen = () => {
             Alert.alert('Error', 'Algunos archivos fallaron al subir. Elimínalos o intenta de nuevo.');
             return;
         }
-        
-        const validMedia = media.filter(m => m.url).map(m => ({ 
-            type: m.type === 'video' ? 'VIDEO' : 'IMAGE', 
-            url: m.url 
+
+        const validMedia = media.filter(m => m.url).map(m => ({
+            type: m.type === 'video' ? 'VIDEO' : 'IMAGE',
+            url: m.url as string
         }));
 
         setLoading(true);
-        const selectedType = allTypes.find(t => t.id === typeId);
 
         Geolocation.getCurrentPosition(
             async (position) => {
                 const res = await createMaintenance({
-                    title: selectedType?.value || 'Mantenimiento',
-                    categoryId: categoryId as number,
-                    typeId: typeId as number,
-                    description: description,
+                    title: selectedType.value || 'Mantenimiento',
+                    categoryId: Number(selectedType.categoryId),
+                    typeId,
+                    description,
                     media: validMedia,
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude
@@ -139,12 +214,12 @@ export const MaintenanceReportScreen = () => {
                     Alert.alert('Error', 'No se pudo enviar el reporte.');
                 }
             },
-            async (error) => {
+            async () => {
                 const res = await createMaintenance({
-                    title: selectedType?.value || 'Mantenimiento',
-                    categoryId: categoryId as number,
-                    typeId: typeId as number,
-                    description: description,
+                    title: selectedType.value || 'Mantenimiento',
+                    categoryId: Number(selectedType.categoryId),
+                    typeId,
+                    description,
                     media: validMedia
                 });
                 setLoading(false);
@@ -165,8 +240,6 @@ export const MaintenanceReportScreen = () => {
         setMedia(newMedia);
     };
 
-    const currentCat = categories.find(c => c.id === categoryId);
-    const filteredTypes = allTypes.filter(t => t.categoryId === categoryId);
     const isUploading = media.some(m => m.uploading);
 
     return (
@@ -176,40 +249,14 @@ export const MaintenanceReportScreen = () => {
             <Surface style={styles.header} elevation={1}>
                 <IconButton icon="chevron-left" size={30} onPress={() => navigation.goBack()} />
                 <Text style={styles.headerTitle}>Nuevo Mantenimiento</Text>
-                <View style={{ width: 48 }} /> 
+                <View style={{ width: 48 }} />
             </Surface>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                
-                <Text style={styles.label}>1. CATEGORÍA</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
-                     <View style={styles.categoryGrid}>
-                        {categories.map((cat) => {
-                            const isSelected = categoryId === cat.id;
-                            return (
-                                <Surface 
-                                    key={cat.id} 
-                                    elevation={isSelected ? 4 : 0} 
-                                    style={[styles.catCardWrapper, isSelected && { backgroundColor: cat.color || '#F5F5F5' }]}
-                                >
-                                    <TouchableRipple
-                                        onPress={() => { setCategoryId(cat.id); setTypeId(null); }}
-                                        style={styles.catRipple}
-                                    >
-                                        <View style={styles.catCardContent}>
-                                            <Icon source={cat.icon || 'toolbox'} size={26} color={isSelected ? 'white' : '#757575'} />
-                                            <Text style={[styles.catText, isSelected && { color: 'white' }]}>{cat.value}</Text>
-                                        </View>
-                                    </TouchableRipple>
-                                </Surface>
-                            );
-                        })}
-                    </View>
-                </ScrollView>
 
-                <Text style={styles.label}>2. TIPO DE MANTENIMIENTO</Text>
+                <Text style={styles.label}>1. TIPO DE MANTENIMIENTO</Text>
                 <View style={styles.typeWrapper}>
-                    {filteredTypes.map((type) => (
+                    {allTypes.map((type) => (
                         <Chip
                             key={type.id}
                             selected={typeId === type.id}
@@ -224,9 +271,9 @@ export const MaintenanceReportScreen = () => {
                     ))}
                 </View>
 
-                <Text style={styles.label}>3. EVIDENCIA</Text>
+                <Text style={styles.label}>2. EVIDENCIA</Text>
                 <View style={styles.photoActionRow}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         activeOpacity={0.8}
                         style={[styles.bigCaptureBtn, { backgroundColor: '#FFFFFF', borderColor: theme.colors.primary, borderWidth: 2 }]}
                         onPress={() => { setCameraMode('photo'); setCameraVisible(true); }}
@@ -235,7 +282,7 @@ export const MaintenanceReportScreen = () => {
                         <Text style={[styles.bigCaptureText, { color: theme.colors.primary }]}>FOTO</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         activeOpacity={0.8}
                         style={[styles.bigCaptureBtn, { backgroundColor: '#455A64' }]}
                         onPress={() => { setCameraMode('video'); setCameraVisible(true); }}
@@ -252,21 +299,22 @@ export const MaintenanceReportScreen = () => {
                                 <Image source={{ uri: item.uri }} style={styles.mediaImg} />
                                 {item.type === 'video' && <View style={styles.videoIconOverlay}><Icon source="play-circle" color="white" size={30} /></View>}
                                 {item.uploading && <View style={styles.loaderOverlay}><ActivityIndicator size="small" color="white" /></View>}
+                                {item.local && <View style={styles.localOverlay}><Icon source="cloud-upload-outline" color="white" size={16} /><Text style={styles.localOverlayText}>Pendiente</Text></View>}
                                 {item.error && <View style={styles.errorOverlay}><Icon source="alert-circle" color="red" size={24} /></View>}
-                                <IconButton 
-                                    icon="close-circle" 
-                                    size={22} 
-                                    containerColor="white" 
+                                <IconButton
+                                    icon="close-circle"
+                                    size={22}
+                                    containerColor="white"
                                     iconColor="#E53935"
-                                    style={styles.deleteMedia} 
-                                    onPress={() => removeMedia(index)} 
+                                    style={styles.deleteMedia}
+                                    onPress={() => removeMedia(index)}
                                 />
                             </View>
                         ))}
                     </ScrollView>
                 )}
 
-                <Text style={styles.label}>4. OBSERVACIONES ADICIONALES</Text>
+                <Text style={styles.label}>3. OBSERVACIONES ADICIONALES</Text>
                 <TextInput
                     mode="outlined"
                     multiline
@@ -278,9 +326,9 @@ export const MaintenanceReportScreen = () => {
                     activeOutlineColor={theme.colors.primary}
                 />
 
-                    <Button 
-                        mode="contained" 
-                        onPress={handleSubmit} 
+                    <Button
+                        mode="contained"
+                        onPress={handleSubmit}
                         style={[styles.mainSubmitBtn, (!typeId || isUploading) && { backgroundColor: '#BDBDBD' }]}
                         contentStyle={{ height: 60 }}
                         loading={loading}
@@ -298,7 +346,7 @@ export const MaintenanceReportScreen = () => {
                 onCapture={handleCapture}
                 maxDuration={APP_SETTINGS.INCIDENT_VIDEO_DURATION_LIMIT}
             />
-            
+
             <Portal>
                 <Dialog visible={isUploading || loading} dismissable={false} style={{ backgroundColor: 'white', borderRadius: 20 }}>
                     <Dialog.Content style={{ alignItems: 'center', paddingVertical: 30 }}>
@@ -320,12 +368,6 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#333' },
     content: { padding: 16, paddingBottom: 60 },
     label: { fontSize: 11, fontWeight: '900', color: '#9E9E9E', marginBottom: 12, marginTop: 15, letterSpacing: 1.2 },
-    
-    categoryGrid: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-    catCardWrapper: { width: 100, height: 90, borderRadius: 16, backgroundColor: '#F5F5F5', overflow: 'hidden' },
-    catRipple: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    catCardContent: { alignItems: 'center' },
-    catText: { fontSize: 9, fontWeight: '800', marginTop: 8, textAlign: 'center', color: '#616161' },
 
     typeWrapper: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
     typeChip: { borderRadius: 10, borderColor: '#EEEEEE' },
@@ -344,8 +386,10 @@ const styles = StyleSheet.create({
     textInput: { backgroundColor: 'white', minHeight: 100, fontSize: 15 },
     mainSubmitBtn: { marginTop: 30, borderRadius: 12, elevation: 4 },
     submitBtnText: { color: 'white', fontWeight: '900', fontSize: 16, letterSpacing: 1 },
-    
+
     loaderOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12 },
+   localOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(245,158,11,0.75)', borderRadius: 12, gap: 4 },
+   localOverlayText: { color: 'white', fontSize: 9, fontWeight: '800' },
     errorOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,0,0,0.2)', borderRadius: 12 },
     uploadingOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999 },
     uploadingCard: { padding: 20, borderRadius: 16, alignItems: 'center', backgroundColor: 'white' },

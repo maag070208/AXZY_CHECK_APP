@@ -18,6 +18,8 @@ import { SchedulesStack } from '../../screens/schedules/stack/SchedulesStack';
 import { PropertiesStack } from '../../screens/properties/stack/PropertiesStack';
 import { InvitationsStack } from '../../screens/invitations/stack/InvitationsStack';
 import { ResidentsStack } from '../../screens/residents/stack/ResidentsStack';
+import NovedadesStack from '../../screens/novedades/stack/NovedadesStack';
+import SyncStatusStack from '../../screens/sync/stack/SyncStatusStack';
 
 const Drawer = createDrawerNavigator();
 
@@ -169,6 +171,22 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="RESIDENTS_STACK"
         component={ResidentsStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="NOVEDADES_STACK"
+        component={NovedadesStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="SYNC_STATUS_STACK"
+        component={SyncStatusStack}
         options={{
             drawerItemStyle: { display: 'none' }
         }}

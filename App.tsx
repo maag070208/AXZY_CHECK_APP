@@ -21,7 +21,7 @@ registerTranslation('es', es);
 // SAFE AREA
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { StatusBar } from 'react-native';
+import { StatusBar, View } from 'react-native';
 
 function App() {
   const persistored = persistStore(store);
@@ -44,10 +44,12 @@ function App() {
           <Provider store={store}>
             <PersistGate persistor={persistored} loading={null}>
               <PaperProvider theme={themePaper}>
-                <MainNavigator />
+                <NoInternetScreen />
+                <View style={{ flex: 1 }}>
+                  <MainNavigator />
+                </View>
                 <ToastHandler />
                 <Toast config={toastConfig} />
-                <NoInternetScreen />
               </PaperProvider>
             </PersistGate>
           </Provider>

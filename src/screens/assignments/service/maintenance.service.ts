@@ -3,19 +3,27 @@ import { get, post, put } from '../../../core/axios';
 export const createMaintenance = async (data: {
     title: string;
     category: string;
+    categoryId?: number;
+    typeId?: number;
     description: string;
     media: any[];
     latitude?: number;
     longitude?: number;
+    clientRef?: string;
+    createdAt?: Date;
 }) => {
     try {
         const payload = {
             title: data.title,
             category: data.category,
+            categoryId: data.categoryId,
+            typeId: data.typeId,
             description: data.description,
             media: data.media,
             latitude: data.latitude,
-            longitude: data.longitude
+            longitude: data.longitude,
+            clientRef: data.clientRef,
+            createdAt: data.createdAt ? data.createdAt.toISOString() : undefined,
         };
 
         const response = await post('/maintenance', payload);

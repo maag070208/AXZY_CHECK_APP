@@ -18,15 +18,16 @@ import {
   TextInput,
   ActivityIndicator,
   IconButton,
-  ProgressBar,
   Portal,
   Dialog,
   Surface,
   Icon,
 } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
+import { theme } from '../../../shared/theme/theme';
 import { uploadFile } from '../../../shared/service/upload.service';
 import { CameraModal } from '../components/CameraModal';
 import { registerCheck, updateCheck } from '../service/check.service';
@@ -37,13 +38,19 @@ import {
 } from '../../assignments/service/assignment.service';
 import { TaskChecklist } from '../components/TaskChecklist';
 import { showToast } from '../../../core/store/slices/toast.slice';
+import { queueScan } from '../../../core/offline/offline.ops';
+import { OfflineMediaRef } from '../../../core/offline/offline.types';
+import { saveScannedLocation } from '../../../core/offline/offline.queue';
 
 const { width } = Dimensions.get('window');
+const THUMB_SIZE = 88;
+const THUMB_GAP = 10;
 
 export const CheckReportScreen = ({ route, navigation }: any) => {
   const { location, assignmentId } = route.params;
   const user = useSelector((state: RootState) => state.userState);
   const dispatch = useDispatch();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [photos, setPhotos] = useState<any[]>([]);
   const [video, setVideo] = useState<any | null>(null);
@@ -54,8 +61,13 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   const [showDescDialog, setShowDescDialog] = useState(false);
   const [tempDescription, setTempDescription] = useState('');
   const [tasks, setTasks] = useState<any[]>([]);
-  
-  // Requirements State (Fixed to Optional/Libre)
+
+  const offlineMode = Boolean(route.params?.offline);
+  const roundLocalRef = route.params?.roundLocalRef as string | undefined;
+  const roundId = route.params?.roundId as number | undefined;
+  const [offlineStarted, setOfflineStarted] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
   const [requirements, setRequirements] = useState<{
       minPhotos: number;
       videoRequired: boolean;
@@ -63,16 +75,36 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       level: number;
   }>({ minPhotos: 0, videoRequired: false, label: 'Libre', level: 0 });
 
-  useEffect(() => {
-    initReport();
-    
-    // Prioritize passed tasks
-    if (route.params.recurringTasks) {
+  // CRÍTICO: useFocusEffect para reset del state al entrar a la pantalla.
+  useFocusEffect(
+    useCallback(() => {
+      setPhotos([]);
+      setVideo(null);
+      setNotes('');
+      setCurrentKardexId(null);
+      setOfflineStarted(false);
+      setTasks([]);
+      setTempDescription('');
+      setCameraVisible(false);
+      setLoading(false);
+      setShowDescDialog(false);
+      setShowExitConfirm(false);
+
+      if (route.params.recurringTasks) {
         setTasks(route.params.recurringTasks);
-    } else if (assignmentId) {
-      loadAssignmentTasks();
-    }
-  }, []);
+      } else if (assignmentId) {
+        void loadAssignmentTasks();
+      }
+
+      void initReport();
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+      return () => {
+        backHandler.remove();
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [route.params.location?.id, assignmentId]),
+  );
 
   const loadAssignmentTasks = async () => {
     try {
@@ -138,6 +170,10 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   };
 
   const initReport = async () => {
+    if (offlineMode) {
+      setOfflineStarted(true);
+      return;
+    }
     try {
       const hasPermission = await requestLocationPermission();
       let coords = null;
@@ -145,7 +181,6 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         coords = await getCurrentLocation();
       }
 
-      // Create draft with empty notes
       const res = await registerCheck(
         location.id,
         Number(user.id),
@@ -153,14 +188,13 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         [],
         coords?.lat,
         coords?.lng,
-        route.params.assignmentId, // Pass Assignment ID
+        route.params.assignmentId,
+        undefined,
+        undefined,
+        roundId,
       );
 
-      // Check if res.data has the id (based on log: res.data.id exists)
-      // NOTE: check.service returns { success: true, data: response.data }. 
-      // If response.data is the entity, then res.data.id is correct.
       if (res.success && res.data) {
-        console.log("Kardex Created:", res.data);
         setCurrentKardexId(res.data.id);
       } else {
         Alert.alert(
@@ -180,7 +214,6 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
 
     const mediaToSend: any[] = [];
 
-    // Photos
     updatedPhotos.forEach(p => {
       if (p.url)
         mediaToSend.push({
@@ -190,7 +223,6 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         });
     });
 
-    // Video
     if (updatedVideo?.url) {
       mediaToSend.push({
         type: 'VIDEO',
@@ -206,7 +238,6 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     }
   };
 
-  // Lógica se mantiene igual...
   const handleCapture = async (file: {
     uri: string;
     type: 'video' | 'photo';
@@ -221,150 +252,100 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         uploading: true,
       };
       setPhotos(prev => [...prev, newPhoto]);
-      await performPhotoUpload(newPhoto);
+      await performPhotoUpload(newPhoto, photos.length);
     }
   };
 
-  const onDescriptionConfirmed = () => {
-    // Empty description is now allowed
-    setShowDescDialog(false);
-    setTimeout(() => {
-      setCameraMode('photo');
-      setCameraVisible(true);
-    }, 500);
+  const performPhotoUpload = async (photo: any, index: number) => {
+    try {
+      const res: any = await uploadFile(photo.uri, 'image', location?.name);
+      if (res?.success && res.url) {
+        setPhotos(prev =>
+          prev.map((p, i) =>
+            i === index ? { ...p, url: res.url, uploading: false, error: false } : p,
+          ),
+        );
+        if (!offlineMode && currentKardexId) {
+          await syncMedia(
+            photos.map((p, i) =>
+              i === index ? { ...p, url: res.url, uploading: false } : p,
+            ),
+            video,
+          );
+        }
+      } else {
+        setPhotos(prev =>
+          prev.map((p, i) =>
+            i === index ? { ...p, uploading: false, error: true } : p,
+          ),
+        );
+      }
+    } catch (e) {
+      console.error('Photo upload error:', e);
+      setPhotos(prev =>
+        prev.map((p, i) =>
+          i === index ? { ...p, uploading: false, error: true } : p,
+        ),
+      );
+    }
   };
 
   const performVideoUpload = async (uri: string) => {
     setVideo((prev: any) => ({ ...prev, uploading: true, error: false }));
+    if (offlineMode) {
+      setVideo((prev: any) => ({ ...prev, uri, uploading: false, error: false, url: undefined, local: true }));
+      return;
+    }
     try {
       const res: any = await uploadFile(uri, 'video', location?.name).catch(
-        e => {
-          return { success: false, error: e.message };
-        },
+        () => null,
       );
-
-      if (!res.success) {
-        dispatch(
-          showToast({ message: 'Error al subir el video', type: 'error' }),
+      if (res && res.success && res.url) {
+        setVideo((prev: any) =>
+          prev
+            ? { ...prev, uri: uri, url: res.url, uploading: false, error: false }
+            : { ...video, uri: uri, uploading: false, error: true },
         );
+        if (currentKardexId) {
+          await syncMedia(photos, { ...video, uri, url: res.url });
+        }
       } else {
-        dispatch(
-          showToast({ message: 'Video subido correctamente', type: 'success' }),
-        );
-      }
-
-      const newVideo = res.success
-        ? { ...video, uri: uri, url: res.url, uploading: false, error: false }
-        : { ...video, uri: uri, uploading: false, error: true };
-
-      setVideo(newVideo);
-
-      if (res.success) {
-        syncMedia(photos, newVideo);
+        setVideo((prev: any) => ({ ...prev, uploading: false, error: true }));
       }
     } catch (e) {
       setVideo((prev: any) => ({ ...prev, uploading: false, error: true }));
     }
   };
 
-  const performPhotoUpload = async (photo: any) => {
-    setPhotos(current => current.map(p => 
-      p.uri === photo.uri ? { ...p, uploading: true, error: false } : p
-    ));
-    try {
-      const res: any = await uploadFile(
-        photo.uri,
-        'image',
-        location?.name,
-      ).catch(e => {
-        console.log('Error uploading photo', e);
-        return { success: false, error: e.message };
-      });
-
-      if (!res.success) {
-        dispatch(
-          showToast({ message: 'Error al subir la foto', type: 'error' }),
-        );
-        setPhotos(current => current.map(p => 
-          p.uri === photo.uri ? { ...p, uploading: false, error: true } : p
-        ));
-        return;
-      } else {
-        dispatch(
-          showToast({ message: 'Foto subida correctamente', type: 'success' }),
-        );
-      }
-
-      let updatedPhotos: any[] = [];
-      setPhotos(current => {
-        updatedPhotos = current.map(p =>
-          p.uri === photo.uri
-            ? { ...p, url: res.url, uploading: false, error: false }
-            : p,
-        );
-        return updatedPhotos;
-      });
-
-      syncMedia(updatedPhotos, video);
-    } catch (e) {
-      console.log('Exception in performPhotoUpload', e);
-      setPhotos(current => current.map(p => 
-        p.uri === photo.uri ? { ...p, uploading: false, error: true } : p
-      ));
-    }
-  };
-
   const handleRemovePhoto = (index: number) => {
-    const newPhotos = photos.filter((_, i) => i !== index);
-    setPhotos(newPhotos);
-    syncMedia(newPhotos, video);
+    setPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Handle Back Navigation
-  React.useLayoutEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <IconButton
-          icon="arrow-left"
-          iconColor="#1A1C3D"
-          size={24}
-          onPress={handleBackPress}
-        />
-      ),
-    });
-  }, [navigation, currentKardexId, photos]); // Deps might need refinement based on when we want to warn
+  const onDescriptionConfirmed = () => {
+    setShowDescDialog(false);
+    setCameraMode('photo');
+    setCameraVisible(true);
+  };
 
-  const handleBackPress = () => {
-      // IF report is started (id exists) but not finished, warn user
-      Alert.alert(
-          '¿Salir del reporte?',
-          'Si sales ahora, deberás escanear nuevamente para iniciar otro reporte. (Las evidencias subidas se conservan en el servidor)',
-          [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Salir', style: 'destructive', onPress: () => navigation.goBack() }
-          ]
-      );
+  const handleBackPress = (): boolean => {
+    const hasContent =
+      notes.trim().length > 0 || photos.length > 0 || video !== null;
+    if (hasContent || offlineStarted) {
+      setShowExitConfirm(true);
       return true;
+    }
+    return false;
   };
-
-  // Android Back Button
-  useFocusEffect(
-    useCallback(() => {
-      const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
-      return () => backHandler.remove();
-    }, [handleBackPress])
-  );
-
 
   const handleSubmit = async () => {
-    if (loading || !currentKardexId) return;
+    if (loading) return;
+    if (!currentKardexId && !offlineMode) return;
 
     if (photos.length < requirements.minPhotos) {
       Alert.alert('Requisito', `Debes agregar al menos ${requirements.minPhotos} foto(s).`);
       return;
     }
 
-    // CHECK TASKS COMPLETION
     if (assignmentId && tasks.length > 0) {
       const pendingTasks = tasks.filter(t => !t.completed);
       if (pendingTasks.length > 0) {
@@ -376,63 +357,72 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       }
     }
 
-    // Check for mandatory video if required
-    if (requirements.videoRequired) {
-        if (!video || !video.url || video.error) {
-            Alert.alert('Requisito', 'El video de evidencia es obligatorio en este nivel de reporte.');
-            return;
-        }
+    if (requirements.videoRequired && !offlineMode) {
+      if (!video || !video.url || video.error) {
+        Alert.alert('Requisito', 'El video de evidencia es obligatorio en este nivel de reporte.');
+        return;
+      }
     }
 
-    // Check pending uploads
     const pending = photos.some(p => p.uploading) || video?.uploading;
     if (pending) {
-      Alert.alert(
-        'Espera',
-        'Por favor espera a que terminen de subir los archivos.',
-      );
+      Alert.alert('Espera', 'Por favor espera a que terminen de subir los archivos.');
       return;
     }
 
     setLoading(true);
-
     try {
-      // PERMANENT STORAGE FOR RECURRING TASKS
-      // Since recurring tasks don't have a DB table for completion, we save them as text in notes.
       let finalNotes = notes;
-      
-      console.log('Validating recurring tasks save:', { assignmentId, tasksLen: tasks.length });
-
       if (!assignmentId && tasks.length > 0) {
-          const checklist = tasks.map(t => `[${t.completed ? 'x' : ' '}] ${t.description}`).join('\n');
-          finalNotes = `${finalNotes ? finalNotes + '\n\n' : ''}--- LISTA DE VERIFICACIÓN ---\n${checklist}`;
-          console.log('Generated Final Notes with Checklist:', finalNotes);
+        const checklist = tasks.map(t => `[${t.completed ? 'x' : ' '}] ${t.description}`).join('\n');
+        finalNotes = `${finalNotes ? finalNotes + '\n\n' : ''}--- LISTA DE VERIFICACIÓN ---\n${checklist}`;
       }
 
-      // Final update with notes
-      console.log('Sending updateCheck with:', { currentKardexId, finalNotes });
+      if (offlineMode) {
+        const coords = await getCurrentLocation();
+        const media: OfflineMediaRef[] = [
+          ...photos.map(p => ({ localUri: p.uri, type: 'IMAGE' as const })),
+          ...(video?.uri ? [{ localUri: video.uri, type: 'VIDEO' as const }] : []),
+        ];
+        await queueScan({
+          locationId: location.id,
+          notes: finalNotes || 'Reporte completado',
+          latitude: coords?.lat,
+          longitude: coords?.lng,
+          roundLocalRef,
+          roundId,
+          media,
+        });
+        void saveScannedLocation(roundLocalRef, location.id);
+        setLoading(false);
+        dispatch(
+          showToast({
+            message: 'Punto guardado (se sincronizará al tener WiFi)',
+            type: 'success',
+          }),
+        );
+        navigation.goBack();
+        return;
+      }
+
+      if (!currentKardexId) return;
       const res = await updateCheck(
         currentKardexId,
         finalNotes || 'Reporte completado',
       );
 
       if (res.success) {
-        // IF ASSIGNMENT, UPDATE STATUS TO UNDER_REVIEW
         if (assignmentId) {
           try {
-            await updateAssignmentStatus(assignmentId, 'UNDER_REVIEW' as any); // TODO: Import Enum
+            await updateAssignmentStatus(assignmentId, 'UNDER_REVIEW' as any);
           } catch (assignError) {
             console.error('Error updating assignment status', assignError);
-            // Continue to exit, but maybe warn? For now assume it works or is secondary.
           }
         }
-
         dispatch(showToast({ message: 'Reporte completado y guardado.', type: 'success' }));
-        
-        // Reset navigation to prevent going back to this report
         navigation.reset({
-            index: 0,
-            routes: [{ name: 'Tabs', params: { screen: 'HOME_STACK' } }],
+          index: 0,
+          routes: [{ name: 'Tabs', params: { screen: 'HOME_STACK' } }],
         });
       } else {
         Alert.alert('Error', 'No se pudieron guardar las notas finales.');
@@ -452,23 +442,20 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       >
         {/* HEADER PRO */}
         <View style={styles.headerContainer}>
-          <View>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                <Text style={styles.headerSubtitle}>REPORTE TÉCNICO</Text>
-                <View style={{backgroundColor: '#e0e0e0', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 8, marginBottom: 4}}>
-                    <Text style={{fontSize: 9, fontWeight: 'bold', color: '#555'}}>{requirements.label.toUpperCase()}</Text>
-                </View>
+          <View style={{ flex: 1 }}>
+            <View style={styles.headerTopRow}>
+              <Text style={styles.headerSubtitle}>REPORTE TÉCNICO</Text>
+              <View style={styles.levelBadge}>
+                <Text style={styles.levelBadgeText}>
+                  {requirements.label.toUpperCase()}
+                </Text>
+              </View>
             </View>
-            <Text style={styles.headerTitle}>
+            <Text style={styles.headerTitle} numberOfLines={2}>
               {location?.name || 'Zona de Control'}
             </Text>
             <View style={styles.locationBadge}>
-              <IconButton
-                icon="map-marker"
-                size={12}
-                iconColor="#065911"
-                style={{ margin: 0 }}
-              />
+              <Icon source="map-marker" size={12} color={theme.colors.primary} />
               <Text style={styles.locationText}>
                 Verificación en tiempo real
               </Text>
@@ -476,22 +463,21 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
           </View>
           <Surface style={styles.userAvatar} elevation={2}>
             <Text style={styles.userInitial}>
-              {user?.username?.charAt(0).toUpperCase()}
+              {user?.username?.charAt(0).toUpperCase() || 'G'}
             </Text>
           </Surface>
         </View>
 
-
-        {/* TASKS CHECKLIST (If Assignment or Recurring) */}
+        {/* TASKS CHECKLIST */}
         {tasks.length > 0 && (
-          <TaskChecklist 
-            tasks={tasks} 
-            onTaskToggle={handleTaskToggle} 
+          <TaskChecklist
+            tasks={tasks}
+            onTaskToggle={handleTaskToggle}
             isLocalOnly={!!route.params?.recurringTasks}
           />
         )}
 
-        {/* NOTAS - ESTILO CLEAN INPUT */}
+        {/* NOTAS */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Observaciones Generales</Text>
           <TextInput
@@ -503,162 +489,140 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
             numberOfLines={4}
             style={styles.inputGlass}
             outlineColor="transparent"
-            activeOutlineColor="#065911"
+            activeOutlineColor={theme.colors.primary}
             placeholderTextColor="#999"
           />
         </View>
 
-        {/* VIDEO SECTION - ESTILO CARD PREMIUM */}
+        {/* EVIDENCIA */}
         <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Evidencia Multimedia</Text>
-            {video ? (
-                <Surface style={styles.videoCardPro} elevation={1}>
-                <View style={styles.videoHeader}>
-                    <View style={styles.iconCircle}>
-                    <IconButton
-                        icon="play-circle"
-                        iconColor="#065911"
-                        size={24}
-                    />
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.videoTitle}>Video de Inspección</Text>
-                    <Text
-                        style={[
-                        styles.videoStatus,
-                        video.error && { color: '#ff4444' },
-                        ]}
-                    >
-                        {video.uploading
-                        ? 'Procesando archivo...'
-                        : video.error
-                        ? 'Fallo en carga'
-                        : 'Subido correctamente'}
-                    </Text>
-                    </View>
-                    {video.error && (
-                        <IconButton
-                            icon="refresh"
-                            iconColor="#065911"
-                            onPress={() => performVideoUpload(video.uri)}
-                        />
-                    )}
-                    <IconButton
-                    icon="trash-can-outline"
-                    iconColor="#ff4444"
-                    onPress={() => setVideo(null)}
-                    />
-                </View>
-                {video.uploading && (
-                    <ProgressBar
-                    indeterminate
-                    color="#065911"
-                    style={styles.proProgress}
-                    />
-                )}
-                </Surface>
-            ) : (
-                <TouchableOpacity
-                activeOpacity={0.7}
-                style={styles.videoPlaceholder}
-                onPress={() => {
-                    setCameraMode('video');
-                    setCameraVisible(true);
-                }}
-                >
-                <IconButton icon="video-plus" size={32} iconColor="#555" />
-                <Text style={[styles.videoPlaceholderText, { color: '#555' }]}>
-                    AGREGAR VIDEO (OPCIONAL)
-                </Text>
-                </TouchableOpacity>
-            )}
-        </View>
-
-        {/* PHOTOS GRID PRO */}
-        <View style={styles.section}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.sectionLabel}>Galería de Capturas</Text>
-            <View
-              style={[
-                styles.statusBadge,
-                photos.length >= requirements.minPhotos ? styles.badgeSuccess : styles.badgePending,
-              ]}
+          <Text style={styles.sectionLabel}>EVIDENCIA</Text>
+          <View style={styles.photoActionRow}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[styles.bigCaptureBtn, { backgroundColor: '#FFFFFF', borderColor: theme.colors.primary, borderWidth: 2 }]}
+              onPress={() => { setShowDescDialog(true); }}
             >
-              <Text style={styles.badgeText}>
-                  {requirements.minPhotos === 0 ? 'Opcional' : `${photos.length}/${requirements.minPhotos} Mínimo`}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.photoGrid}>
-            {photos.map((photo, index) => (
-              <View key={index} style={styles.photoContainerPro}>
-                <Image source={{ uri: photo.uri }} style={styles.photoImage} />
-                {photo.uploading && (
-                  <View style={styles.photoLoader}>
-                    <ActivityIndicator color="#065911" size="small" />
-                  </View>
-                )}
-                {photo.error && (
-                  <TouchableOpacity 
-                    style={styles.photoErrorOverlay} 
-                    onPress={() => performPhotoUpload(photo)}
-                  >
-                    <Icon source="refresh" color="white" size={24} />
-                    <Text style={{color: 'white', fontSize: 8, fontWeight: 'bold', marginTop: 4}}>REINTENTAR</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  style={styles.photoDeleteBtn}
-                  onPress={() => handleRemovePhoto(index)}
-                >
-                  <IconButton
-                    icon="close"
-                    size={12}
-                    iconColor="#fff"
-                    style={{ margin: 0 }}
-                  />
-                </TouchableOpacity>
-              </View>
-            ))}
+              <Icon source="camera" size={32} color={theme.colors.primary} />
+              <Text style={[styles.bigCaptureText, { color: theme.colors.primary }]}>FOTO</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.addPhotoCard}
-              onPress={() => {
-                setTempDescription('');
-               onDescriptionConfirmed()
-              }}
+              activeOpacity={0.8}
+              style={[styles.bigCaptureBtn, { backgroundColor: '#455A64' }]}
+              onPress={() => { setCameraMode('video'); setCameraVisible(true); }}
             >
-              <IconButton icon="plus" iconColor="#065911" size={28} />
-              <Text style={styles.addPhotoText}>Añadir</Text>
+              <Icon source="video" size={32} color="white" />
+              <Text style={styles.bigCaptureText}>VIDEO</Text>
             </TouchableOpacity>
           </View>
+
+          {(photos.length > 0 || video) && (
+            <View>
+              <View style={styles.evidenceHeaderRow}>
+                <Text style={styles.evidenceHint}>Desliza para ver todas</Text>
+                <Text style={styles.evidenceCount}>
+                  {photos.length + (video ? 1 : 0)} archivo(s)
+                </Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.evidenceScroll}
+                contentContainerStyle={styles.evidenceScrollContent}
+              >
+                {photos.map((item, index) => (
+                  <View key={`photo-${index}`} style={styles.thumbWrapper}>
+                    <Image source={{ uri: item.uri }} style={styles.thumb} />
+                    {item.uploading && (
+                      <View style={styles.thumbOverlay}>
+                        <ActivityIndicator size="small" color="white" />
+                      </View>
+                    )}
+                    {item.error && (
+                      <TouchableOpacity
+                        style={[styles.thumbOverlay, { backgroundColor: 'rgba(229, 57, 53, 0.85)' }]}
+                        onPress={() => performPhotoUpload(item, index)}
+                      >
+                        <Icon source="refresh" color="white" size={20} />
+                      </TouchableOpacity>
+                    )}
+                    {item.local && !item.uploading && !item.error && (
+                      <View style={styles.thumbBadgeLocal}>
+                        <Icon source="cloud-upload-outline" color="white" size={10} />
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={styles.thumbDelete}
+                      onPress={() => handleRemovePhoto(index)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Icon source="close" color="white" size={14} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {video && (
+                  <View style={styles.thumbWrapper}>
+                    <Image source={{ uri: video.uri }} style={styles.thumb} />
+                    <View style={[styles.thumbOverlay, { backgroundColor: 'rgba(0,0,0,0.25)' }]}>
+                      <Icon source="play" color="white" size={28} />
+                    </View>
+                    {video.uploading && (
+                      <View style={styles.thumbOverlay}>
+                        <ActivityIndicator size="small" color="white" />
+                      </View>
+                    )}
+                    {video.error && (
+                      <View style={[styles.thumbOverlay, { backgroundColor: 'rgba(229, 57, 53, 0.85)' }]}>
+                        <Icon source="refresh" color="white" size={20} />
+                      </View>
+                    )}
+                    {video.local && !video.uploading && !video.error && (
+                      <View style={[styles.thumbBadgeLocal, { backgroundColor: '#F59E0B' }]}>
+                        <Icon source="cloud-upload-outline" color="white" size={10} />
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={styles.thumbDelete}
+                      onPress={() => setVideo(null)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Icon source="close" color="white" size={14} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.thumbAdd}
+                  onPress={() => { setShowDescDialog(true); }}
+                >
+                  <Icon source="plus" color={theme.colors.primary} size={26} />
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          )}
         </View>
 
-        {/* SUBMIT BUTTON - ULTRA PRO */}
+        {/* SUBMIT BUTTON */}
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={handleSubmit}
           disabled={
-              loading || 
-              !currentKardexId || 
-              photos.length < requirements.minPhotos || 
-              (requirements.videoRequired && (!video || !video.url || video.error)) || 
+              loading ||
+              (!currentKardexId && !offlineMode) ||
+              photos.length < requirements.minPhotos ||
+              (requirements.videoRequired && !offlineMode && (!video || !video.url || video.error)) ||
               (assignmentId && tasks.some(t => !t.completed))
           }
           style={[
             styles.mainActionBtn,
             (
-                loading || 
-                !currentKardexId || 
-                photos.length < requirements.minPhotos || 
-                (requirements.videoRequired && (!video || !video.url || video.error)) || 
-                (assignmentId && tasks.some(t=> !t.completed))
-            ) && {
-              opacity: 0.5,
-              backgroundColor: '#c8c8c8',
-              shadowOpacity: 0,
-            },
+                loading ||
+                (!currentKardexId && !offlineMode) ||
+                photos.length < requirements.minPhotos ||
+                (requirements.videoRequired && !offlineMode && (!video || !video.url || video.error)) ||
+                (assignmentId && tasks.some(t => !t.completed))
+            ) && styles.mainActionBtnDisabled,
           ]}
         >
           {loading ? (
@@ -667,10 +631,12 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
             <Text style={styles.mainActionText}>
               {photos.length < requirements.minPhotos
                 ? `Faltan ${requirements.minPhotos - photos.length} fotos`
-                : (requirements.videoRequired && !video?.url)
+                : (requirements.videoRequired && !offlineMode && !video?.url)
                 ? 'Falta Video'
                 : (assignmentId && tasks.some(t => !t.completed))
                 ? 'Tareas Pendientes'
+                : offlineMode
+                ? 'Guardar (se subirá en caseta)'
                 : 'Guardar Reporte'}
             </Text>
           )}
@@ -684,7 +650,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         onCapture={handleCapture}
       />
 
-      {/* DIALOG MODERNIZADO */}
+      {/* DIALOG: Descripción */}
       <Portal>
         <Dialog
           visible={showDescDialog}
@@ -701,7 +667,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
               value={tempDescription}
               onChangeText={setTempDescription}
               style={styles.dialogInput}
-              activeUnderlineColor="#065911"
+              activeUnderlineColor={theme.colors.primary}
             />
           </Dialog.Content>
           <Dialog.Actions>
@@ -712,7 +678,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
               onPress={onDescriptionConfirmed}
               mode="text"
               labelStyle={{ fontWeight: 'bold' }}
-              textColor="#065911"
+              textColor={theme.colors.primary}
             >
               Capturar
             </Button>
@@ -720,62 +686,83 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         </Dialog>
       </Portal>
 
+      {/* DIALOG: Salir */}
       <Portal>
-        {(photos.some(p => p.uploading) || video?.uploading === true) && (
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                justifyContent: 'center',
-                alignItems: 'center',
-                zIndex: 9999,
-              },
-            ]}
-          >
-            <Surface
-              style={{
-                padding: 24,
-                borderRadius: 20,
-                alignItems: 'center',
-                elevation: 4,
+        <Dialog
+          visible={showExitConfirm}
+          onDismiss={() => setShowExitConfirm(false)}
+          style={styles.modernDialog}
+        >
+          <Dialog.Title style={styles.dialogTitlePro}>
+            ¿Salir del reporte?
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text style={styles.dialogBodyText}>
+              Si sales ahora, deberás escanear nuevamente para iniciar otro
+              reporte. Las evidencias capturadas se conservan localmente y se
+              subirán cuando tengas conexión.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowExitConfirm(false)} textColor="#999">
+              Cancelar
+            </Button>
+            <Button
+              onPress={() => {
+                setShowExitConfirm(false);
+                navigation.goBack();
               }}
+              textColor="#E53935"
+              labelStyle={{ fontWeight: 'bold' }}
             >
-              <ActivityIndicator size="large" color="#065911" />
-              <Text
-                style={{ marginTop: 16, fontWeight: 'bold', color: '#1A1C3D' }}
-              >
-                Subiendo archivo...
-              </Text>
-              <Text style={{ marginTop: 4, fontSize: 12, color: '#7E84A3' }}>
-                Por favor espera
-              </Text>
-            </Surface>
-          </View>
-        )}
+              Salir
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  // Layout
   mainContainer: { flex: 1, backgroundColor: '#f6fbf4' },
   scrollContent: { padding: 24, paddingBottom: 60 },
+
+  // Header (mantener diseño original con verde)
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 32,
+    marginBottom: 28,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerSubtitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#065911',
+    color: theme.colors.primary,
     letterSpacing: 2,
     marginBottom: 4,
   },
+  levelBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginLeft: 8,
+    marginBottom: 4,
+  },
+  levelBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: theme.colors.primary,
+    letterSpacing: 0.5,
+  },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     color: '#1A1C3D',
     letterSpacing: -0.5,
@@ -783,10 +770,15 @@ const styles = StyleSheet.create({
   locationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: -8,
-    marginTop: 2,
+    marginLeft: -4,
+    marginTop: 4,
+    gap: 4,
   },
-  locationText: { fontSize: 12, color: '#7E84A3', fontWeight: '500' },
+  locationText: {
+    fontSize: 12,
+    color: '#7E84A3',
+    fontWeight: '500',
+  },
   userAvatar: {
     width: 52,
     height: 52,
@@ -794,17 +786,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#065911',
-    shadowOpacity: 0.1,
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.12,
     shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
-  userInitial: { color: '#065911', fontWeight: '800', fontSize: 20 },
-  section: { marginBottom: 32 },
+  userInitial: {
+    color: theme.colors.primary,
+    fontWeight: '800',
+    fontSize: 20,
+  },
+
+  // Sections
+  section: { marginBottom: 28 },
   sectionLabel: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '800',
     color: '#1A1C3D',
-    marginBottom: 16,
+    letterSpacing: 0.8,
+    marginBottom: 14,
   },
   inputGlass: {
     backgroundColor: '#FFF',
@@ -814,120 +815,160 @@ const styles = StyleSheet.create({
     borderColor: '#E8EBF3',
     paddingHorizontal: 12,
   },
-  videoPlaceholder: {
-    height: 120,
-    borderRadius: 20,
-    backgroundColor: '#FFF',
-    borderWidth: 2,
-    borderColor: '#E8EBF3',
-    borderStyle: 'dashed',
+
+  // Capture buttons (mantener los dos botones grandes)
+  photoActionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  bigCaptureBtn: {
+    flex: 1,
+    height: 90,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
-  videoPlaceholderText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#065911',
-    letterSpacing: 1,
+  bigCaptureText: {
+    color: 'white',
+    fontWeight: '900',
+    fontSize: 13,
+    letterSpacing: 0.8,
+    marginTop: 6,
   },
-  videoCardPro: {
-    borderRadius: 20,
-    backgroundColor: '#FFF',
-    overflow: 'hidden',
-    padding: 4,
-  },
-  videoHeader: { flexDirection: 'row', alignItems: 'center', padding: 12 },
-  iconCircle: { backgroundColor: '#f1f6eb', borderRadius: 12, padding: 2 },
-  videoTitle: { fontWeight: '700', fontSize: 15, color: '#1A1C3D' },
-  videoStatus: { fontSize: 12, color: '#2e7d32', marginTop: 2 },
-  proProgress: { height: 4, borderRadius: 2 },
-  rowBetween: {
+
+  // Evidence grid (mejorado: scroll horizontal con FAB)
+  evidenceHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
-  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  badgePending: { backgroundColor: '#FFDAD6' },
-  badgeSuccess: { backgroundColor: '#d0f8d3' },
-  badgeText: { fontSize: 11, fontWeight: 'bold' },
-  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  photoContainerPro: {
-    width: (width - 48 - 28) / 3,
-    height: (width - 48 - 28) / 3,
-    borderRadius: 18,
-    backgroundColor: '#FFF',
-    position: 'relative',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-  },
-  photoImage: { width: '100%', height: '100%', borderRadius: 18 },
-  photoDeleteBtn: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: '#ff4444',
-    borderRadius: 12,
-    elevation: 4,
-  },
-  photoErrorOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 68, 68, 0.7)',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addPhotoCard: {
-    width: (width - 48 - 28) / 3,
-    height: (width - 48 - 28) / 3,
-    borderRadius: 18,
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#E8EBF3',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addPhotoText: {
-    fontSize: 12,
+  evidenceHint: {
+    fontSize: 10,
     fontWeight: '700',
-    color: '#065911',
-    marginTop: -8,
+    color: '#7E84A3',
+    letterSpacing: 0.5,
   },
-  photoLoader: {
+  evidenceCount: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: theme.colors.primary,
+    letterSpacing: 0.5,
+  },
+  evidenceScroll: {
+    marginHorizontal: -24,
+  },
+  evidenceScrollContent: {
+    paddingHorizontal: 24,
+    gap: THUMB_GAP,
+  },
+  thumbWrapper: {
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#F5F5F5',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  thumb: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  mainActionBtn: {
-    backgroundColor: '#065911',
-    height: 62,
-    borderRadius: 22,
+  thumbBadgeLocal: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#F59E0B',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#065911',
+  },
+  thumbDelete: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbAdd: {
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+    borderStyle: 'dashed',
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Submit button (mantener diseño original)
+  mainActionBtn: {
+    backgroundColor: theme.colors.primary,
+    height: 60,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: theme.colors.primary,
     shadowOpacity: 0.35,
     shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    marginTop: 10,
+    shadowOffset: { width: 0, height: 6 },
+    marginTop: 8,
     marginBottom: 20,
-    elevation: 8, // Added for Android shadow match
+    elevation: 6,
+  },
+  mainActionBtnDisabled: {
+    backgroundColor: '#C8C8C8',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   mainActionText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  modernDialog: { borderRadius: 28, backgroundColor: '#FFF', padding: 8 },
+
+  // Dialogs (mantener diseño original)
+  modernDialog: { borderRadius: 24, backgroundColor: '#FFF', padding: 8 },
   dialogTitlePro: {
     textAlign: 'center',
     fontWeight: '800',
-    fontSize: 20,
+    fontSize: 18,
     color: '#1A1C3D',
   },
-  dialogInput: { backgroundColor: '#F8F9FD', borderRadius: 12, marginTop: 10 },
+  dialogBodyText: {
+    fontSize: 14,
+    color: '#7E84A3',
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  dialogInput: {
+    backgroundColor: '#F8F9FD',
+    borderRadius: 12,
+    marginTop: 8,
+  },
 });
