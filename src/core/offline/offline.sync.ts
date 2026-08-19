@@ -11,6 +11,7 @@ import { startRound, endRound } from '../../screens/home/service/round.service';
 import { registerCheck } from '../../screens/check/service/check.service';
 import { createIncident } from '../../screens/assignments/service/incident.service';
 import { createMaintenance } from '../../screens/assignments/service/maintenance.service';
+import { createShiftCheck } from '../../screens/shift-check/service/shift-check.service';
 import { getMyRecurringAssignments } from '../../screens/recurring/service/recurring.service';
 import { getMyAssignments } from '../../screens/assignments/service/assignment.service';
 import { getTypesByCategoryType } from '../../shared/service/catalog.service';
@@ -204,6 +205,21 @@ const executeOperation = async (
           createdAt: new Date(op.createdAt),
         });
         return res.success ? null : res.messages?.[0] || 'Error al crear el mantenimiento';
+      }
+
+      case 'SHIFT_CHECK': {
+        const res = await createShiftCheck({
+          userId: Number(op.payload.userId),
+          shiftDate: String(op.payload.shiftDate),
+          shiftType: op.payload.shiftType as 'MATUTINO' | 'NOCTURNO',
+          actualEntryAt: (op.payload.actualEntryAt as string | null) ?? null,
+          isAbsent: Boolean(op.payload.isAbsent),
+          uniformCheck: (op.payload.uniformCheck as any) ?? null,
+          handoverItems: (op.payload.handoverItems as any) ?? null,
+          observations: (op.payload.observations as string | null) ?? null,
+          clientRef: op.clientRef,
+        });
+        return res.success ? null : res.messages?.[0] || 'Error al crear la verificación';
       }
 
       default:

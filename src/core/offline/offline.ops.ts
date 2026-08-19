@@ -146,3 +146,36 @@ export const queueMaintenance = async (params: {
   await enqueueOperation(op);
   return op;
 };
+
+/**
+ * @description Encola una Verificación de Cambio de Turno (RF-01..RF-04).
+ * El `clientRef` se genera aquí para idempotencia al sincronizar.
+ */
+export const queueShiftCheck = async (params: {
+  userId: number;
+  shiftDate: string;
+  shiftType: 'MATUTINO' | 'NOCTURNO';
+  actualEntryAt?: string | null;
+  isAbsent?: boolean;
+  uniformCheck?: Record<string, { value: boolean; note?: string | null }> | null;
+  handoverItems?: Record<string, { value: boolean; note?: string | null }> | null;
+  observations?: string | null;
+  clientRef?: string;
+}): Promise<OfflineOperation> => {
+  const op = buildOperation(
+    'SHIFT_CHECK',
+    {
+      userId: params.userId,
+      shiftDate: params.shiftDate,
+      shiftType: params.shiftType,
+      actualEntryAt: params.actualEntryAt,
+      isAbsent: params.isAbsent,
+      uniformCheck: params.uniformCheck,
+      handoverItems: params.handoverItems,
+      observations: params.observations,
+    },
+    { localRef: params.clientRef },
+  );
+  await enqueueOperation(op);
+  return op;
+};

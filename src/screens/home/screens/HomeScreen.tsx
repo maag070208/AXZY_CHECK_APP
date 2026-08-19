@@ -8,8 +8,11 @@ import { GuardDashboard } from './GuardDashboard';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { getPendingIncidentsCount } from '../../assignments/service/incident.service';
+import { useShiftNotifications } from '../../shift-check/hooks/useShiftNotifications';
 
 export const HomeScreen = () => {
+    useShiftNotifications();
+
   const user = useSelector((state: RootState) => state.userState);
   const [pendingIncidents, setPendingIncidents] = useState(0);
 

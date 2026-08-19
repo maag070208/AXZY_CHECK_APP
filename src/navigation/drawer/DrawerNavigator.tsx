@@ -20,6 +20,7 @@ import { InvitationsStack } from '../../screens/invitations/stack/InvitationsSta
 import { ResidentsStack } from '../../screens/residents/stack/ResidentsStack';
 import NovedadesStack from '../../screens/novedades/stack/NovedadesStack';
 import SyncStatusStack from '../../screens/sync/stack/SyncStatusStack';
+import { ShiftCheckStack } from '../../screens/shift-check/stack/ShiftCheckStack';
 
 const Drawer = createDrawerNavigator();
 
@@ -131,6 +132,14 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="MAINTENANCE_STACK"
         component={MaintenanceStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="SHIFT_CHECK_STACK"
+        component={ShiftCheckStack}
         options={{
             drawerItemStyle: { display: 'none' }
         }}

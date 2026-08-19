@@ -4,7 +4,13 @@
  */
 
 /** @description Tipos de operación que un guardia puede generar en campo. */
-export type OfflineOpType = 'ROUND_START' | 'SCAN' | 'ROUND_END' | 'INCIDENT' | 'MAINTENANCE';
+export type OfflineOpType =
+  | 'ROUND_START'
+  | 'SCAN'
+  | 'ROUND_END'
+  | 'INCIDENT'
+  | 'MAINTENANCE'
+  | 'SHIFT_CHECK';
 
 /** @description Estado de una operación encolada. */
 export type OfflineOpStatus = 'PENDING' | 'SYNCING' | 'ERROR' | 'DONE';

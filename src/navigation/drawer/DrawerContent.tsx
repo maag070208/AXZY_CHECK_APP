@@ -90,6 +90,13 @@ const MENU_ITEMS: MenuItem[] = [
     roles: ['ADMIN', 'MAINT'],
   },
   {
+    label: 'Verificación de Turno',
+    icon: 'calendar-clock',
+    route: 'SHIFT_CHECK_STACK',
+    screen: 'SHIFT_CHECK_CAPTURE',
+    roles: ['ADMIN', 'SHIFT'],
+  },
+  {
     label: 'Hist. Recorridos',
     icon: 'clipboard-text-clock',
     route: 'ROUNDS_STACK',
