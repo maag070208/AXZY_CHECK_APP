@@ -10,6 +10,7 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GRADLE_FILE="$ROOT_DIR/android/app/build.gradle"
 API_FILE="$ROOT_DIR/src/core/constants/API_CONSTANTS.ts"
+APP_INFO_FILE="$ROOT_DIR/src/core/constants/APP_INFO.ts"
 
 if [[ ! -f "$GRADLE_FILE" ]]; then
   echo "No se encontró $GRADLE_FILE"
@@ -17,6 +18,10 @@ if [[ ! -f "$GRADLE_FILE" ]]; then
 fi
 if [[ ! -f "$API_FILE" ]]; then
   echo "No se encontró $API_FILE"
+  exit 1
+fi
+if [[ ! -f "$APP_INFO_FILE" ]]; then
+  echo "No se encontró $APP_INFO_FILE"
   exit 1
 fi
 
@@ -62,6 +67,17 @@ echo "Set BASE_URL -> $API_URL"
 
 sed -i.bak -E "s|^[[:space:]]*BASE_URL:[[:space:]]*'[^']*',|  BASE_URL: '$API_URL',|" "$API_FILE"
 rm -f "$API_FILE.bak"
+
+ENV_LABEL="DEV"
+[[ "$ENV" == "prod" ]] && ENV_LABEL="PROD"
+echo "Update APP_INFO -> v$NEW_VN [$ENV_LABEL]"
+
+cat > "$APP_INFO_FILE" <<EOF
+export const APP_INFO = {
+  VERSION: '$NEW_VN',
+  ENV: '$ENV_LABEL' as 'DEV' | 'PROD',
+};
+EOF
 
 cd "$ROOT_DIR/android"
 

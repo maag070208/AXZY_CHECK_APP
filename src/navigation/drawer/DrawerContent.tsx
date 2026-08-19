@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '../../core/store/hooks';
 import { logout } from '../../core/store/slices/user.slice';
 import { RootState } from '../../core/store/redux.config';
 import { theme } from '../../shared/theme/theme';
+import { APP_INFO } from '../../core/constants/APP_INFO';
 
 /* ======================================================
    TYPES
@@ -208,7 +209,15 @@ const DrawerContent = ({ navigation }: { navigation: any }) => {
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>v1.0.19</Text>
+        <Text style={styles.versionText}>v{APP_INFO.VERSION}</Text>
+        <Text
+          style={[
+            styles.envText,
+            APP_INFO.ENV === 'PROD' ? styles.envProd : styles.envDev,
+          ]}
+        >
+          {APP_INFO.ENV}
+        </Text>
       </View>
     </View>
   );
@@ -307,5 +316,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#cbd5e1',
     marginTop: 16,
+  },
+  envText: {
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  envProd: {
+    color: '#059669',
+  },
+  envDev: {
+    color: '#d97706',
   },
 });

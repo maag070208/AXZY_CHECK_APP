@@ -20,6 +20,7 @@ import { showToast } from '../../../core/store/slices/toast.slice';
 import Logo from '../../../shared/assets/logo.png';
 import { showLoader } from '../../../core/store/slices/loader.slice';
 import LoaderComponent from '../../../shared/components/LoaderComponent';
+import { APP_INFO } from '../../../core/constants/APP_INFO';
 
 const LoginScreen: React.FC = () => {
   const dispatch = useDispatch();
@@ -85,6 +86,21 @@ const LoginScreen: React.FC = () => {
           <View style={styles.formContainer}>
             <LoginFormComponent onSubmit={handleLogin} loading={loading} />
           </View>
+
+          <View style={styles.appInfoContainer}>
+            <Text style={styles.appInfoVersion}>v{APP_INFO.VERSION}</Text>
+            <Text style={styles.appInfoDot}>•</Text>
+            <Text
+              style={[
+                styles.appInfoEnv,
+                APP_INFO.ENV === 'PROD'
+                  ? styles.appInfoEnvProd
+                  : styles.appInfoEnvDev,
+              ]}
+            >
+              {APP_INFO.ENV}
+            </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
       <LoaderComponent />
@@ -127,6 +143,32 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: '100%',
+  },
+  appInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  appInfoVersion: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  appInfoDot: {
+    fontSize: 12,
+    color: '#64748b',
+    marginHorizontal: 6,
+  },
+  appInfoEnv: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  appInfoEnvDev: {
+    color: '#d97706',
+  },
+  appInfoEnvProd: {
+    color: '#059669',
   },
 });
 
