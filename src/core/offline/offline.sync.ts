@@ -12,6 +12,7 @@ import { registerCheck } from '../../screens/check/service/check.service';
 import { createIncident } from '../../screens/assignments/service/incident.service';
 import { createMaintenance } from '../../screens/assignments/service/maintenance.service';
 import { createShiftCheck } from '../../screens/shift-check/service/shift-check.service';
+import { createUniformCheck } from '../../screens/uniform-check/service/uniform-check.service';
 import { getMyRecurringAssignments } from '../../screens/recurring/service/recurring.service';
 import { getMyAssignments } from '../../screens/assignments/service/assignment.service';
 import { getTypesByCategoryType } from '../../shared/service/catalog.service';
@@ -214,12 +215,30 @@ const executeOperation = async (
           shiftType: op.payload.shiftType as 'MATUTINO' | 'NOCTURNO',
           actualEntryAt: (op.payload.actualEntryAt as string | null) ?? null,
           isAbsent: Boolean(op.payload.isAbsent),
-          uniformCheck: (op.payload.uniformCheck as any) ?? null,
           handoverItems: (op.payload.handoverItems as any) ?? null,
           observations: (op.payload.observations as string | null) ?? null,
+          replacedById: (op.payload.replacedById as number | null) ?? null,
+          coverageStart: (op.payload.coverageStart as string | null) ?? null,
+          coverageEnd: (op.payload.coverageEnd as string | null) ?? null,
+          credentialsCount: (op.payload.credentialsCount as number | null) ?? null,
+          tarjetonesCount: (op.payload.tarjetonesCount as number | null) ?? null,
+          novedadesCaseta: (op.payload.novedadesCaseta as string | null) ?? null,
           clientRef: op.clientRef,
         });
         return res.success ? null : res.messages?.[0] || 'Error al crear la verificación';
+      }
+
+      case 'UNIFORM_CHECK': {
+        const res = await createUniformCheck({
+          userId: Number(op.payload.userId),
+          items: (op.payload.items as any) ?? {},
+          checkedAt: (op.payload.checkedAt as string) ?? new Date().toISOString(),
+          observations: (op.payload.observations as string | null) ?? null,
+          context: (op.payload.context as 'SHIFT' | 'ROUND' | 'SPOT' | 'OTHER') ?? 'SHIFT',
+          shiftCheckId: (op.payload.shiftCheckId as string | null) ?? null,
+          clientRef: op.clientRef,
+        });
+        return res.success ? null : res.messages?.[0] || 'Error al crear la verificación de uniforme';
       }
 
       default:

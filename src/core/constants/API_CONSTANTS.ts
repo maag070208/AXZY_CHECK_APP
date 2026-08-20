@@ -1,5 +1,5 @@
 export const API_CONSTANTS = {
-  BASE_URL: 'https://axzy-checkapp-bonaterra-dev-api.up.railway.app/api/v1',
+  BASE_URL: 'http://192.168.10.108:4444/api/v1',
   // BONATERRA
   // BASE_URL: 'https://axzy-checkapp-bonaterra-prod-api.up.railway.app/api/v1',
   //DEMO

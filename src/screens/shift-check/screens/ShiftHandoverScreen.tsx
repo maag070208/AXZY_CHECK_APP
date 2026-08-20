@@ -13,7 +13,7 @@ import { queueShiftCheck } from '../../../core/offline/offline.ops';
 import { signShiftCheck } from '../service/shift-check.service';
 
 /**
- * @description Entrega de Turno (RF-04).
+ * @description Entrega de Turno.
  * Checklist de caseta/equipo + switch "Se reportaron novedades a la administración".
  */
 const HANDOVER_ITEMS: { key: string; label: string }[] = [
@@ -62,7 +62,6 @@ export const ShiftHandoverScreen = ({ navigation, route }: Props) => {
                 shiftType,
                 actualEntryAt: null,
                 isAbsent: false,
-                uniformCheck: null,
                 handoverItems: handover,
                 observations: observations || null,
             });

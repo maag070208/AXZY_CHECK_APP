@@ -82,6 +82,39 @@ export type RootStackParamList = {
     ORDERS_MAIN: ScreenParams;
     ORDERS_DETAILS: ScreenParams<{ orderId: number; orderNumber: string }>;
   };
+  GUARDS_STACK: {
+    GUARD_LIST: ScreenParams;
+    GUARD_DETAIL: ScreenParams<{ id: number }>;
+    GUARD_KARDEX_DETAIL: ScreenParams<{ id: number }>;
+  };
+  ASSIGNMENTS_STACK: {
+    MY_ASSIGNMENTS_MAIN: ScreenParams;
+    ASSIGNMENT_SCAN: ScreenParams<{ assignmentId?: number }>;
+    INCIDENT_REPORT: ScreenParams<{ assignmentId?: number }>;
+    MAINTENANCE_REPORT: ScreenParams<{ assignmentId?: number }>;
+  };
+  USERS_STACK: {
+    USERS_MAIN: ScreenParams;
+  };
+  RECURRING_STACK: {
+    RECURRING_MAIN: ScreenParams;
+  };
+  INCIDENTS_STACK: {
+    INCIDENT_LIST: ScreenParams;
+    INCIDENT_DETAIL: ScreenParams<{ id: number }>;
+  };
+  MAINTENANCE_STACK: {
+    MAINTENANCE_LIST: ScreenParams;
+    MAINTENANCE_DETAIL: ScreenParams<{ id: number }>;
+    MAINTENANCE_REPORT: ScreenParams;
+  };
+  ROUNDS_STACK: {
+    ROUNDS_LIST: ScreenParams;
+    ROUND_DETAIL: ScreenParams<{ id: number }>;
+  };
+  SCHEDULES_STACK: {
+    SCHEDULES_LIST: ScreenParams;
+  };
   CHECK_STACK: {
     CHECK_SCAN: ScreenParams;
     CHECK_MAIN: ScreenParams<{
@@ -96,6 +129,28 @@ export type RootStackParamList = {
   };
   SYNC_STATUS_STACK: {
     SYNC_STATUS: ScreenParams;
+  };
+  SHIFT_CHECK_STACK: {
+    SHIFT_CHECK_LIST: ScreenParams;
+    SHIFT_CHECK_CAPTURE: ScreenParams<{
+      elementId?: number;
+      elementName?: string;
+      shiftType?: 'MATUTINO' | 'NOCTURNO';
+      shiftDate?: string;
+    }>;
+    SHIFT_CHECK_DETAIL: ScreenParams<{ shiftCheckId: string }>;
+  };
+  ACTIVE_ROUND_STACK: {
+    ROUNDS_ACTIVE_MAIN: ScreenParams;
+  };
+  UNIFORM_CHECK_STACK: {
+    UNIFORM_CHECK_LIST: ScreenParams;
+    UNIFORM_CHECK_CAPTURE: ScreenParams<{
+      elementId?: number;
+      elementName?: string;
+      context?: 'SHIFT' | 'ROUND' | 'SPOT' | 'OTHER';
+      captureId?: string;
+    }>;
   };
   PROFILE_SCREEN: undefined;
 };
@@ -151,6 +206,39 @@ export const AppStacks: RootStackParamList = {
     ORDERS_MAIN: {},
     ORDERS_DETAILS: {},
   },
+  GUARDS_STACK: {
+    GUARD_LIST: {},
+    GUARD_DETAIL: {},
+    GUARD_KARDEX_DETAIL: {},
+  },
+  ASSIGNMENTS_STACK: {
+    MY_ASSIGNMENTS_MAIN: {},
+    ASSIGNMENT_SCAN: {},
+    INCIDENT_REPORT: {},
+    MAINTENANCE_REPORT: {},
+  },
+  USERS_STACK: {
+    USERS_MAIN: {},
+  },
+  RECURRING_STACK: {
+    RECURRING_MAIN: {},
+  },
+  INCIDENTS_STACK: {
+    INCIDENT_LIST: {},
+    INCIDENT_DETAIL: {},
+  },
+  MAINTENANCE_STACK: {
+    MAINTENANCE_LIST: {},
+    MAINTENANCE_DETAIL: {},
+    MAINTENANCE_REPORT: {},
+  },
+  ROUNDS_STACK: {
+    ROUNDS_LIST: {},
+    ROUND_DETAIL: {},
+  },
+  SCHEDULES_STACK: {
+    SCHEDULES_LIST: {},
+  },
   CHECK_STACK: {
     CHECK_SCAN: {},
     CHECK_MAIN: {},
@@ -160,6 +248,18 @@ export const AppStacks: RootStackParamList = {
   },
   SYNC_STATUS_STACK: {
     SYNC_STATUS: {},
+  },
+  SHIFT_CHECK_STACK: {
+    SHIFT_CHECK_LIST: {},
+    SHIFT_CHECK_CAPTURE: {},
+    SHIFT_CHECK_DETAIL: {},
+  },
+  ACTIVE_ROUND_STACK: {
+    ROUNDS_ACTIVE_MAIN: {},
+  },
+  UNIFORM_CHECK_STACK: {
+    UNIFORM_CHECK_LIST: {},
+    UNIFORM_CHECK_CAPTURE: {},
   },
   PROFILE_SCREEN: undefined,
 };

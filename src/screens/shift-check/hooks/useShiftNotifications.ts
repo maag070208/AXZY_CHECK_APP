@@ -10,7 +10,7 @@ import {
 /**
  * @description Hook que suscribe al canal de notificaciones Ably del usuario
  * autenticado para mostrar un Toast cuando se generan incidencias por un
- * ShiftCheck (RF-12). Se monta en una pantalla de alto tráfico (Home).
+ * ShiftCheck. Se monta en una pantalla de alto tráfico (Home).
  */
 export const useShiftNotifications = () => {
     const dispatch = useDispatch();
@@ -19,7 +19,7 @@ export const useShiftNotifications = () => {
 
     useEffect(() => {
         if (!userId) return;
-        // Solo ADMIN/SHIFT reciben alertas de turno (RF-12).
+        // Solo ADMIN/SHIFT reciben alertas de turno.
         if (role !== 'ADMIN' && role !== 'SHIFT') return;
 
         let mounted = true;

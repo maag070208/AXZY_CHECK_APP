@@ -21,6 +21,8 @@ import { ResidentsStack } from '../../screens/residents/stack/ResidentsStack';
 import NovedadesStack from '../../screens/novedades/stack/NovedadesStack';
 import SyncStatusStack from '../../screens/sync/stack/SyncStatusStack';
 import { ShiftCheckStack } from '../../screens/shift-check/stack/ShiftCheckStack';
+import { UniformCheckStack } from '../../screens/uniform-check/stack/UniformCheckStack';
+import { ActiveRoundStack } from '../../screens/home/stack/ActiveRoundStack';
 
 const Drawer = createDrawerNavigator();
 
@@ -140,6 +142,22 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="SHIFT_CHECK_STACK"
         component={ShiftCheckStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="UNIFORM_CHECK_STACK"
+        component={UniformCheckStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="ACTIVE_ROUND_STACK"
+        component={ActiveRoundStack}
         options={{
             drawerItemStyle: { display: 'none' }
         }}

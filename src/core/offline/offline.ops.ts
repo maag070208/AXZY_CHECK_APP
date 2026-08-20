@@ -148,7 +148,7 @@ export const queueMaintenance = async (params: {
 };
 
 /**
- * @description Encola una Verificación de Cambio de Turno (RF-01..RF-04).
+ * @description Encola una Verificación de Cambio de Turno.
  * El `clientRef` se genera aquí para idempotencia al sincronizar.
  */
 export const queueShiftCheck = async (params: {
@@ -157,10 +157,15 @@ export const queueShiftCheck = async (params: {
   shiftType: 'MATUTINO' | 'NOCTURNO';
   actualEntryAt?: string | null;
   isAbsent?: boolean;
-  uniformCheck?: Record<string, { value: boolean; note?: string | null }> | null;
   handoverItems?: Record<string, { value: boolean; note?: string | null }> | null;
   observations?: string | null;
   clientRef?: string;
+  replacedById?: number | null;
+  coverageStart?: string | null;
+  coverageEnd?: string | null;
+  credentialsCount?: number | null;
+  tarjetonesCount?: number | null;
+  novedadesCaseta?: string | null;
 }): Promise<OfflineOperation> => {
   const op = buildOperation(
     'SHIFT_CHECK',
@@ -170,9 +175,43 @@ export const queueShiftCheck = async (params: {
       shiftType: params.shiftType,
       actualEntryAt: params.actualEntryAt,
       isAbsent: params.isAbsent,
-      uniformCheck: params.uniformCheck,
       handoverItems: params.handoverItems,
       observations: params.observations,
+      replacedById: params.replacedById,
+      coverageStart: params.coverageStart,
+      coverageEnd: params.coverageEnd,
+      credentialsCount: params.credentialsCount,
+      tarjetonesCount: params.tarjetonesCount,
+      novedadesCaseta: params.novedadesCaseta,
+    },
+    { localRef: params.clientRef },
+  );
+  await enqueueOperation(op);
+  return op;
+};
+
+/**
+ * @description Encola una verificación de uniforme y aseo.
+ * Se aplica a cualquier guardia en cualquier momento.
+ */
+export const queueUniformCheck = async (params: {
+  userId: number;
+  items: Record<string, { value: boolean; note?: string | null }>;
+  checkedAt?: string;
+  observations?: string | null;
+  context?: 'SHIFT' | 'ROUND' | 'SPOT' | 'OTHER';
+  clientRef?: string;
+  shiftCheckId?: string | null;
+}): Promise<OfflineOperation> => {
+  const op = buildOperation(
+    'UNIFORM_CHECK',
+    {
+      userId: params.userId,
+      items: params.items,
+      checkedAt: params.checkedAt,
+      observations: params.observations,
+      context: params.context ?? 'SHIFT',
+      shiftCheckId: params.shiftCheckId ?? null,
     },
     { localRef: params.clientRef },
   );

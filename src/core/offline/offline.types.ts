@@ -10,7 +10,8 @@ export type OfflineOpType =
   | 'ROUND_END'
   | 'INCIDENT'
   | 'MAINTENANCE'
-  | 'SHIFT_CHECK';
+  | 'SHIFT_CHECK'
+  | 'UNIFORM_CHECK';
 
 /** @description Estado de una operación encolada. */
 export type OfflineOpStatus = 'PENDING' | 'SYNCING' | 'ERROR' | 'DONE';

@@ -4,7 +4,7 @@ import { getNovedadesAblyToken } from '../../novedades/service/novedades.service
 /**
  * @description Hook para conectarse al canal de notificaciones del usuario
  * (canal `notifications.<userId>`) y mostrar un Toast/alert cuando se generan
- * incidencias automáticas por un ShiftCheck (RF-12).
+ * incidencias automáticas por un ShiftCheck.
  */
 export type ShiftNotificationHandler = (payload: {
     type?: string;

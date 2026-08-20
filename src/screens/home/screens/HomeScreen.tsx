@@ -5,6 +5,7 @@ import { UserRole } from '../../../core/types/IUser';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { GuardDashboard } from './GuardDashboard';
+import { DashboardScreen } from './DashboardScreen';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { getPendingIncidentsCount } from '../../assignments/service/incident.service';
@@ -16,10 +17,14 @@ export const HomeScreen = () => {
   const user = useSelector((state: RootState) => state.userState);
   const [pendingIncidents, setPendingIncidents] = useState(0);
 
+  // ADMIN y SHIFT ven el panel de control (KPIs + accesos rápidos).
+  if (user.role === UserRole.ADMIN || user.role === UserRole.SHIFT) {
+    return <DashboardScreen />;
+  }
+
   // If user is GUARD, SHIFT_GUARD, or MANTENIMIENTO, show Dashboard directly
   if (
     user.role === UserRole.GUARD ||
-    user.role === UserRole.SHIFT ||
     user.role === UserRole.MAINT
   ) {
     return <GuardDashboard />;
