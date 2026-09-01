@@ -89,6 +89,13 @@ const MENU_ITEMS: MenuItem[] = [
     roles: ['ADMIN', 'MAINT'],
   },
   {
+    label: 'Casa Club',
+    icon: 'home-modern',
+    route: 'CLUB_STACK',
+    screen: 'CLUB_LIST',
+    roles: ['ADMIN', 'SHIFT', 'GUARD', 'MAINT'],
+  },
+  {
     label: 'Hist. Recorridos',
     icon: 'clipboard-text-clock',
     route: 'ROUNDS_STACK',

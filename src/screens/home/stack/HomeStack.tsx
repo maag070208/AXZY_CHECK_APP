@@ -4,6 +4,7 @@ import { HeaderMain } from '../../../navigation/header/HeaderMain';
 import { HomeScreen } from '../screens/HomeScreen';
 import { IncidentReportScreen } from '../../assignments/screens/IncidentReportScreen';
 import { MaintenanceReportScreen } from '../../maintenances/screens/MaintenanceReportScreen';
+import { ClubReportScreen } from '../../club/screens/ClubReportScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +20,7 @@ const HomeStack = () => {
       />
       <Stack.Screen name="INCIDENT_REPORT" component={IncidentReportScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MAINTENANCE_REPORT" component={MaintenanceReportScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="CLUB_REPORT" component={ClubReportScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 };

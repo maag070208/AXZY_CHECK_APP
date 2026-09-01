@@ -13,6 +13,7 @@ import { CheckStack } from '../../screens/check/stack/CheckStack';
 import { RecurringStack } from '../../screens/recurring/stack/RecurringStack';
 import { IncidentsStack } from '../../screens/assignments/stack/IncidentsStack';
 import { MaintenanceStack } from '../../screens/maintenances/stack/MaintenanceStack';
+import { ClubStack } from '../../screens/club/stack/ClubStack';
 import { RoundsStack } from '../../screens/rounds/stack/RoundsStack';
 import { SchedulesStack } from '../../screens/schedules/stack/SchedulesStack';
 import { PropertiesStack } from '../../screens/properties/stack/PropertiesStack';
@@ -129,6 +130,14 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="MAINTENANCE_STACK"
         component={MaintenanceStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="CLUB_STACK"
+        component={ClubStack}
         options={{
             drawerItemStyle: { display: 'none' }
         }}

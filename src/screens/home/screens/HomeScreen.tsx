@@ -109,6 +109,16 @@ export const HomeScreen = () => {
       roles: [UserRole.ADMIN, UserRole.MAINT],
     },
     {
+      id: 'club',
+      label: 'Casa Club',
+      icon: 'home-modern',
+      stack: 'CLUB_STACK',
+      screen: 'CLUB_LIST',
+      color: '#0EA5E9',
+      gradient: ['#0EA5E9', '#38BDF8'],
+      roles: [UserRole.ADMIN, UserRole.SHIFT, UserRole.GUARD, UserRole.MAINT],
+    },
+    {
       id: 'locations',
       label: 'Ubicaciones',
       icon: 'map-marker-outline',

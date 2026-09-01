@@ -731,6 +731,16 @@ export const GuardDashboard = () => {
                       MANTENIMIENTO
                     </Button>
                   )}
+                  <Button
+                    mode="contained"
+                    onPress={() =>
+                      navigation.navigate('CLUB_REPORT')
+                    }
+                    style={[styles.roundBtn, { backgroundColor: '#0EA5E9' }]}
+                    icon="home-modern"
+                  >
+                    CASA CLUB
+                  </Button>
                 </View>
               </View>
 
