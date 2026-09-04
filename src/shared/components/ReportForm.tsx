@@ -18,7 +18,6 @@ import {
   Chip,
   IconButton,
   Surface,
-  TouchableRipple,
   Icon,
   Portal,
   Dialog,
@@ -136,11 +135,10 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
                 (c: CatalogItem) => c.type === config.catalogs.filterByType,
               );
             }
+            // Category selection is no longer exposed to the user (see ReportForm
+            // simplification): `categories` is only kept to resolve which types
+            // belong to this screen and to derive `categoryId` once a type is chosen.
             setCategories(cats);
-
-            if (config.catalogs.autoSelectFirst && cats.length > 0) {
-              setCategoryId(prev => prev ?? cats[0].id);
-            }
           }
 
           if (typeRes.success && typeRes.data) {
@@ -341,7 +339,22 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
     );
   };
 
-  const filteredTypes = allTypes.filter(t => t.categoryId === categoryId);
+  // All types whose category belongs to this screen's catalog (Incidencia /
+  // Mantenimiento / Casa Club), regardless of category — the category picker
+  // step was removed from the UI. `categoryId` is derived automatically from
+  // the selected type and still sent to the API under the hood.
+  const visibleCategoryIds = categories.map(c => c.id);
+  const visibleTypes = allTypes.filter(t =>
+    visibleCategoryIds.includes(t.categoryId as number),
+  );
+
+  const handleSelectType = (type: CatalogItem) => {
+    setTypeId(type.id);
+    if (type.categoryId != null) {
+      setCategoryId(type.categoryId);
+    }
+  };
+
   const isUploading = media.some(m => m.uploading);
   const canSubmit = Boolean(typeId) && !isUploading;
 
@@ -366,84 +379,38 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.label}>1. {config.labels.category}</Text>
-          <View style={styles.categoryGrid}>
-            {categories.map(item => {
-              const isSelected = categoryId === item.id;
-              return (
-                <Surface
-                  key={item.id}
-                  elevation={isSelected ? 4 : 0}
-                  style={[
-                    styles.catCardWrapper,
-                    isSelected && { backgroundColor: accent },
-                  ]}
-                >
-                  <TouchableRipple
-                    onPress={() => {
-                      setCategoryId(item.id);
-                      setTypeId(null);
-                    }}
-                    style={styles.catRipple}
-                  >
-                    <View style={styles.catCardContent}>
-                      <Icon
-                        source={item.icon || 'alert-circle'}
-                        size={24}
-                        color={isSelected ? 'white' : '#757575'}
-                      />
-                      <Text
-                        style={[
-                          styles.catText,
-                          isSelected && { color: 'white' },
-                        ]}
-                        numberOfLines={2}
-                      >
-                        {item.value}
-                      </Text>
-                    </View>
-                  </TouchableRipple>
-                </Surface>
-              );
-            })}
+          <Text style={styles.label}>1. {config.labels.type}</Text>
+          <View style={styles.typeWrapper}>
+            {visibleTypes.map(type => (
+              <Chip
+                key={type.id}
+                selected={typeId === type.id}
+                onPress={() => handleSelectType(type)}
+                style={[
+                  styles.typeChip,
+                  typeId === type.id && {
+                    backgroundColor: `${accent}1A`,
+                    borderColor: accent,
+                  },
+                ]}
+                textStyle={[
+                  styles.typeChipText,
+                  typeId === type.id && { color: accent },
+                ]}
+                showSelectedCheck={false}
+                mode="outlined"
+              >
+                {type.value}
+              </Chip>
+            ))}
+            {visibleTypes.length === 0 && (
+              <Text style={styles.emptyTypes}>
+                No hay tipos disponibles para este reporte.
+              </Text>
+            )}
           </View>
 
-          {categoryId && (
-            <>
-              <Text style={styles.label}>2. {config.labels.type}</Text>
-              <View style={styles.typeWrapper}>
-                {filteredTypes.map(type => (
-                  <Chip
-                    key={type.id}
-                    selected={typeId === type.id}
-                    onPress={() => setTypeId(type.id)}
-                    style={[
-                      styles.typeChip,
-                      typeId === type.id && {
-                        backgroundColor: `${accent}1A`,
-                        borderColor: accent,
-                      },
-                    ]}
-                    textStyle={[
-                      styles.typeChipText,
-                      typeId === type.id && { color: accent },
-                    ]}
-                    showSelectedCheck={false}
-                    mode="outlined"
-                  >
-                    {type.value}
-                  </Chip>
-                ))}
-                {filteredTypes.length === 0 && (
-                  <Text style={styles.emptyTypes}>
-                    No hay tipos disponibles para esta categoría.
-                  </Text>
-                )}
-              </View>
-            </>
-          )}
-
-          <Text style={styles.label}>3. EVIDENCIA</Text>
+          <Text style={styles.label}>2. EVIDENCIA</Text>
           <View style={styles.photoActionRow}>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -520,7 +487,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
             </ScrollView>
           )}
 
-          <Text style={styles.label}>4. OBSERVACIONES ADICIONALES</Text>
+          <Text style={styles.label}>3. OBSERVACIONES ADICIONALES</Text>
           <TextInput
             mode="outlined"
             multiline
@@ -599,31 +566,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginTop: 15,
     letterSpacing: 1.2,
-  },
-
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
-  },
-  catCardWrapper: {
-    width: '47%',
-    flexGrow: 1,
-    minHeight: 90,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#F5F5F5',
-    overflow: 'hidden',
-  },
-  catRipple: { flex: 1, padding: 14, justifyContent: 'center' },
-  catCardContent: { alignItems: 'center', justifyContent: 'center', gap: 6 },
-  catText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#37474F',
-    textAlign: 'center',
   },
 
   typeWrapper: {

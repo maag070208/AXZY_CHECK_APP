@@ -205,6 +205,16 @@ export const HomeScreen = () => {
       color: '#6366f1',
       roles: [UserRole.RESDN],
     },
+    {
+      id: 'chat',
+      label: 'Chat',
+      icon: 'chat-outline',
+      stack: 'CHAT_STACK',
+      screen: 'CHAT_MAIN',
+      color: '#7c3aed',
+      gradient: ['#7c3aed', '#8b5cf6'],
+      roles: [UserRole.ADMIN],
+    },
   ];
   const filteredModules = MODULES.filter(m =>
     m.roles.includes(user.role as UserRole),

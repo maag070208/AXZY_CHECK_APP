@@ -43,6 +43,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { theme } from '../../../shared/theme/theme';
+import { UserRole } from '../../../core/types/IUser';
+import { ShiftAlertBanner } from '../../shiftHandover/components/ShiftAlertBanner';
 
 const { width } = Dimensions.get('window');
 
@@ -684,6 +686,7 @@ export const GuardDashboard = () => {
               height: '100%'
     } : styles.container}>
       <StatusBar barStyle="light-content" />
+      {user.role === UserRole.SHIFT && <ShiftAlertBanner />}
       <>
         {loading ? (
           <>
@@ -888,6 +891,59 @@ export const GuardDashboard = () => {
                       CASA CLUB
                     </Text>
                   </TouchableOpacity>
+                </View>
+
+                {/* "4.1 Chat grupal" y, para el jefe de guardias (SHIFT), los
+                    módulos de "4.2 Entrega de turno" y "4.3 Uniforme". */}
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={[styles.actionTile, { backgroundColor: '#7C3AED' }]}
+                    activeOpacity={0.85}
+                    onPress={() => navigation.navigate('CHAT_MAIN')}
+                  >
+                    <Icon source="chat-outline" size={24} color="#ffffff" />
+                    <Text
+                      style={styles.actionTileText}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      CHAT
+                    </Text>
+                  </TouchableOpacity>
+
+                  {user.role === UserRole.SHIFT && (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.actionTile, { backgroundColor: '#0F766E' }]}
+                        activeOpacity={0.85}
+                        onPress={() => navigation.navigate('SHIFT_HANDOVER_FORM')}
+                      >
+                        <Icon source="swap-horizontal-bold" size={24} color="#ffffff" />
+                        <Text
+                          style={styles.actionTileText}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                        >
+                          ENTREGA DE TURNO
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.actionTile, { backgroundColor: '#475569' }]}
+                        activeOpacity={0.85}
+                        onPress={() => navigation.navigate('UNIFORM_CHECKLIST')}
+                      >
+                        <Icon source="tshirt-crew-outline" size={24} color="#ffffff" />
+                        <Text
+                          style={styles.actionTileText}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                        >
+                          UNIFORME
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
               </View>
 

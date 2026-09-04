@@ -19,6 +19,9 @@ import { SchedulesStack } from '../../screens/schedules/stack/SchedulesStack';
 import { PropertiesStack } from '../../screens/properties/stack/PropertiesStack';
 import { InvitationsStack } from '../../screens/invitations/stack/InvitationsStack';
 import { ResidentsStack } from '../../screens/residents/stack/ResidentsStack';
+import { ChatStack } from '../../screens/chat/stack/ChatStack';
+import { ShiftHandoverStack } from '../../screens/shiftHandover/stack/ShiftHandoverStack';
+import { UniformStack } from '../../screens/uniform/stack/UniformStack';
 
 const Drawer = createDrawerNavigator();
 
@@ -178,6 +181,30 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="RESIDENTS_STACK"
         component={ResidentsStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="CHAT_STACK"
+        component={ChatStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="SHIFT_HANDOVER_STACK"
+        component={ShiftHandoverStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="UNIFORM_STACK"
+        component={UniformStack}
         options={{
             drawerItemStyle: { display: 'none' }
         }}

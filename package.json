@@ -25,6 +25,7 @@
     "@react-navigation/native-stack": "7.6.0",
     "@reduxjs/toolkit": "2.9.2",
     "axios": "1.13.0",
+    "ably": "^2.6.5",
     "dayjs": "1.11.18",
     "formik": "2.4.9",
     "jwt-decode": "4.0.0",
