@@ -1,4 +1,5 @@
 export const APP_SETTINGS = {
+  APP_VERSION: '1.0.23',
   ENCRYPTION_KEY: 'x322Gu0VgFm0sya5SqX',
   DB_KEY: 'PACKDB',
   SCAN_REQUIRED: true,

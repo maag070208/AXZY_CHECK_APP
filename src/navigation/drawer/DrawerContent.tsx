@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '../../core/store/hooks';
 import { logout } from '../../core/store/slices/user.slice';
 import { RootState } from '../../core/store/redux.config';
 import { theme } from '../../shared/theme/theme';
+import EnvironmentBadge from '../../shared/components/EnvironmentBadge';
 
 /* ======================================================
    TYPES
@@ -201,7 +202,9 @@ const DrawerContent = ({ navigation }: { navigation: any }) => {
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>v1.0.19</Text>
+        <View style={styles.badgeContainer}>
+          <EnvironmentBadge />
+        </View>
       </View>
     </View>
   );
@@ -295,10 +298,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ef4444',
   },
-  versionText: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#cbd5e1',
+  badgeContainer: {
     marginTop: 16,
   },
 });

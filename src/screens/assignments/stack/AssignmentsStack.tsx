@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MyAssignmentsScreen } from '../screens/MyAssignmentsScreen';
 import { AssignmentScanScreen } from '../screens/AssignmentScanScreen';
 import { IncidentReportScreen } from '../screens/IncidentReportScreen';
-import { MaintenanceReportScreen } from '../screens/MaintenanceReportScreen';
+import { MaintenanceReportScreen } from '../../maintenances/screens/MaintenanceReportScreen';
 
 const Stack = createNativeStackNavigator();
 

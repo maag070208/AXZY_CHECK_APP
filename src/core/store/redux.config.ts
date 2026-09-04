@@ -14,11 +14,13 @@ import { APP_SETTINGS } from '../constants/APP_SETTINGS';
 import userReducer from './slices/user.slice';
 import loaderReducer from './slices/loader.slice';
 import toastReducer from './slices/toast.slice';
+import environmentReducer from './slices/environment.slice';
 
 const rootReducer = combineReducers({
   userState: userReducer,
   loaderState: loaderReducer,
   toastState: toastReducer,
+  environmentState: environmentReducer,
 });
 
 const persistConfig = {
@@ -27,6 +29,7 @@ const persistConfig = {
   version: 1,
   blacklist: [
     'loaderState', // nunca debemos persistir loaders
+    'environmentState', // nunca persistir el ambiente; se lee de DEFAULT_ENVIRONMENT
   ],
 };
 

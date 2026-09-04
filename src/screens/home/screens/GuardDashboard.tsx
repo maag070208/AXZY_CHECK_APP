@@ -3,6 +3,7 @@ import {
   View,
   StyleSheet,
   FlatList,
+  ScrollView,
   RefreshControl,
   Alert,
   Dimensions,
@@ -42,8 +43,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { theme } from '../../../shared/theme/theme';
-import { API_CONSTANTS } from '../../../core/constants/API_CONSTANTS';
-import { UserRole } from '../../../core/types/IUser';
 
 const { width } = Dimensions.get('window');
 
@@ -67,6 +66,7 @@ export const GuardDashboard = () => {
   const [specialAssignments, setSpecialAssignments] = useState<any[]>([]);
   const [routeSelectionVisible, setRouteSelectionVisible] = useState(false);
   const [endRoundVisible, setEndRoundVisible] = useState(false);
+  const [startModalConfig, setStartModalConfig] = useState<any>(null);
 
   // Cooldown logic has been removed as per user request.
   const cooldownMinutes = 0;
@@ -131,6 +131,8 @@ export const GuardDashboard = () => {
            // If there is an active round, ONLY keep it if it is MINE
            return Number(activeForThisConfig.guardId) === Number(user.id);
       });
+
+      console.log('Filtered Configs:', filteredConfigs);
 
       setConfigs(filteredConfigs);
       setSpecialAssignments(assignRes?.data || []);
@@ -384,42 +386,59 @@ export const GuardDashboard = () => {
       (l: any) => l.completed,
     ).length;
     const progress = total > 0 ? completed / total : 0;
-    
-    // Only show content if this IS the active round config
-    // We added recurringConfigurationId to Round logic, but current frontend might need to know which one is active.
-    // The activeRound object now has `recurringConfiguration`.
-    // If activeRound exists, we only show content for the MATCHING config.
-    const isActiveConfig = activeRound && activeRound.recurringConfigurationId === item.id;
-    
-    // Fallback: If legacy round without ID, implies global? NO, user wants strict separation.
-    // If no active round, we show nothing expanded? Or maybe preview?
-    // Let's hide content unless active.
-    
+    const pct = Math.round(progress * 100);
+
+    const isActiveConfig =
+      activeRound && activeRound.recurringConfigurationId === item.id;
+
     const showContent = isMyRound && isActiveConfig;
 
-    return (
-      <View style={[styles.configSection, showContent ? {borderColor: theme.colors.primary, borderWidth: 2} : {}]}>
+    const isCompleted = completed === total && total > 0;
+
+    const status = showContent
+      ? { label: 'En curso', bg: '#E8F5E9', color: '#2E7D32' }
+      : isCompleted
+      ? { label: 'Completado', bg: '#E3F2FD', color: '#1565C0' }
+      : { label: 'Asignado', bg: '#ECEFF1', color: '#546E7A' };
+
+    const cardContent = (
+      <>
         <View style={styles.configHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.configTitle}>{item.title}</Text>
-            {showContent && (
-                 <ProgressBar
-                    progress={progress}
-                    color={theme.colors.primary}
-                    style={styles.progressBar}
-                />
-            )}
-          </View>
-           {showContent && (
-             <View style={styles.progressBadge}>
-                <Text style={styles.progressText}>
-                {completed}/{total}
+            <View style={styles.configTitleRow}>
+              <Text style={styles.configTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+              <View style={[styles.configStatusChip, { backgroundColor: status.bg }]}>
+                <Text style={[styles.configStatusText, { color: status.color }]}>
+                  {status.label}
                 </Text>
+              </View>
             </View>
-           )}
+
+            <View style={styles.configMetaRow}>
+              <Icon
+                source="clipboard-check-outline"
+                size={13}
+                color={theme.colors.outline}
+              />
+              <Text style={styles.configMetaText}>
+                {showContent || isCompleted
+                  ? `${completed}/${total} puntos · ${pct}%`
+                  : `${total} puntos`}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {/* MODIFIED: Show content only if activeRound matches */}
+        {(showContent || isCompleted) && (
+          <ProgressBar
+            progress={progress}
+            color={showContent ? theme.colors.primary : '#90A4AE'}
+            style={styles.progressBar}
+          />
+        )}
+
         {showContent && (
           <View style={{ paddingBottom: 10 }}>
             {item.recurringLocations.map((loc: any) => (
@@ -427,6 +446,77 @@ export const GuardDashboard = () => {
             ))}
           </View>
         )}
+      </>
+    );
+
+    if (!showContent && !isCompleted) {
+      return (
+        <View style={styles.configSection}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setStartModalConfig(item)}
+          >
+            <View style={styles.configHeader}>
+              <View style={{ flex: 1 }}>
+                <View style={styles.configTitleRow}>
+                  <Text style={styles.configTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <View
+                    style={[
+                      styles.configStatusChip,
+                      { backgroundColor: status.bg },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.configStatusText, { color: status.color }]}
+                    >
+                      {status.label}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.configMetaRow}>
+                  <Icon
+                    source="clipboard-check-outline"
+                    size={13}
+                    color={theme.colors.outline}
+                  />
+                  <Text style={styles.configMetaText}>{total} puntos</Text>
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pointsCarousel}
+            nestedScrollEnabled
+          >
+            {item.recurringLocations.map((loc: any) => (
+              <View key={loc.id} style={styles.pointChip}>
+                <Icon source="map-marker-outline" size={12} color="#607D8B" />
+                <Text style={styles.pointChipText} numberOfLines={1}>
+                  {loc.location?.name}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      );
+    }
+
+    return (
+      <View
+        style={[
+          styles.configSection,
+          showContent
+            ? { borderColor: theme.colors.primary, borderWidth: 2 }
+            : {},
+        ]}
+      >
+        {cardContent}
       </View>
     );
   };
@@ -525,6 +615,67 @@ export const GuardDashboard = () => {
     </Portal>
   );
 
+  // -- Start Single Round Modal --
+  const renderStartRoundModal = () => (
+    <Portal>
+      <Modal
+        visible={startModalConfig !== null}
+        onDismiss={() => setStartModalConfig(null)}
+        contentContainerStyle={styles.modernModalContent}
+      >
+        <View style={styles.modalIconContainer}>
+          <View style={[styles.iconCircle, { backgroundColor: '#F0FDF4' }]}>
+            <Icon source="play-circle-outline" size={40} color={theme.colors.primary} />
+          </View>
+        </View>
+
+        <Text style={styles.modalTitle}>Iniciar Recorrido</Text>
+        <Text style={styles.modalSubtitle}>
+          {startModalConfig?.title}
+        </Text>
+
+        <ScrollView
+          style={{ maxHeight: 260, marginVertical: 10 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {startModalConfig?.recurringLocations?.map((loc: any) => (
+            <View key={loc.id} style={styles.modalPointRow}>
+              <View style={styles.modalPointDot} />
+              <Text style={styles.modalPointText} numberOfLines={1}>
+                {loc.location?.name}
+              </Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        <View style={styles.modalActionRow}>
+          <Button
+            mode="outlined"
+            onPress={() => setStartModalConfig(null)}
+            style={styles.modalBtn}
+            textColor="#64748B"
+          >
+            Cancelar
+          </Button>
+          <Button
+            mode="contained"
+            onPress={() => {
+              const configId = startModalConfig?.id;
+              setStartModalConfig(null);
+              if (configId) {
+                onStartRoundConfirmed(configId);
+              }
+            }}
+            style={[styles.modalBtn, { backgroundColor: theme.colors.primary }]}
+            textColor="white"
+          >
+            Iniciar
+          </Button>
+        </View>
+      </Modal>
+    </Portal>
+  );
+
   return (
     <View style={loading ? {
         display: 'flex',
@@ -543,120 +694,142 @@ export const GuardDashboard = () => {
           <>
             <View style={styles.scannerContainer}>
               {!activeRound || isRoundCompleted ? (
-                <View
-                  style={{
-                    flex: 1,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: '#111',
-                  }}
-                >
-                  <Icon source="lock-alert" size={48} color="#555" />
-                  <Text
-                    style={{
-                      color: '#777',
-                      marginTop: 16,
-                      fontWeight: 'bold',
-                      fontSize: 16,
-                      letterSpacing: 1,
-                    }}
+                <View style={styles.startContainer}>
+                  <Icon source="shield-lock-outline" size={44} color="#6b7280" />
+                  <Text style={styles.startTitle}>
+                    {configs.length > 0
+                      ? 'Ronda no iniciada'
+                      : 'Sin recorridos asignados'}
+                  </Text>
+                  <Text style={styles.startSub}>
+                    {configs.length > 0
+                      ? 'Inicia tu ronda para habilitar el escáner'
+                      : 'No tienes rutas disponibles'}
+                  </Text>
+                  <Button
+                    mode="contained"
+                    icon="play-circle-outline"
+                    onPress={handleToggleRound}
+                    loading={roundLoading}
+                    disabled={configs.length === 0}
+                    style={styles.startButton}
+                    contentStyle={{ height: 52 }}
+                    labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
                   >
-                    {isMyRound
-                      ? isRoundCompleted
-                        ? 'RONDA COMPLETADA'
-                        : 'INICIA RONDA PARA HABILITAR'
-                      : configs.length > 0 ? (isRoundActive ? 'OTRA RONDA ACTIVA' : 'INICIAR RECORRIDO') : 'NO HAY RECORRIDOS'}
+                    INICIAR RONDA
+                  </Button>
+                </View>
+              ) : !isMyRound ? (
+                <View style={styles.startContainer}>
+                  <Icon source="account-clock" size={44} color="#1976D2" />
+                  <Text style={styles.startTitle}>Ronda en curso</Text>
+                  <Text style={styles.startSub}>
+                    {activeRound.guard?.name?.toUpperCase() || 'OTRO GUARDIA'}
                   </Text>
                 </View>
               ) : (
                 <>
                   {!cameraActive ? (
-                      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
-                          <Button 
-                              mode="contained" 
-                              icon="qrcode-scan"
-                              onPress={() => {
-                                  setScanned(false);
-                                  setCameraActive(true);
-                              }}
-                              style={{ backgroundColor: theme.colors.primary, paddingVertical: 8, paddingHorizontal: 16 }}
-                              labelStyle={{ fontSize: 18, fontWeight: 'bold' }}
-                          >
-                              ESCANEAR QR
-                          </Button>
-                          <Text style={{ color: '#aaa', marginTop: 12, fontSize: 14 }}>
-                              Presiona para activar la cámara
-                          </Text>
-                      </View>
+                    <View style={styles.startContainer}>
+                      <Button
+                        mode="contained"
+                        icon="qrcode-scan"
+                        onPress={() => {
+                          setScanned(false);
+                          setCameraActive(true);
+                        }}
+                        style={styles.startButton}
+                        contentStyle={{ height: 52 }}
+                        labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
+                      >
+                        ESCANEAR QR
+                      </Button>
+                      <Text style={styles.startSub}>
+                        Presiona para activar la cámara
+                      </Text>
+                    </View>
                   ) : (
-                      <>
-                        {isFocused && device && (
-                            <Camera
-                            style={[StyleSheet.absoluteFill]}
-                            device={device}
-                            isActive={cameraActive && isFocused && !scanned}
-                            codeScanner={codeScanner}
-                            />
-                        )}
-                        <View style={styles.scanOverlay}>
-                            <View style={styles.targetBox}>
-                            <View
-                                style={[
-                                styles.corner,
-                                {
-                                    top: 0,
-                                    left: 0,
-                                    borderTopWidth: 4,
-                                    borderLeftWidth: 4,
-                                },
-                                ]}
-                            />
-                            <View
-                                style={[
-                                styles.corner,
-                                {
-                                    top: 0,
-                                    right: 0,
-                                    borderTopWidth: 4,
-                                    borderRightWidth: 4,
-                                },
-                                ]}
-                            />
-                            <View
-                                style={[
-                                styles.corner,
-                                {
-                                    bottom: 0,
-                                    left: 0,
-                                    borderBottomWidth: 4,
-                                    borderLeftWidth: 4,
-                                },
-                                ]}
-                            />
-                            <View
-                                style={[
-                                styles.corner,
-                                {
-                                    bottom: 0,
-                                    right: 0,
-                                    borderBottomWidth: 4,
-                                    borderRightWidth: 4,
-                                },
-                                ]}
-                            />
-                            </View>
-                            
-                            <Button 
-                                mode="contained" 
-                                onPress={() => setCameraActive(false)}
-                                style={{ position: 'absolute', bottom: 20, backgroundColor: 'rgba(255,255,255,0.2)' }}
-                                textColor="white"
-                            >
-                                CANCELAR
-                            </Button>
+                    <>
+                      {isFocused && device && (
+                        <Camera
+                          style={[StyleSheet.absoluteFill]}
+                          device={device}
+                          isActive={cameraActive && isFocused && !scanned}
+                          codeScanner={codeScanner}
+                        />
+                      )}
+                      <View style={styles.scanOverlay}>
+                        <View style={styles.targetBox}>
+                          <View
+                            style={[
+                              styles.corner,
+                              {
+                                top: 0,
+                                left: 0,
+                                borderTopWidth: 4,
+                                borderLeftWidth: 4,
+                              },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.corner,
+                              {
+                                top: 0,
+                                right: 0,
+                                borderTopWidth: 4,
+                                borderRightWidth: 4,
+                              },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.corner,
+                              {
+                                bottom: 0,
+                                left: 0,
+                                borderBottomWidth: 4,
+                                borderLeftWidth: 4,
+                              },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.corner,
+                              {
+                                bottom: 0,
+                                right: 0,
+                                borderBottomWidth: 4,
+                                borderRightWidth: 4,
+                              },
+                            ]}
+                          />
                         </View>
-                      </>
+
+                        <Button
+                          mode="contained"
+                          onPress={() => setCameraActive(false)}
+                          style={styles.cancelScanButton}
+                          textColor="white"
+                        >
+                          CANCELAR
+                        </Button>
+                      </View>
+                    </>
                   )}
+
+                  <Button
+                    mode="contained"
+                    icon="stop-circle-outline"
+                    onPress={() => setEndRoundVisible(true)}
+                    style={styles.endRoundButton}
+                    contentStyle={{ height: 44 }}
+                    labelStyle={{ fontSize: 14, fontWeight: 'bold' }}
+                    buttonColor="#D32F2F"
+                    textColor="white"
+                  >
+                    TERMINAR RONDA
+                  </Button>
                 </>
               )}
             </View>
@@ -664,83 +837,57 @@ export const GuardDashboard = () => {
             <View style={styles.contentSheet}>
               <View style={styles.dragIndicator} />
 
-              {/* BOTONES DE ACCIÓN: RONDAS + INCIDENCIAS */}
+              {/* BOTONES DE ACCIÓN */}
               <View style={styles.actionSection}>
-<Button
-                  mode="contained"
-                  onPress={handleToggleRound}
-                  loading={roundLoading}
-                  disabled={
-                    configs.length === 0 ||
-                    (isRoundActive && !isMyRound)
-                  }
-                  style={[
-                    styles.roundMainBtn,
-                    configs.length === 0 && { backgroundColor: '#757575', opacity: 0.8 },
-                    isRoundActive
-                      ? isMyRound
-                        ? { backgroundColor: '#D32F2F' }
-                        : { backgroundColor: '#1976D2', opacity: 0.8 }
-                      : { backgroundColor: '#2E7D32' },
-                  ]}
-                  contentStyle={{ height: 56 }}
-                  labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
-                  icon={
-                    isRoundActive
-                      ? isMyRound
-                        ? 'stop-circle-outline'
-                        : 'account-clock'
-                      : 'play-circle-outline'
-                  }
-                >
-                  {isRoundActive
-                    ? isMyRound
-                      ? `TERMINAR RONDA (${new Date(
-                          activeRound.startTime,
-                        ).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })})`
-                      : `RONDA EN CURSO POR ${
-                          activeRound.guard?.name?.toUpperCase() ||
-                          'OTRO GUARDIA'
-                        }`
-                    : 'INICIAR RONDA'}
-                </Button>
-
                 <View style={styles.actionRow}>
-                  <Button
-                    mode="contained"
+                  <TouchableOpacity
+                    style={[styles.actionTile, { backgroundColor: '#E53935' }]}
+                    activeOpacity={0.85}
                     onPress={() =>
-                      navigation.navigate('INCIDENT_REPORT', { initialCategory: 'FALTAS' })
+                      navigation.navigate('INCIDENT_REPORT', {
+                        initialCategory: 'FALTAS',
+                      })
                     }
-                    style={[styles.roundBtn, { backgroundColor: '#E53935' }]}
-                    icon="alert-circle"
                   >
-                    INCIDENCIA
-                  </Button>
-                  {(user.role === UserRole.MAINT || user.role === UserRole.ADMIN) && (
-                    <Button
-                      mode="contained"
-                      onPress={() =>
-                        navigation.navigate('MAINTENANCE_REPORT')
-                      }
-                      style={[styles.roundBtn, { backgroundColor: '#FB8C00' }]}
-                      icon="wrench"
+                    <Icon source="alert-circle" size={24} color="#ffffff" />
+                    <Text
+                      style={styles.actionTileText}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      INCIDENCIA
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionTile, { backgroundColor: '#FB8C00' }]}
+                    activeOpacity={0.85}
+                    onPress={() => navigation.navigate('MAINTENANCE_REPORT')}
+                  >
+                    <Icon source="wrench" size={24} color="#ffffff" />
+                    <Text
+                      style={styles.actionTileText}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
                     >
                       MANTENIMIENTO
-                    </Button>
-                  )}
-                  <Button
-                    mode="contained"
-                    onPress={() =>
-                      navigation.navigate('CLUB_REPORT')
-                    }
-                    style={[styles.roundBtn, { backgroundColor: '#0EA5E9' }]}
-                    icon="home-modern"
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionTile, { backgroundColor: '#0EA5E9' }]}
+                    activeOpacity={0.85}
+                    onPress={() => navigation.navigate('CLUB_REPORT')}
                   >
-                    CASA CLUB
-                  </Button>
+                    <Icon source="home-modern" size={24} color="#ffffff" />
+                    <Text
+                      style={styles.actionTileText}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      CASA CLUB
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -856,6 +1003,7 @@ export const GuardDashboard = () => {
       </>
       {renderRouteSelectionModal()}
       {renderEndRoundModal()}
+      {renderStartRoundModal()}
     </View>
   );
 };
@@ -920,14 +1068,62 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 10,
   },
-  roundMainBtn: {
-    borderRadius: 16,
-    marginBottom: 12,
-    justifyContent: 'center',
-    elevation: 4,
-  },
   actionRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  roundBtn: { flex: 1, borderRadius: 12, height: 48, justifyContent: 'center' },
+  actionTile: {
+    flex: 1,
+    height: 76,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    elevation: 3,
+  },
+  actionTileText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+
+  // Controles de ronda dentro del escáner
+  startContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    gap: 10,
+  },
+  startTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  startSub: {
+    color: '#9ca3af',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  startButton: {
+    marginTop: 8,
+    borderRadius: 14,
+    minWidth: 200,
+  },
+  endRoundButton: {
+    position: 'absolute',
+    bottom: 12,
+    left: 15,
+    right: 15,
+    borderRadius: 12,
+  },
+  cancelScanButton: {
+    position: 'absolute',
+    bottom: 70,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
 
   // Secciones
   specialSection: { marginBottom: 20 },
@@ -983,27 +1179,84 @@ const styles = StyleSheet.create({
   configHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+  },
+  configTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   configTitle: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '800',
     color: '#222',
-    marginBottom: 5,
+    marginRight: 8,
   },
-  progressBar: { height: 6, borderRadius: 3, backgroundColor: '#ECEFF1' },
-  progressBadge: {
-    marginLeft: 15,
-    backgroundColor: '#E3F2FD',
+  configStatusChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  configStatusText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  configMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 6,
+  },
+  configMetaText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#546E7A',
+  },
+  pointsCarousel: {
+    gap: 8,
+    paddingRight: 8,
+    marginBottom: 2,
+  },
+  pointChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F5F7FA',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 10,
   },
-  progressText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: theme.colors.primary,
+  pointChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#455A64',
+    maxWidth: 120,
   },
+  modalPointRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  modalPointDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.primary,
+    marginRight: 10,
+  },
+  modalPointText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#334155',
+  },
+  progressBar: { height: 6, borderRadius: 3, backgroundColor: '#ECEFF1' },
 
   // Items de ubicación
   locCard: {

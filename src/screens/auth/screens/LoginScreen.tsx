@@ -20,6 +20,7 @@ import { showToast } from '../../../core/store/slices/toast.slice';
 import Logo from '../../../shared/assets/logo.png';
 import { showLoader } from '../../../core/store/slices/loader.slice';
 import LoaderComponent from '../../../shared/components/LoaderComponent';
+import EnvironmentBadge from '../../../shared/components/EnvironmentBadge';
 
 const LoginScreen: React.FC = () => {
   const dispatch = useDispatch();
@@ -80,6 +81,9 @@ const LoginScreen: React.FC = () => {
             <Text style={styles.welcomeSubtitle}>
               Inicia sesión para continuar
             </Text>
+            <View style={styles.badgeContainer}>
+              <EnvironmentBadge />
+            </View>
           </View>
 
           <View style={styles.formContainer}>
@@ -124,6 +128,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b', // Slate-500
     textAlign: 'center',
+  },
+  badgeContainer: {
+    marginTop: 16,
   },
   formContainer: {
     width: '100%',

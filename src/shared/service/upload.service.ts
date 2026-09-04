@@ -1,4 +1,4 @@
-import { API_CONSTANTS } from '../../core/constants/API_CONSTANTS';
+import { getBaseUrl } from '../../core/axios';
 import { store } from '../../core/store/redux.config';
 import { Image, Video } from 'react-native-compressor';
 import { Platform } from 'react-native';
@@ -45,11 +45,11 @@ export const uploadFile = async (uri: string, type: 'video' | 'image', locationN
   const state = store.getState();
   const token = state.userState.token;
 
-  console.log('[Upload] Enviando a:', `${API_CONSTANTS.BASE_URL}/uploads`);
+  console.log('[Upload] Enviando a:', `${getBaseUrl()}/uploads`);
 
   try {
     // IMPORTANTE: Usamos FETCH sin Content-Type para que RN genere el boundary correcto
-    const response = await fetch(`${API_CONSTANTS.BASE_URL}/uploads`, {
+    const response = await fetch(`${getBaseUrl()}/uploads`, {
       method: 'POST',
       body: formData,
       headers: {

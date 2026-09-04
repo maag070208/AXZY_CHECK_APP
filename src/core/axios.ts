@@ -6,7 +6,7 @@ import axios, {
 } from 'axios';
 
 import { TResult } from './types/TResult';
-import { API_CONSTANTS } from './constants/API_CONSTANTS';
+import { API_CONSTANTS, ENVIRONMENTS } from './constants/API_CONSTANTS';
 
 import { store } from './store/redux.config';
 import { logout } from './store/slices/user.slice';
@@ -21,11 +21,12 @@ const axiosInstance = axios.create({
 });
 
 /* ---------------------------------------------------------
-   2. REQUEST Interceptor (token del store)
+   2. REQUEST Interceptor (token del store + ambiente dinámico)
 --------------------------------------------------------- */
 axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const state = store.getState();
+    config.baseURL = ENVIRONMENTS[state.environmentState.environment];
     const token = state.userState.token; // ⬅️ AQUÍ EL TOKEN DEL STORE
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -128,6 +129,11 @@ export const remove = async <T>(
   } catch (error) {
     return handleError<T>(error);
   }
+};
+
+export const getBaseUrl = (): string => {
+  const state = store.getState();
+  return ENVIRONMENTS[state.environmentState.environment];
 };
 
 export { axiosInstance };

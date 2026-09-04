@@ -9,7 +9,7 @@ import Video from 'react-native-video';
 import MapView, { Marker } from 'react-native-maps';
 
 import { getRoundDetail, IRoundDetail } from '../service/rounds.service';
-import { API_CONSTANTS } from '../../../core/constants/API_CONSTANTS';
+import { getBaseUrl } from '../../../core/axios';
 import { PreviewMedia } from '../../../shared/components/PreviewMedia';
 
 // Configurar dayjs en español
@@ -269,7 +269,7 @@ export const RoundDetailScreen = ({ route }: any) => {
       >
         {mediaArray.map((m: any, idx: number) => {
           const isVid = m.type === 'VIDEO';
-          const url = m.url.startsWith('http') ? m.url : API_CONSTANTS.BASE_URL.replace('/api/v1', '') + m.url;
+          const url = m.url.startsWith('http') ? m.url : getBaseUrl().replace('/api/v1', '') + m.url;
 
           return (
             <TouchableOpacity 

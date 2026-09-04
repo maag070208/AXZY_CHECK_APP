@@ -28,7 +28,7 @@ import MapView, { Marker } from 'react-native-maps';
 
 import { getKardexById, IKardexEntry } from '../service/kardex.service';
 import { updateAssignmentStatus, getAllAssignments } from '../../assignments/service/assignment.service';
-import { API_CONSTANTS } from '../../../core/constants/API_CONSTANTS';
+import { getBaseUrl } from '../../../core/axios';
 import { PreviewMedia } from '../../../shared/components/PreviewMedia';
 import { theme } from '../../../shared/theme/theme';
 
@@ -206,7 +206,7 @@ export const KardexDetailScreen = ({ route }: any) => {
       >
         {item.media.map((m, idx) => {
           const isVid = m.type === 'VIDEO';
-          const url = m.url.startsWith('http') ? m.url : API_CONSTANTS.BASE_URL.replace('/api/v1', '') + m.url;
+          const url = m.url.startsWith('http') ? m.url : getBaseUrl().replace('/api/v1', '') + m.url;
 
           return (
             <TouchableOpacity 
