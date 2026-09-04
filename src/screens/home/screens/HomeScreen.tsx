@@ -5,6 +5,8 @@ import { UserRole } from '../../../core/types/IUser';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { GuardDashboard } from './GuardDashboard';
+import { ShiftDashboard } from './ShiftDashboard';
+import { AdminDashboardScreen } from '../../admin/screens/AdminDashboardScreen';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { getPendingIncidentsCount } from '../../assignments/service/incident.service';
@@ -13,10 +15,19 @@ export const HomeScreen = () => {
   const user = useSelector((state: RootState) => state.userState);
   const [pendingIncidents, setPendingIncidents] = useState(0);
 
-  // If user is GUARD, SHIFT_GUARD, or MANTENIMIENTO, show Dashboard directly
+  // Administrador: home = dashboard operativo (misma fuente que la WEB).
+  if (user.role === UserRole.ADMIN) {
+    return <AdminDashboardScreen />;
+  }
+
+  // Jefe de Guardias: panel con botonera operativa (rondas son secundarias).
+  if (user.role === UserRole.SHIFT) {
+    return <ShiftDashboard />;
+  }
+
+  // Guardias y Mantenimiento: dashboard con escáner de rondas.
   if (
     user.role === UserRole.GUARD ||
-    user.role === UserRole.SHIFT ||
     user.role === UserRole.MAINT
   ) {
     return <GuardDashboard />;

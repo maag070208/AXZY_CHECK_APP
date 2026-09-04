@@ -9,6 +9,7 @@ import {
 import { IconButton, Surface, Text, TextInput } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootState } from '../../../core/store/redux.config';
 import { getMessages, getRealtimeToken, IChatMessage, sendMessage } from '../service/chat.service';
 
@@ -132,49 +133,53 @@ export const ChatScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}
-    >
-      <FlatList
-        ref={listRef}
-        data={messages}
-        keyExtractor={item => String(item.id)}
-        renderItem={renderItem}
-        inverted
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>Todavía no hay mensajes.</Text>
-        }
-      />
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={90}
+      >
+        <FlatList
+          ref={listRef}
+          data={messages}
+          keyExtractor={item => String(item.id)}
+          renderItem={renderItem}
+          inverted
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>Todavía no hay mensajes.</Text>
+          }
+        />
 
-      <Surface style={styles.inputBar} elevation={2}>
-        <TextInput
-          mode="outlined"
-          placeholder="Escribe un mensaje..."
-          value={draft}
-          onChangeText={setDraft}
-          style={styles.input}
-          outlineColor="#E0E0E0"
-          activeOutlineColor="#065911"
-          dense
-        />
-        <IconButton
-          icon="send"
-          mode="contained"
-          containerColor="#065911"
-          iconColor="#FFFFFF"
-          disabled={sending || !draft.trim()}
-          onPress={handleSend}
-        />
-      </Surface>
-    </KeyboardAvoidingView>
+        <Surface style={styles.inputBar} elevation={2}>
+          <TextInput
+            mode="outlined"
+            placeholder="Escribe un mensaje..."
+            value={draft}
+            onChangeText={setDraft}
+            style={styles.input}
+            outlineColor="#E0E0E0"
+            activeOutlineColor="#065911"
+            dense
+          />
+          <IconButton
+            icon="send"
+            mode="contained"
+            containerColor="#065911"
+            iconColor="#FFFFFF"
+            disabled={sending || !draft.trim()}
+            onPress={handleSend}
+          />
+        </Surface>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F6FBF4' },
+  flex: { flex: 1 },
   listContent: { padding: 16, flexGrow: 1 },
   emptyText: {
     textAlign: 'center',

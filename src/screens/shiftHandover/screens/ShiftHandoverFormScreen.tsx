@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import {
   Button,
   Chip,
@@ -10,8 +10,10 @@ import {
   Text,
   TextInput,
 } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { getCatalog } from '../../../shared/service/catalog.service';
+import { SearchComponent } from '../../../shared/components/SearchComponent';
 import { createShiftHandover, ShiftType } from '../service/shiftHandover.service';
 
 interface CatalogItem {
@@ -28,13 +30,13 @@ interface ElementRow {
   observations: string;
 }
 
-const CHECKLIST_ITEMS: { key: keyof ChecklistState; label: string }[] = [
-  { key: 'checklistPhones', label: 'Teléfonos' },
-  { key: 'checklistTablet', label: 'Tablet' },
-  { key: 'checklistRadios', label: 'Radios' },
-  { key: 'checklistKeys', label: 'Llaves' },
-  { key: 'checklistLogbook', label: 'Bitácora' },
-  { key: 'checklistConsignas', label: 'Consignas' },
+const CHECKLIST_ITEMS: { key: keyof ChecklistState; label: string; icon: string }[] = [
+  { key: 'checklistPhones', label: 'Teléfonos', icon: 'phone-outline' },
+  { key: 'checklistTablet', label: 'Tablet', icon: 'tablet-android' },
+  { key: 'checklistRadios', label: 'Radios', icon: 'radio-handheld' },
+  { key: 'checklistKeys', label: 'Llaves', icon: 'key-outline' },
+  { key: 'checklistLogbook', label: 'Bitácora', icon: 'notebook-outline' },
+  { key: 'checklistConsignas', label: 'Consignas', icon: 'clipboard-text-outline' },
 ];
 
 interface ChecklistState {
@@ -79,6 +81,7 @@ export const ShiftHandoverFormScreen = () => {
   const [elements, setElements] = useState<ElementRow[]>([]);
   const [pickerGuardId, setPickerGuardId] = useState<number | null>(null);
   const [pickerEntryTime, setPickerEntryTime] = useState('');
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const [loading, setLoading] = useState(false);
 
@@ -87,6 +90,28 @@ export const ShiftHandoverFormScreen = () => {
       if (res.success && res.data) setGuards(res.data);
     });
   }, []);
+
+  const parseTime = (value: string): Date | null => {
+    const [h, m] = value.split(':').map(Number);
+    if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+      const d = new Date();
+      d.setHours(h, m, 0, 0);
+      return d;
+    }
+    return null;
+  };
+
+  const handleOpenTimePicker = () => {
+    setShowTimePicker(true);
+  };
+
+  const onTimeChange = (event: any, selectedDate?: Date) => {
+    setShowTimePicker(false);
+    if (event.type === 'dismissed' || !selectedDate) return;
+    const hh = String(selectedDate.getHours()).padStart(2, '0');
+    const mm = String(selectedDate.getMinutes()).padStart(2, '0');
+    setPickerEntryTime(`${hh}:${mm}`);
+  };
 
   const handleAddElement = () => {
     if (!pickerGuardId) {
@@ -213,34 +238,43 @@ export const ShiftHandoverFormScreen = () => {
 
       <Text style={styles.label}>3. REGISTRO POR ELEMENTO</Text>
       <Surface style={styles.pickerCard} elevation={0}>
-        <Text style={styles.pickerHint}>Selecciona al guardia:</Text>
-        <View style={styles.chipRow}>
-          {guards.map(g => (
-            <Chip
-              key={g.id}
-              selected={pickerGuardId === g.id}
-              onPress={() => setPickerGuardId(g.id)}
-              style={[styles.chip, pickerGuardId === g.id && styles.chipSelected]}
-              textStyle={pickerGuardId === g.id ? styles.chipTextSelected : undefined}
-              mode="outlined"
-            >
-              {g.value || g.name}
-            </Chip>
-          ))}
-        </View>
+        <SearchComponent
+          label="Guardia"
+          placeholder="Selecciona un guardia..."
+          searchPlaceholder="Buscar guardia por nombre..."
+          options={guards.map(g => ({ label: g.value || g.name, value: g.id }))}
+          value={pickerGuardId ?? undefined}
+          onSelect={value => setPickerGuardId(Number(value))}
+        />
         <View style={styles.row2}>
-          <TextInput
-            mode="outlined"
-            label="Hora de entrada (HH:MM)"
-            value={pickerEntryTime}
-            onChangeText={setPickerEntryTime}
-            style={styles.halfInput}
-            placeholder="07:00"
-          />
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={0.7}
+            onPress={handleOpenTimePicker}
+          >
+            <TextInput
+              mode="outlined"
+              label="Hora de entrada"
+              value={pickerEntryTime}
+              editable={false}
+              placeholder="07:00"
+              right={<TextInput.Icon icon="clock-outline" color="#065911" />}
+              style={styles.halfInput}
+            />
+          </TouchableOpacity>
           <Button mode="contained" onPress={handleAddElement} style={styles.addBtn}>
             Agregar
           </Button>
         </View>
+        {showTimePicker && (
+          <DateTimePicker
+            value={parseTime(pickerEntryTime) ?? new Date()}
+            mode="time"
+            is24Hour={true}
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={onTimeChange}
+          />
+        )}
       </Surface>
 
       {elements.map((el, index) => (
@@ -262,11 +296,15 @@ export const ShiftHandoverFormScreen = () => {
       <Text style={styles.label}>4. VERIFICACIÓN DE ENTREGA DE TURNO</Text>
       <Surface style={styles.checklistCard} elevation={0}>
         {CHECKLIST_ITEMS.map(item => (
-          <View key={item.key} style={styles.checklistRow}>
-            <Text style={styles.checklistLabel}>{item.label}</Text>
+<View key={item.key} style={styles.checklistRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Icon source={item.icon as any} size={16} color="#065911" />
+              <Text style={styles.checklistLabel}>{item.label}</Text>
+            </View>
             <Switch
               value={checklist[item.key]}
-              onValueChange={v => setChecklist(prev => ({ ...prev, [item.key]: v }))}
+              onValueChange={value => setChecklist(prev => ({ ...prev, [item.key]: value }))}
+              color="#065911"
             />
           </View>
         ))}
@@ -287,21 +325,12 @@ export const ShiftHandoverFormScreen = () => {
         mode="contained"
         onPress={handleSubmit}
         loading={loading}
-        disabled={loading}
+        disabled={loading || !reportedToAdmin}
         style={styles.submitBtn}
         contentStyle={{ height: 54 }}
         buttonColor="#065911"
       >
         ENVIAR REPORTE DE TURNO
-      </Button>
-
-      <Button
-        mode="text"
-        onPress={() => navigation.navigate('SHIFT_HANDOVER_LIST')}
-        textColor="#065911"
-        style={{ marginTop: 8 }}
-      >
-        Ver historial de entregas de turno
       </Button>
     </ScrollView>
   );
@@ -326,7 +355,6 @@ const styles = StyleSheet.create({
   halfInput: { flex: 1, backgroundColor: 'white' },
   textArea: { backgroundColor: 'white', minHeight: 80 },
   pickerCard: { backgroundColor: '#FAFAFA', borderRadius: 14, padding: 12, marginBottom: 12 },
-  pickerHint: { fontSize: 12, color: '#757575', marginBottom: 6 },
   addBtn: { justifyContent: 'center', borderRadius: 10 },
   elementRow: {
     flexDirection: 'row',

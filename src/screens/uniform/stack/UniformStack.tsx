@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { UniformChecklistScreen } from '../screens/UniformChecklistScreen';
 import { UniformListScreen } from '../screens/UniformListScreen';
+import { UniformDetailScreen } from '../screens/UniformDetailScreen';
 import { HeaderBack } from '../../../navigation/header/HeaderBack';
 
 const Stack = createNativeStackNavigator();
@@ -21,6 +22,13 @@ export const UniformStack = () => {
         component={UniformListScreen}
         options={({ navigation }) => ({
           header: () => <HeaderBack navigation={navigation} title="Historial de uniforme" back={true} />,
+        })}
+      />
+      <Stack.Screen
+        name="UNIFORM_DETAIL"
+        component={UniformDetailScreen}
+        options={({ navigation }) => ({
+          header: () => <HeaderBack navigation={navigation} title="Detalle de uniforme" back={true} />,
         })}
       />
     </Stack.Navigator>

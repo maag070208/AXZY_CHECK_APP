@@ -842,7 +842,7 @@ export const GuardDashboard = () => {
 
               {/* BOTONES DE ACCIÓN */}
               <View style={styles.actionSection}>
-                <View style={styles.actionRow}>
+                <View style={styles.actionGrid}>
                   <TouchableOpacity
                     style={[styles.actionTile, { backgroundColor: '#E53935' }]}
                     activeOpacity={0.85}
@@ -852,10 +852,10 @@ export const GuardDashboard = () => {
                       })
                     }
                   >
-                    <Icon source="alert-circle" size={24} color="#ffffff" />
+                    <Icon source="alert-circle" size={18} color="#ffffff" />
                     <Text
                       style={styles.actionTileText}
-                      numberOfLines={1}
+                      numberOfLines={2}
                       adjustsFontSizeToFit
                     >
                       INCIDENCIA
@@ -867,10 +867,10 @@ export const GuardDashboard = () => {
                     activeOpacity={0.85}
                     onPress={() => navigation.navigate('MAINTENANCE_REPORT')}
                   >
-                    <Icon source="wrench" size={24} color="#ffffff" />
+                    <Icon source="wrench" size={18} color="#ffffff" />
                     <Text
                       style={styles.actionTileText}
-                      numberOfLines={1}
+                      numberOfLines={2}
                       adjustsFontSizeToFit
                     >
                       MANTENIMIENTO
@@ -882,29 +882,29 @@ export const GuardDashboard = () => {
                     activeOpacity={0.85}
                     onPress={() => navigation.navigate('CLUB_REPORT')}
                   >
-                    <Icon source="home-modern" size={24} color="#ffffff" />
+                    <Icon source="home-modern" size={18} color="#ffffff" />
                     <Text
                       style={styles.actionTileText}
-                      numberOfLines={1}
+                      numberOfLines={2}
                       adjustsFontSizeToFit
                     >
                       CASA CLUB
                     </Text>
                   </TouchableOpacity>
-                </View>
 
-                {/* "4.1 Chat grupal" y, para el jefe de guardias (SHIFT), los
-                    módulos de "4.2 Entrega de turno" y "4.3 Uniforme". */}
-                <View style={styles.actionRow}>
+                  {/* "4.1 Chat grupal" y, para el jefe de guardias (SHIFT), los
+                      módulos de "4.2 Entrega de turno" y "4.3 Uniforme". */}
                   <TouchableOpacity
                     style={[styles.actionTile, { backgroundColor: '#7C3AED' }]}
                     activeOpacity={0.85}
-                    onPress={() => navigation.navigate('CHAT_MAIN')}
+                    onPress={() =>
+                      navigation.navigate('CHAT_STACK', { screen: 'CHAT_MAIN' })
+                    }
                   >
-                    <Icon source="chat-outline" size={24} color="#ffffff" />
+                    <Icon source="chat-outline" size={18} color="#ffffff" />
                     <Text
                       style={styles.actionTileText}
-                      numberOfLines={1}
+                      numberOfLines={2}
                       adjustsFontSizeToFit
                     >
                       CHAT
@@ -916,12 +916,14 @@ export const GuardDashboard = () => {
                       <TouchableOpacity
                         style={[styles.actionTile, { backgroundColor: '#0F766E' }]}
                         activeOpacity={0.85}
-                        onPress={() => navigation.navigate('SHIFT_HANDOVER_FORM')}
+                        onPress={() =>
+                          navigation.navigate('SHIFT_HANDOVER_STACK', { screen: 'SHIFT_HANDOVER_FORM' })
+                        }
                       >
-                        <Icon source="swap-horizontal-bold" size={24} color="#ffffff" />
+                        <Icon source="swap-horizontal-bold" size={18} color="#ffffff" />
                         <Text
                           style={styles.actionTileText}
-                          numberOfLines={1}
+                          numberOfLines={2}
                           adjustsFontSizeToFit
                         >
                           ENTREGA DE TURNO
@@ -931,12 +933,14 @@ export const GuardDashboard = () => {
                       <TouchableOpacity
                         style={[styles.actionTile, { backgroundColor: '#475569' }]}
                         activeOpacity={0.85}
-                        onPress={() => navigation.navigate('UNIFORM_CHECKLIST')}
+                        onPress={() =>
+                          navigation.navigate('UNIFORM_STACK', { screen: 'UNIFORM_CHECKLIST' })
+                        }
                       >
-                        <Icon source="tshirt-crew-outline" size={24} color="#ffffff" />
+                        <Icon source="tshirt-crew-outline" size={18} color="#ffffff" />
                         <Text
                           style={styles.actionTileText}
-                          numberOfLines={1}
+                          numberOfLines={2}
                           adjustsFontSizeToFit
                         >
                           UNIFORME
@@ -1124,23 +1128,30 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 10,
   },
-  actionRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   actionTile: {
-    flex: 1,
-    height: 76,
-    borderRadius: 14,
+    flexBasis: '22%',
+    height: 52,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    paddingHorizontal: 2,
+    paddingVertical: 6,
     elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
   },
   actionTileText: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.4,
     textAlign: 'center',
-    paddingHorizontal: 4,
+    lineHeight: 12,
+    paddingHorizontal: 2,
   },
 
   // Controles de ronda dentro del escáner

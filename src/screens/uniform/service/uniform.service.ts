@@ -25,3 +25,8 @@ export const createUniformCheck = (data: ICreateUniformCheckInput) => {
 export const getUniformChecksByGuard = (guardId: number) => {
   return get<any[]>(`/uniform/by-guard/${guardId}`);
 };
+
+/** @description Global paginated history of uniform checks (ADMIN/SHIFT). */
+export const getPaginatedUniformChecks = async (params: any) => {
+  return await post<{ rows: any[]; total: number }>('/uniform/datatable', params);
+};

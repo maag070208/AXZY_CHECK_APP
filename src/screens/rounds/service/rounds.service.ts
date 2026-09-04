@@ -55,7 +55,7 @@ export const getRounds = async (date?: string, guardId?: number): Promise<TResul
   return await get(`/rounds?${params.toString()}`);
 };
 
-export const getPaginatedRounds = async (params: { page: number, limit: number, filters?: any }) => {
+export const getPaginatedRounds = async (params: { page: number, limit: number, filters?: any, sort?: { key: string, direction: string } }) => {
     return await post<any>(`/rounds/datatable`, params);
 };
 

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Chip, Surface, Switch, Text, TextInput } from 'react-native-paper';
+import { Button, Surface, Switch, Text, TextInput } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { getCatalog } from '../../../shared/service/catalog.service';
+import { SearchComponent } from '../../../shared/components/SearchComponent';
 import { createUniformCheck } from '../service/uniform.service';
 
 interface CatalogItem {
@@ -103,20 +104,14 @@ export const UniformChecklistScreen = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.label}>1. GUARDIA</Text>
-      <View style={styles.chipRow}>
-        {guards.map(g => (
-          <Chip
-            key={g.id}
-            selected={guardId === g.id}
-            onPress={() => setGuardId(g.id)}
-            style={[styles.chip, guardId === g.id && styles.chipSelected]}
-            textStyle={guardId === g.id ? styles.chipTextSelected : undefined}
-            mode="outlined"
-          >
-            {g.value || g.name}
-          </Chip>
-        ))}
-      </View>
+      <SearchComponent
+        label="Guardia"
+        placeholder="Selecciona al guardia a evaluar..."
+        searchPlaceholder="Buscar guardia por nombre..."
+        options={guards.map(g => ({ label: g.value || g.name, value: g.id }))}
+        value={guardId ?? undefined}
+        onSelect={value => setGuardId(Number(value))}
+      />
 
       <View style={styles.rowBetween}>
         <Text style={styles.label}>2. CHECKLIST</Text>
@@ -157,21 +152,12 @@ export const UniformChecklistScreen = () => {
         mode="contained"
         onPress={handleSubmit}
         loading={loading}
-        disabled={loading}
+        disabled={loading || !guardId}
         style={styles.submitBtn}
         contentStyle={{ height: 54 }}
         buttonColor="#065911"
       >
         GUARDAR CHECKLIST
-      </Button>
-
-      <Button
-        mode="text"
-        onPress={() => navigation.navigate('UNIFORM_LIST')}
-        textColor="#065911"
-        style={{ marginTop: 8 }}
-      >
-        Ver historial por guardia
       </Button>
     </ScrollView>
   );
@@ -189,10 +175,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
-  chip: { borderRadius: 10, borderColor: '#EEEEEE' },
-  chipSelected: { backgroundColor: '#0657111A', borderColor: '#065911' },
-  chipTextSelected: { color: '#065911', fontWeight: '700' },
   checklistCard: { backgroundColor: '#FAFAFA', borderRadius: 14, padding: 4 },
   checklistRow: {
     flexDirection: 'row',
