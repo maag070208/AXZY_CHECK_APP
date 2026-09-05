@@ -35,7 +35,7 @@ const TabNavigator = () => {
             component={HomeStack}
             options={({ route }) => {
               const routeName = getFocusedRouteNameFromRoute(route) ?? 'HOME_MAIN';
-              const hideTabBar = HIDE_TAB_BAR_ROUTES.includes(routeName);
+              const hideTabBar = HIDE_TAB_BAR_ROUTES.includes(routeName) || role === UserRole.GUARD;
               return {
                 title: 'Inicio',
                 tabBarIcon: ({ color }) => <Icon  source="home" size={24} color={color} />,
@@ -46,7 +46,7 @@ const TabNavigator = () => {
             }}
         />
       )}
-      {(role === UserRole.ADMIN || role === UserRole.SHIFT || role === UserRole.GUARD) && (
+      {(role === UserRole.ADMIN || role === UserRole.SHIFT) && (
         <Tab.Screen
             name="Kardex"
             component={KardexStack}
