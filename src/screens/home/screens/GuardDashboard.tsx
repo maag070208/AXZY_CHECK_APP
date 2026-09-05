@@ -1128,7 +1128,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 10,
   },
-  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
   actionTile: {
     flexBasis: '22%',
     height: 52,
