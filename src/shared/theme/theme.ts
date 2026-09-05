@@ -94,6 +94,13 @@ export const theme = {
     TabNavigationIcon: '#c1c1c4',
     TabNavigationIconFocused: '#065911', // Usando el nuevo verde oscuro
   },
+
+  // Header del drawer según momento del día (saludo).
+  greeting: {
+    morning: { background: '#FCE9BD', text: '#8A5A00', icon: '#E9A400' },
+    afternoon: { background: '#FAD7B3', text: '#9A3B00', icon: '#F97316' },
+    night: { background: '#1F2937', text: '#E5E7EB', icon: '#94A3B8' },
+  },
 };
 export type ThemeColorsType = {
   primary: string;

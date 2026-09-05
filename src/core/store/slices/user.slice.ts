@@ -10,6 +10,7 @@ export interface IUserState {
   role: string | null;
   token: string | null;
   isSignedIn: boolean;
+  loggedInAt: string | null;
 }
 
 const initialState: IUserState = {
@@ -20,6 +21,7 @@ const initialState: IUserState = {
   role: null,
   token: null,
   isSignedIn: false,
+  loggedInAt: null,
 };
 
 export const userSlice = createSlice({
@@ -39,12 +41,17 @@ export const userSlice = createSlice({
 
       state.isSignedIn = true;
       state.token = action.payload;
+      state.loggedInAt = new Date().toISOString();
     },
 
     logout: () => initialState,
+
+    updateProfile: (state, action: PayloadAction<{ name: string; lastName: string }>) => {
+      state.fullName = `${action.payload.name} ${action.payload.lastName}`.trim();
+    },
   },
 });
 
-export const { login, logout } = userSlice.actions;
+export const { login, logout, updateProfile } = userSlice.actions;
 
 export default userSlice.reducer;
