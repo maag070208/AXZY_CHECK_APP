@@ -14,6 +14,7 @@ import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAppSelector } from '../../../core/store/hooks';
 import { ENVIRONMENT_LABELS } from '../../../core/constants/API_CONSTANTS';
 import { getLiveDashboard, ILiveDashboard } from '../service/dashboard.service';
+import { timeAgo } from '../../../shared/utils/duration';
 
 const COLORS = {
   primary: '#065911',
@@ -21,15 +22,6 @@ const COLORS = {
   sky: '#0EA5E9',
   red: '#E53935',
   amber: '#F59E0B',
-};
-
-const timeAgo = (value: string | null | undefined) => {
-  if (!value) return 'Sin actividad';
-  const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
-  if (minutes < 1) return 'hace unos segundos';
-  if (minutes < 60) return `hace ${minutes} min`;
-  const hours = Math.round(minutes / 60);
-  return `hace ${hours} h`;
 };
 
 /**

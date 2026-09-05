@@ -8,6 +8,7 @@ import { RootState } from '../../../core/store/redux.config';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { UserRole } from '../../../core/types/IUser';
 import { resolveIncident, deleteIncident } from '../service/incident.service';
+import { formatDuration, timeAgo as timeAgoUtil } from '../../../shared/utils/duration';
 
 // Paleta de colores consistente
 // ... (COLORS kept typically but I'm replacing top block)
@@ -106,24 +107,7 @@ export const IncidentDetailScreen = () => {
       );
   };
 
-  const getTimeAgo = (date: string) => {
-    const now = new Date();
-    const incidentDate = new Date(date);
-    const diffMs = now.getTime() - incidentDate.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 60) {
-      return `Hace ${diffMins} min`;
-    } else if (diffHours < 24) {
-      return `Hace ${diffHours} h`;
-    } else if (diffDays < 7) {
-      return `Hace ${diffDays} días`;
-    } else {
-      return incidentDate.toLocaleDateString();
-    }
-  };
+  const getTimeAgo = (date: string) => timeAgoUtil(date);
 
   const getDateTime = (date: string) => {
     const d = new Date(date);
@@ -381,10 +365,8 @@ export const IncidentDetailScreen = () => {
                                         const end = new Date(incident.resolvedAt).getTime();
                                         const diff = end - start;
                                         const mins = Math.floor(diff / 60000);
-                                        const hours = Math.floor(mins / 60);
                                         
-                                        if (hours > 0) return `${hours}h ${mins % 60}m`;
-                                        return `${mins} min`;
+                                        return formatDuration(mins);
                                     })()
                                 }
                             </Text>

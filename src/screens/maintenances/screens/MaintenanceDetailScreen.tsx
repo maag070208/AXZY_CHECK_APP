@@ -8,6 +8,7 @@ import { RootState } from '../../../core/store/redux.config';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { UserRole } from '../../../core/types/IUser';
 import { resolveMaintenance } from '../service/maintenance.service';
+import { formatDuration, timeAgo as timeAgoUtil } from '../../../shared/utils/duration';
 
 
 const COLORS = {
@@ -79,19 +80,7 @@ export const MaintenanceDetailScreen = () => {
       );
   };
 
-  const getTimeAgo = (date: string) => {
-    const now = new Date();
-    const dDate = new Date(date);
-    const diffMs = now.getTime() - dDate.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 60) return `Hace ${diffMins} minutos`;
-    else if (diffHours < 24) return `Hace ${diffHours} horas`;
-    else if (diffDays < 7) return `Hace ${diffDays} días`;
-    else return dDate.toLocaleDateString();
-  };
+  const getTimeAgo = (date: string) => timeAgoUtil(date);
 
   const getDateTime = (date: string) => {
     const d = new Date(date);
@@ -232,10 +221,8 @@ export const MaintenanceDetailScreen = () => {
                                         const end = new Date(maintenance.resolvedAt).getTime();
                                         const diff = end - start;
                                         const mins = Math.floor(diff / 60000);
-                                        const hours = Math.floor(mins / 60);
                                         
-                                        if (hours > 0) return `${hours}h ${mins % 60}m`;
-                                        return `${mins} min`;
+                                        return formatDuration(mins);
                                     })()
                                 }
                             </Text>
