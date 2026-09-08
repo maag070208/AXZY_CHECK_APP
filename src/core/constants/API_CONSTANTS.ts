@@ -12,7 +12,7 @@ export const ENVIRONMENT_LABELS: Record<Environment, string> = {
   LOCAL: 'Local',
 };
 
-export const DEFAULT_ENVIRONMENT: Environment = 'LOCAL';
+export const DEFAULT_ENVIRONMENT: Environment = 'PROD';
 
 export const API_CONSTANTS = {
   BASE_URL: ENVIRONMENTS[DEFAULT_ENVIRONMENT],
