@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import MainNavigator from './src/navigation/MainNavigation';
 import { Provider } from 'react-redux';
@@ -14,7 +14,13 @@ import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/shared/components/CustomToast';
 import { ToastHandler } from './src/core/store/hooks/toast';
 import { es, registerTranslation } from 'react-native-paper-dates';
-import { NoInternetScreen } from './src/shared/components/NoInternetScreen';
+import { initSyncManager } from './src/core/services/syncManager';
+// NOTA (offline-first): `NoInternetScreen` bloqueaba TODA la app con un
+// modal de pantalla completa en cuanto se perdía la conexión, lo cual es
+// justo lo contrario de lo que necesita el guardia (poder seguir su
+// ronda/incidencia/mantenimiento/casa club sin wifi). Se retira de aquí a
+// propósito; la app ahora sigue funcionando offline vía la cola de
+// sincronización (ver core/services/syncManager.ts).
 
 registerTranslation('es', es);
 
@@ -25,6 +31,10 @@ import { StatusBar } from 'react-native';
 
 function App() {
   const persistored = persistStore(store);
+
+  useEffect(() => {
+    initSyncManager();
+  }, []);
 
   const themePaper = {
     ...DefaultTheme,
@@ -47,7 +57,6 @@ function App() {
                 <MainNavigator />
                 <ToastHandler />
                 <Toast config={toastConfig} />
-                <NoInternetScreen />
               </PaperProvider>
             </PersistGate>
           </Provider>

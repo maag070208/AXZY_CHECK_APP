@@ -161,8 +161,10 @@ export const GuardDashboard = () => {
         const res = await startRound(Number(user.id), configId);
         if (res.success) {
           setActiveRound(res.data);
-          loadData(); // Refresh list to update "Pending" status based on new round
-          dispatch(showToast({ message: 'Ronda iniciada', type: 'success' }));
+          if (!res.queued) {
+            loadData(); // Refresh list to update "Pending" status based on new round
+          }
+          dispatch(showToast({ message: res.messages?.[0] || 'Ronda iniciada', type: res.queued ? 'info' : 'success' }));
         } else {
           // If error says "Active round", refresh data
           const msg = res.messages && res.messages.length > 0 ? res.messages[0] : 'No se pudo iniciar la ronda';
@@ -205,10 +207,12 @@ export const GuardDashboard = () => {
     setEndRoundVisible(false);
     setRoundLoading(true);
     try {
-        const res = await endRound(activeRound.id);
+        // clientRef (no el id numérico): funciona aunque la ronda se haya
+        // iniciado offline y aún no tenga id asignado por el servidor.
+        const res = await endRound(activeRound.clientRef);
         if (res.success) {
-            setActiveRound(res.data);
-            dispatch(showToast({ message: 'Ronda finalizada', type: 'success' }));
+            setActiveRound(res.data ?? { ...activeRound, status: 'COMPLETED' });
+            dispatch(showToast({ message: res.messages?.[0] || 'Ronda finalizada', type: res.queued ? 'info' : 'success' }));
         } else {
             dispatch(showToast({ message: res.messages?.[0] || 'Error al finalizar', type: 'error' }));
         }

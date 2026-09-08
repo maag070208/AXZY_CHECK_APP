@@ -59,7 +59,22 @@ axiosInstance.interceptors.response.use(
    4. Central Error (igual web, backend ya regresa TResult)
 --------------------------------------------------------- */
 const handleError = <T>(error: any): TResult<T> => {
-  throw error?.response?.data;
+  if (error?.response?.data) {
+    throw error.response.data;
+  }
+  // Sin `error.response` = falla de red (sin conexión, timeout, servidor
+  // inalcanzable), no un error de negocio del backend. Antes esto lanzaba
+  // `undefined`, y cualquier catch que hiciera `error.message` reventaba
+  // con un TypeError en vez de manejar el error de red con gracia. Ahora
+  // se sintetiza un TResult y se marca `isNetworkError` para que el
+  // sync manager offline pueda distinguir "sin conexión" (reintentar
+  // después) de un error real del servidor (mostrar al usuario).
+  throw {
+    success: false,
+    data: null,
+    messages: [error?.message || 'Error de red: no se pudo contactar al servidor'],
+    isNetworkError: true,
+  };
 };
 
 /* ---------------------------------------------------------

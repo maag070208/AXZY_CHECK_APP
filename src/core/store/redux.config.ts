@@ -15,12 +15,17 @@ import userReducer from './slices/user.slice';
 import loaderReducer from './slices/loader.slice';
 import toastReducer from './slices/toast.slice';
 import environmentReducer from './slices/environment.slice';
+import offlineQueueReducer from './slices/offlineQueue.slice';
 
 const rootReducer = combineReducers({
   userState: userReducer,
   loaderState: loaderReducer,
   toastState: toastReducer,
   environmentState: environmentReducer,
+  // Sin blacklist a propósito: la cola offline (Ronda/Kardex/Incidencia/
+  // Mantenimiento/Casa Club pendientes de sincronizar) debe sobrevivir a
+  // que el guardia cierre la app sin conexión.
+  offlineQueueState: offlineQueueReducer,
 });
 
 const persistConfig = {

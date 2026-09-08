@@ -1,4 +1,5 @@
 import { get, post, put } from '../../../core/axios';
+import { enqueueOrRun } from '../../../core/services/syncManager';
 
 export const createMaintenance = async (data: {
     title: string;
@@ -7,6 +8,7 @@ export const createMaintenance = async (data: {
     typeId?: number;
     description: string;
     media: any[];
+    queuedMedia?: { uri: string; type: 'photo' | 'video' }[];
     latitude?: number;
     longitude?: number;
 }) => {
@@ -19,12 +21,23 @@ export const createMaintenance = async (data: {
             description: data.description,
             media: data.media,
             latitude: data.latitude,
-            longitude: data.longitude
+            longitude: data.longitude,
         };
 
-        const response = await post('/maintenance', payload);
-        return response;
+        const localMedia = (data.queuedMedia || []).map((m, i) => ({
+            id: `${Date.now()}-${i}`,
+            uri: m.uri,
+            type: m.type,
+        }));
 
+        const result = await enqueueOrRun('MAINTENANCE_CREATE', payload, { localMedia });
+        return {
+            success: true,
+            data: result.data,
+            messages: result.queued
+                ? ['Reporte guardado. Se sincronizará cuando haya conexión.']
+                : undefined,
+        };
     } catch (error: any) {
         console.error('Create Maintenance Error', error);
         return { success: false, data: null, messages: [error.message || 'Error al crear el mantenimiento'] };

@@ -31,6 +31,7 @@ export const MaintenanceReportScreen = () => {
       typeId: state.typeId as number,
       description: state.description,
       media: state.media,
+      queuedMedia: state.queuedMedia,
       latitude: state.latitude,
       longitude: state.longitude,
     });

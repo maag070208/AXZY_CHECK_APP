@@ -53,6 +53,8 @@ interface MediaItem {
   uploading: boolean;
   error: boolean;
   url?: string;
+  /** No se pudo subir por falta de conexión: se enviará junto con el reporte cuando sincronice. */
+  queued?: boolean;
 }
 
 export interface ReportMediaPayload {
@@ -66,6 +68,8 @@ export interface ReportFormState {
   typeId: number | null;
   description: string;
   media: ReportMediaPayload[];
+  /** Evidencia sin subir (offline): se sube y adjunta al sincronizar. */
+  queuedMedia: { uri: string; type: 'photo' | 'video' }[];
   latitude?: number;
   longitude?: number;
 }
@@ -201,13 +205,21 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
           showToast({ message: 'Evidencia subida correctamente', type: 'success' }),
         );
       } else {
-        dispatch(showToast({ message: 'Error al subir archivo', type: 'error' }));
+        // Sin conexión (u otro fallo de red): se guarda local y se sube
+        // junto con el reporte cuando el sync manager tenga señal, en vez
+        // de bloquear al guardia con un error.
+        setMedia(prev =>
+          prev.map(item =>
+            item.id === tempId ? { ...item, uploading: false, error: false, queued: true } : item,
+          ),
+        );
+        dispatch(showToast({ message: 'Evidencia guardada. Se subirá cuando haya conexión.', type: 'info' }));
       }
     } catch (e) {
       setMedia(prev =>
         prev.map(item => {
           if (item.id === tempId) {
-            return { ...item, uploading: false, error: true };
+            return { ...item, uploading: false, error: false, queued: true };
           }
           return item;
         }),
@@ -258,12 +270,17 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
           }),
         );
       } else {
-        dispatch(showToast({ message: 'Error al reintentar', type: 'error' }));
+        setMedia(prev => {
+          const newMedia = [...prev];
+          newMedia[index] = { ...newMedia[index], uploading: false, error: false, queued: true };
+          return newMedia;
+        });
+        dispatch(showToast({ message: 'Evidencia guardada. Se subirá cuando haya conexión.', type: 'info' }));
       }
     } catch (e) {
       setMedia(prev => {
         const newMedia = [...prev];
-        newMedia[index] = { ...newMedia[index], uploading: false, error: true };
+        newMedia[index] = { ...newMedia[index], uploading: false, error: false, queued: true };
         return newMedia;
       });
     }
@@ -288,6 +305,11 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
           type: m.type === 'video' ? 'VIDEO' : 'IMAGE',
           url: m.url as string,
         })),
+      // Evidencia que no se pudo subir por falta de conexión: el `onSubmit`
+      // de cada pantalla la encola junto con el reporte.
+      queuedMedia: media
+        .filter(m => m.queued && !m.url)
+        .map(m => ({ uri: m.uri, type: m.type })),
       latitude,
       longitude,
     };
@@ -474,6 +496,11 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
                       />
                     </View>
                   )}
+                  {item.queued && !item.uploading && (
+                    <View style={styles.queuedOverlay} pointerEvents="none">
+                      <Icon source="cloud-upload-outline" color="white" size={18} />
+                    </View>
+                  )}
                   <IconButton
                     icon="close-circle"
                     size={22}
@@ -623,6 +650,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255,0,0,0.2)',
     borderRadius: 12,
+  },
+  queuedOverlay: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 10,
+    padding: 3,
   },
 
   textInput: { backgroundColor: 'white', minHeight: 100, fontSize: 15 },

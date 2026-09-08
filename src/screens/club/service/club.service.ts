@@ -1,11 +1,14 @@
 import { get, post, put } from '../../../core/axios';
+import { enqueueOrRun } from '../../../core/services/syncManager';
 
 export const createClub = async (data: {
     title: string;
     categoryId?: number;
     typeId?: number;
+    category?: string;
     description: string;
     media: any[];
+    queuedMedia?: { uri: string; type: 'photo' | 'video' }[];
     latitude?: number;
     longitude?: number;
 }) => {
@@ -14,18 +17,30 @@ export const createClub = async (data: {
             title: data.title,
             categoryId: data.categoryId,
             typeId: data.typeId,
+            category: data.category,
             description: data.description,
             media: data.media,
             latitude: data.latitude,
-            longitude: data.longitude
+            longitude: data.longitude,
         };
 
-        const response = await post('/club', payload);
-        return response;
+        const localMedia = (data.queuedMedia || []).map((m, i) => ({
+            id: `${Date.now()}-${i}`,
+            uri: m.uri,
+            type: m.type,
+        }));
 
+        const result = await enqueueOrRun('CLUB_CREATE', payload, { localMedia });
+        return {
+            success: true,
+            data: result.data,
+            messages: result.queued
+                ? ['Reporte guardado. Se sincronizará cuando haya conexión.']
+                : undefined,
+        };
     } catch (error: any) {
-        console.error('Create Club Error', error);
-        return { success: false, data: null, messages: [error.message || 'Error al crear el reporte de Casa Club'] };
+        console.error('createClub Error', error);
+        return { success: false, data: null, messages: [error.message || 'Error al crear el reporte'] };
     }
 };
 

@@ -29,7 +29,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { uploadFile } from '../../../shared/service/upload.service';
 import { CameraModal } from '../components/CameraModal';
-import { registerCheck, updateCheck } from '../service/check.service';
+import { registerCheck, updateCheck, appendMediaToQueueItem, isQueueRef } from '../service/check.service';
 import Geolocation from '@react-native-community/geolocation';
 import {
   getAllAssignments,
@@ -48,7 +48,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   const [photos, setPhotos] = useState<any[]>([]);
   const [video, setVideo] = useState<any | null>(null);
   const [notes, setNotes] = useState('');
-  const [currentKardexId, setCurrentKardexId] = useState<number | null>(null);
+  const [currentKardexId, setCurrentKardexId] = useState<number | string | null>(null);
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<'video' | 'photo'>('photo');
   const [showDescDialog, setShowDescDialog] = useState(false);
@@ -243,6 +243,19 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         },
       );
 
+      if (!res.success && isQueueRef(currentKardexId)) {
+        appendMediaToQueueItem(String(currentKardexId), {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          uri,
+          type: 'video',
+        });
+        dispatch(
+          showToast({ message: 'Video guardado. Se subirá cuando haya conexión.', type: 'info' }),
+        );
+        setVideo({ ...video, uri, uploading: false, error: false });
+        return;
+      }
+
       if (!res.success) {
         dispatch(
           showToast({ message: 'Error al subir el video', type: 'error' }),
@@ -282,6 +295,22 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       });
 
       if (!res.success) {
+        if (isQueueRef(currentKardexId)) {
+          // Sin conexión: la foto se guarda local y se sube junto con el
+          // resto del checkpoint cuando el sync manager tenga señal.
+          appendMediaToQueueItem(String(currentKardexId), {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            uri: photo.uri,
+            type: 'photo',
+          });
+          dispatch(
+            showToast({ message: 'Foto guardada. Se subirá cuando haya conexión.', type: 'info' }),
+          );
+          setPhotos(current => current.map(p =>
+            p.uri === photo.uri ? { ...p, uploading: false, error: false } : p
+          ));
+          return;
+        }
         dispatch(
           showToast({ message: 'Error al subir la foto', type: 'error' }),
         );

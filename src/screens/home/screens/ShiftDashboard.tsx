@@ -122,7 +122,9 @@ export const ShiftDashboard = () => {
       const res = await startRound(Number(user.id), configId);
       if (res.success) {
         setActiveRound(res.data);
-        loadData();
+        if (!res.queued) {
+          loadData();
+        }
       } else {
         const msg = res.messages?.[0] || 'No se pudo iniciar la ronda';
         Alert.alert('Error', msg);
@@ -152,9 +154,11 @@ export const ShiftDashboard = () => {
     setEndRoundVisible(false);
     setRoundLoading(true);
     try {
-      const res = await endRound(activeRound.id);
+      // clientRef (no el id numérico): funciona aunque la ronda se haya
+      // iniciado offline y aún no tenga id asignado por el servidor.
+      const res = await endRound(activeRound.clientRef);
       if (res.success) {
-        setActiveRound(res.data);
+        setActiveRound(res.data ?? { ...activeRound, status: 'COMPLETED' });
       } else {
         Alert.alert('Error', res.messages?.[0] || 'Error al finalizar');
       }
