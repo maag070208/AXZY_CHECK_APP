@@ -65,6 +65,8 @@ export const GuardDashboard = () => {
   
   const [activeRound, setActiveRound] = useState<any>(null); // { id, startTime }
   const [configs, setConfigs] = useState<any[]>([]);
+  // Rutas asignadas a mí que otro guardia tiene en curso: se muestran bloqueadas, no se pueden iniciar.
+  const [busyConfigs, setBusyConfigs] = useState<any[]>([]);
   const [specialAssignments, setSpecialAssignments] = useState<any[]>([]);
   const [routeSelectionVisible, setRouteSelectionVisible] = useState(false);
   const [endRoundVisible, setEndRoundVisible] = useState(false);
@@ -122,21 +124,30 @@ export const GuardDashboard = () => {
       const allConfigs = recurringRes?.data || [];
       const activeGlobalRounds = activeRoundsRes?.data || [];
 
-      // Filter out configs that are active by OTHER guards
-      // Keep my own active config so I can see the checklist
-      const filteredConfigs = allConfigs.filter((c: any) => {
-           const activeForThisConfig = activeGlobalRounds.find((r: any) => r.recurringConfigurationId === c.id && r.status === 'IN_PROGRESS');
-           
-           // If no active round for this config, keep it
-           if (!activeForThisConfig) return true;
-
-           // If there is an active round, ONLY keep it if it is MINE
-           return Number(activeForThisConfig.guardId) === Number(user.id);
+      // Las rutas que otro guardia tiene en curso no se pueden iniciar, pero tampoco se
+      // esconden: se muestran bloqueadas con quién las tiene. La propia sí queda disponible.
+      const freeConfigs: any[] = [];
+      const busy: any[] = [];
+      allConfigs.forEach((c: any) => {
+        const other = activeGlobalRounds.find(
+          (r: any) =>
+            r.recurringConfigurationId === c.id &&
+            r.status === 'IN_PROGRESS' &&
+            Number(r.guardId) !== Number(user.id),
+        );
+        if (other) {
+          busy.push({
+            ...c,
+            busyBy: `${other.guard?.name ?? ''} ${other.guard?.lastName ?? ''}`.trim() || 'otro guardia',
+            busySince: other.startTime,
+          });
+        } else {
+          freeConfigs.push(c);
+        }
       });
 
-      console.log('Filtered Configs:', filteredConfigs);
-
-      setConfigs(filteredConfigs);
+      setConfigs(freeConfigs);
+      setBusyConfigs(busy);
       setSpecialAssignments(assignRes?.data || []);
 
       // For round, we check if it is valid
@@ -382,7 +393,46 @@ export const GuardDashboard = () => {
     );
   };
 
+  const formatSince = (iso?: string) => {
+    if (!iso) return '';
+    const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    if (mins < 60) return `hace ${mins} min`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `hace ${hours} h`;
+    const days = Math.floor(hours / 24);
+    return `hace ${days} ${days === 1 ? 'día' : 'días'}`;
+  };
+
+  const renderBusyConfig = (item: any) => (
+    <View style={[styles.configSection, styles.busySection]}>
+      <View style={styles.configHeader}>
+        <View style={{ flex: 1 }}>
+          <View style={styles.configTitleRow}>
+            <Text style={[styles.configTitle, { color: '#78909C' }]} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <View style={[styles.configStatusChip, { backgroundColor: '#FFF3E0' }]}>
+              <Text style={[styles.configStatusText, { color: '#E65100' }]}>Ocupada</Text>
+            </View>
+          </View>
+          <View style={styles.configMetaRow}>
+            <Icon source="account-clock-outline" size={13} color="#E65100" />
+            <Text style={styles.configMetaText}>
+              En curso por {item.busyBy} · {formatSince(item.busySince)}
+            </Text>
+          </View>
+          <View style={styles.configMetaRow}>
+            <Icon source="clipboard-check-outline" size={13} color={theme.colors.outline} />
+            <Text style={styles.configMetaText}>{item.recurringLocations?.length ?? 0} puntos</Text>
+          </View>
+        </View>
+        <Icon source="lock-outline" size={20} color="#B0BEC5" />
+      </View>
+    </View>
+  );
+
   const renderConfigSection = ({ item }: { item: any }) => {
+    if (item.busyBy) return renderBusyConfig(item);
     const total = item.recurringLocations.length;
     const completed = item.recurringLocations.filter(
       (l: any) => l.completed,
@@ -952,7 +1002,7 @@ export const GuardDashboard = () => {
               </View>
 
               <FlatList
-                data={configs}
+                data={[...configs, ...busyConfigs]}
                 // Show items if active round and matches, OR if NO round is active (but collapsed) - Logic inside renderConfigSection should handle visibility
                 // Actually, if we want to show available routes as "locked" or "pending" when inactive, we can.
                 // But the requested flow is: Start Round -> Select Route.
@@ -1042,7 +1092,7 @@ export const GuardDashboard = () => {
                     )}
 
                     {/* ALWAYS show the list header if we have recurring items, regardless of round status */}
-                    {configs.length > 0 && (
+                    {configs.length + busyConfigs.length > 0 && (
                       <View style={styles.listHeaderLeft}>
                         <Icon
                           source="clipboard-list"
@@ -1050,7 +1100,7 @@ export const GuardDashboard = () => {
                           color={theme.colors.primary}
                         />
                         <Text style={styles.sectionTitle}>
-                          MIS RECORRIDOS ({configs.length})
+                          MIS RECORRIDOS ({configs.length + busyConfigs.length})
                         </Text>
                       </View>
                     )}
@@ -1242,6 +1292,11 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: '#E0E6ED',
+  },
+  busySection: {
+    backgroundColor: '#FAFAFA',
+    borderStyle: 'dashed',
+    opacity: 0.9,
   },
   configHeader: {
     flexDirection: 'row',

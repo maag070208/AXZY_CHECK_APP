@@ -77,17 +77,18 @@ const LoginScreen: React.FC = () => {
         >
           <View style={styles.logoContainer}>
             <Image source={Logo} resizeMode="contain" style={styles.logo} />
-            <Text style={styles.welcomeTitle}>Bienvenido a CheckApp</Text>
+            <Text style={styles.welcomeTitle}>Bienvenido</Text>
             <Text style={styles.welcomeSubtitle}>
               Inicia sesión para continuar
             </Text>
-            <View style={styles.badgeContainer}>
-              <EnvironmentBadge />
-            </View>
           </View>
 
-          <View style={styles.formContainer}>
+          <View style={styles.formCard}>
             <LoginFormComponent onSubmit={handleLogin} loading={loading} />
+          </View>
+
+          <View style={styles.badgeContainer}>
+            <EnvironmentBadge />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -107,33 +108,46 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 24,
   },
   logo: {
-    width: 250,
-    height: 250,
+    width: 112,
+    height: 112,
+    marginBottom: 16,
   },
   welcomeTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
-    color: '#1e293b', // Slate-800
-    marginBottom: 8,
+    color: '#1e293b',
+    marginBottom: 4,
     textAlign: 'center',
   },
   welcomeSubtitle: {
-    fontSize: 16,
-    color: '#64748b', // Slate-500
+    fontSize: 14,
+    color: '#64748b',
     textAlign: 'center',
   },
-  badgeContainer: {
-    marginTop: 16,
-  },
-  formContainer: {
+  formCard: {
     width: '100%',
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#e8efe5',
+    padding: 20,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  badgeContainer: {
+    marginTop: 20,
+    opacity: 0.8,
   },
 });
 

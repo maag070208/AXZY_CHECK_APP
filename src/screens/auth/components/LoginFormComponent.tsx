@@ -27,8 +27,7 @@ const validationSchema = Yup.object().shape({
     .required('El usuario es obligatorio'),
   password: Yup.string()
     .trim()
-    .required('La contraseña es obligatoria')
-    .min(6, 'La contraseña debe tener al menos 6 caracteres'),
+    .required('La contraseña es obligatoria'),
 });
 
 export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
@@ -53,11 +52,10 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
     >
       {({
         handleChange,
-        handleBlur,
+        submitCount,
         handleSubmit,
         values,
         errors,
-        touched,
       }) => (
         <View style={styles.container}>
           <View style={styles.inputGroup}>
@@ -66,7 +64,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
               style={[
                 styles.inputContainer,
                 focusedField === 'username' && styles.inputFocused,
-                touched.username && errors.username ? styles.inputError : null,
+                submitCount > 0 && errors.username ? styles.inputError : null,
               ]}
             >
               <Icon
@@ -79,7 +77,6 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
                 value={values.username}
                 onChangeText={handleChange('username')}
                 onBlur={() => {
-                  handleBlur('username');
                   setFocusedField(null);
                 }}
                 onFocus={() => setFocusedField('username')}
@@ -89,7 +86,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
                 placeholderTextColor="#94a3b8"
               />
             </View>
-            {touched.username && errors.username && (
+            {submitCount > 0 && errors.username && (
               <Text style={styles.errorText}>{errors.username}</Text>
             )}
           </View>
@@ -101,7 +98,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
               style={[
                 styles.inputContainer,
                 focusedField === 'password' && styles.inputFocused,
-                touched.password && errors.password ? styles.inputError : null,
+                submitCount > 0 && errors.password ? styles.inputError : null,
               ]}
             >
               <Icon
@@ -114,11 +111,11 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
                 value={values.password}
                 onChangeText={handleChange('password')}
                 onBlur={() => {
-                  handleBlur('password');
                   setFocusedField(null);
                 }}
                 onFocus={() => setFocusedField('password')}
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
                 placeholder="Ingresa tu contraseña"
                 placeholderTextColor="#94a3b8"
               />
@@ -133,7 +130,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
                 />
               </TouchableOpacity>
             </View>
-            {touched.password && errors.password && (
+            {submitCount > 0 && errors.password && (
               <Text style={styles.errorText}>{errors.password}</Text>
             )}
           </View>
@@ -161,7 +158,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
@@ -173,16 +170,16 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 1.5,
     borderColor: '#e2e8f0', // Slate-200
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 56,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 52,
   },
   inputFocused: {
     borderColor: '#065911',
-    backgroundColor: '#d0f8d3',
+    backgroundColor: '#f0fdf4',
   },
   inputError: {
     borderColor: '#ef4444', // Red-500
@@ -207,11 +204,11 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#065911',
-    borderRadius: 16,
-    height: 56,
+    borderRadius: 14,
+    height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 8,
     shadowColor: '#065911',
     shadowOffset: {
       width: 0,

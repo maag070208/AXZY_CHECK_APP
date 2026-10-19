@@ -5,7 +5,7 @@ export const ENVIRONMENTS: Record<Environment, string> = {
   DEV: 'https://pendiente-barcelona-dev.invalid/api/v1',
   PROD: 'https://pendiente-barcelona-prod.invalid/api/v1',
   // Con `adb reverse tcp:4444 tcp:4444` el dispositivo USB llega al API local.
-  LOCAL: 'http://localhost:4444/api/v1',
+  LOCAL: 'http://192.168.10.102:4444/api/v1',
 };
 
 export const ENVIRONMENT_LABELS: Record<Environment, string> = {
