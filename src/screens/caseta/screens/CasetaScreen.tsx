@@ -142,7 +142,7 @@ export const CasetaScreen = () => {
 const styles = StyleSheet.create({
   container: { padding: 20, gap: 12, backgroundColor: '#f8fafc' },
   title: { fontSize: 22, fontWeight: '700', color: '#0f172a' },
-  cameraBox: { height: 260, borderRadius: 12, overflow: 'hidden', backgroundColor: '#000' },
+  cameraBox: { height: 260, backgroundColor: '#000' },
   cameraOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   cameraPlaceholder: { height: 260, borderRadius: 12, backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', padding: 16 },
   placeholderText: { color: '#334155', textAlign: 'center' },
