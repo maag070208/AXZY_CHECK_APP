@@ -2,10 +2,9 @@ export type Environment = 'DEV' | 'PROD' | 'LOCAL';
 
 export const ENVIRONMENTS: Record<Environment, string> = {
   // BARCELONA: pendiente de publicar; reemplazar por la URL real cuando exista.
-  DEV: 'https://pendiente-barcelona-dev.invalid/api/v1',
+  DEV: 'https://api-barcerlona-residencial-checkapp-dev.up.railway.app/api/v1',
   PROD: 'https://pendiente-barcelona-prod.invalid/api/v1',
-  // Con `adb reverse tcp:4444 tcp:4444` el dispositivo USB llega al API local.
-  LOCAL: 'http://192.168.10.102:4444/api/v1',
+  LOCAL: 'http://192.168.10.102 :4444/api/v1',
 };
 
 export const ENVIRONMENT_LABELS: Record<Environment, string> = {
@@ -14,7 +13,7 @@ export const ENVIRONMENT_LABELS: Record<Environment, string> = {
   LOCAL: 'Local',
 };
 
-export const DEFAULT_ENVIRONMENT: Environment = 'DEV';
+export const DEFAULT_ENVIRONMENT: Environment = 'LOCAL';
 
 export const API_CONSTANTS = {
   BASE_URL: ENVIRONMENTS[DEFAULT_ENVIRONMENT],
