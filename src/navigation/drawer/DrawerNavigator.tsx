@@ -22,6 +22,7 @@ import { ResidentsStack } from '../../screens/residents/stack/ResidentsStack';
 import { ChatStack } from '../../screens/chat/stack/ChatStack';
 import { ShiftHandoverStack } from '../../screens/shiftHandover/stack/ShiftHandoverStack';
 import { UniformStack } from '../../screens/uniform/stack/UniformStack';
+import { CasetaScreen } from '../../screens/caseta/screens/CasetaScreen';
 
 const Drawer = createDrawerNavigator();
 
@@ -181,6 +182,14 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="RESIDENTS_STACK"
         component={ResidentsStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="CASETA"
+        component={CasetaScreen}
         options={{
             drawerItemStyle: { display: 'none' }
         }}

@@ -112,6 +112,13 @@ const MENU_ITEMS: MenuItem[] = [
     screen: 'SCHEDULES_LIST',
     roles: ['ADMIN'],
   },
+  {
+    label: 'Caseta',
+    icon: 'shield-check-outline',
+    route: 'CASETA',
+    screen: 'CASETA',
+    roles: ['ADMIN', 'SHIFT', 'GUARD'],
+  },
 ];
 
 const ROLE_TRANSLATIONS: Record<string, string> = {
