@@ -7,7 +7,8 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "jest --config jest.e2e.config.js --runInBand"
   },
   "dependencies": {
     "@babel/runtime": "7.28.4",
@@ -24,11 +25,12 @@
     "@react-navigation/native": "7.1.19",
     "@react-navigation/native-stack": "7.6.0",
     "@reduxjs/toolkit": "2.9.2",
-    "axios": "1.13.0",
     "ably": "^2.6.5",
+    "axios": "1.13.0",
     "dayjs": "1.11.18",
     "formik": "2.4.9",
     "jwt-decode": "4.0.0",
+    "lottie-react-native": "7.3.0",
     "memoize-one": "6.0.0",
     "moment": "2.30.1",
     "react": "19.1.0",

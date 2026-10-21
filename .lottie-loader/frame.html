@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body { margin: 0; width: 192px; height: 192px; background: #12A36F; overflow: hidden; }
+  #l { width: 192px; height: 192px; }
+</style>
+</head>
+<body>
+<div id="l"></div>
+<script src="lottie.min.js"></script>
+<script>
+  const frame = Number(new URLSearchParams(location.search).get('f') || 0);
+  const anim = lottie.loadAnimation({
+    container: document.getElementById('l'),
+    renderer: 'svg',
+    loop: false,
+    autoplay: false,
+    path: 'animation.json',
+  });
+  anim.addEventListener('DOMLoaded', () => {
+    anim.goToAndStop(frame, true);
+    document.title = 'READY';
+  });
+</script>
+</body>
+</html>

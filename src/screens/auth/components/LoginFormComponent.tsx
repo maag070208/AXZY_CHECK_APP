@@ -19,20 +19,19 @@ export interface LoginFormComponentValues {
 interface LoginFormComponentProps {
   onSubmit: (values: LoginFormComponentValues) => void | Promise<void>;
   loading?: boolean;
+  /** Reduce espacios cuando el teclado está abierto. */
+  compact?: boolean;
 }
 
 const validationSchema = Yup.object().shape({
-  username: Yup.string()
-    .trim()
-    .required('El usuario es obligatorio'),
-  password: Yup.string()
-    .trim()
-    .required('La contraseña es obligatoria'),
+  username: Yup.string().trim().required('El usuario es obligatorio'),
+  password: Yup.string().trim().required('La contraseña es obligatoria'),
 });
 
 export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
   onSubmit,
   loading = false,
+  compact = false,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -52,99 +51,114 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
     >
       {({
         handleChange,
+        handleBlur,
         submitCount,
         handleSubmit,
         values,
         errors,
       }) => (
         <View style={styles.container}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Usuario</Text>
-            <View
-              style={[
-                styles.inputContainer,
-                focusedField === 'username' && styles.inputFocused,
-                submitCount > 0 && errors.username ? styles.inputError : null,
-              ]}
-            >
-              <Icon
-                source="account-outline"
-                size={20}
-                color={focusedField === 'username' ? '#065911' : '#94a3b8'}
-              />
-              <TextInput
-                style={styles.input}
-                value={values.username}
-                onChangeText={handleChange('username')}
-                onBlur={() => {
-                  setFocusedField(null);
-                }}
-                onFocus={() => setFocusedField('username')}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="Ingresa tu usuario"
-                placeholderTextColor="#94a3b8"
-              />
-            </View>
-            {submitCount > 0 && errors.username && (
-              <Text style={styles.errorText}>{errors.username}</Text>
-            )}
+          <View
+            style={[
+              styles.field,
+              focusedField === 'username' && styles.fieldFocused,
+              submitCount > 0 && errors.username ? styles.fieldError : null,
+            ]}
+          >
+            <Icon
+              source="account-outline"
+              size={20}
+              color={focusedField === 'username' ? '#12A36F' : '#94A3B8'}
+            />
+            <TextInput
+              style={styles.input}
+              value={values.username}
+              onChangeText={handleChange('username')}
+              onFocus={() => setFocusedField('username')}
+              onBlur={() => {
+                setFocusedField(null);
+                handleBlur('username');
+              }}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="next"
+              placeholder="Usuario"
+              accessibilityLabel="Usuario"
+              placeholderTextColor="#94A3B8"
+            />
           </View>
+          {submitCount > 0 && errors.username ? (
+            <Text style={styles.errorText}>{errors.username}</Text>
+          ) : null}
 
-          {/* Password */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Contraseña</Text>
-            <View
-              style={[
-                styles.inputContainer,
-                focusedField === 'password' && styles.inputFocused,
-                submitCount > 0 && errors.password ? styles.inputError : null,
-              ]}
+          <View
+            style={[
+              styles.field,
+              styles.fieldSpacing,
+              compact && styles.fieldSpacingCompact,
+              focusedField === 'password' && styles.fieldFocused,
+              submitCount > 0 && errors.password ? styles.fieldError : null,
+            ]}
+          >
+            <Icon
+              source="lock-outline"
+              size={20}
+              color={focusedField === 'password' ? '#12A36F' : '#94A3B8'}
+            />
+            <TextInput
+              style={styles.input}
+              value={values.password}
+              onChangeText={handleChange('password')}
+              onFocus={() => setFocusedField('password')}
+              onBlur={() => {
+                setFocusedField(null);
+                handleBlur('password');
+              }}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={() => handleSubmit()}
+              placeholder="Contraseña"
+              accessibilityLabel="Contraseña"
+              placeholderTextColor="#94A3B8"
+            />
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={
+                showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+              }
+              onPress={() => setShowPassword(prev => !prev)}
+              style={styles.eyeIcon}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Icon
-                source="lock-outline"
+                source={showPassword ? 'eye-off-outline' : 'eye-outline'}
                 size={20}
-                color={focusedField === 'password' ? '#065911' : '#94a3b8'}
+                color="#94A3B8"
               />
-              <TextInput
-                style={styles.input}
-                value={values.password}
-                onChangeText={handleChange('password')}
-                onBlur={() => {
-                  setFocusedField(null);
-                }}
-                onFocus={() => setFocusedField('password')}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                placeholder="Ingresa tu contraseña"
-                placeholderTextColor="#94a3b8"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(prev => !prev)}
-                style={styles.eyeIcon}
-              >
-                <Icon
-                  source={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
-                  color="#94a3b8"
-                />
-              </TouchableOpacity>
-            </View>
-            {submitCount > 0 && errors.password && (
-              <Text style={styles.errorText}>{errors.password}</Text>
-            )}
+            </TouchableOpacity>
           </View>
+          {submitCount > 0 && errors.password ? (
+            <Text style={styles.errorText}>{errors.password}</Text>
+          ) : null}
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel="Iniciar sesión"
+            style={[
+              styles.button,
+              compact && styles.buttonCompact,
+              loading && styles.buttonDisabled,
+            ]}
             onPress={() => handleSubmit()}
             disabled={loading}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
             {loading ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.buttonText}>Iniciar Sesión</Text>
+              <Text style={styles.buttonText}>Iniciar sesión</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -157,75 +171,71 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
   },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569', // Slate-600
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  inputContainer: {
+  field: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1.5,
-    borderColor: '#e2e8f0', // Slate-200
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 52,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
   },
-  inputFocused: {
-    borderColor: '#065911',
-    backgroundColor: '#f0fdf4',
+  fieldSpacing: {
+    marginTop: 14,
   },
-  inputError: {
-    borderColor: '#ef4444', // Red-500
-    backgroundColor: '#fef2f2', // Red-50
+  fieldSpacingCompact: {
+    marginTop: 12,
+  },
+  fieldFocused: {
+    borderColor: '#12A36F',
+    backgroundColor: '#F1FBF7',
+  },
+  fieldError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
   },
   input: {
     flex: 1,
     marginLeft: 12,
-    fontSize: 16,
-    color: '#1e293b', // Slate-800
+    fontSize: 15,
+    color: '#0F172A',
     height: '100%',
   },
   eyeIcon: {
     padding: 4,
   },
   errorText: {
-    fontSize: 13,
-    color: '#ef4444', // Red-500
     marginTop: 6,
+    marginBottom: 2,
     marginLeft: 4,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#EF4444',
   },
   button: {
-    backgroundColor: '#065911',
-    borderRadius: 14,
-    height: 52,
-    justifyContent: 'center',
+    marginTop: 24,
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: '#12A36F',
     alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#065911',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    justifyContent: 'center',
+    shadowColor: '#065F46',
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 14,
+    elevation: 5,
+  },
+  buttonCompact: {
+    marginTop: 18,
   },
   buttonDisabled: {
-    backgroundColor: '#94a3b8', // Slate-400
-    shadowOpacity: 0,
-    elevation: 0,
+    opacity: 0.65,
   },
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });

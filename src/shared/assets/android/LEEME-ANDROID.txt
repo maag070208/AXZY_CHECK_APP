@@ -1,0 +1,33 @@
+CheckApp - Iconos para Android
+==============================
+
+1) Copia la carpeta res/ dentro de tu proyecto:  app/src/main/res/
+   (mezcla las carpetas mipmap-*, drawable-*, mipmap-anydpi-v26 y values).
+
+2) En AndroidManifest.xml, dentro de <application>:
+     android:icon="@mipmap/ic_launcher"
+     android:roundIcon="@mipmap/ic_launcher_round"
+
+3) Que incluye
+   mipmap-mdpi ... xxxhdpi
+     ic_launcher.png             Icono clasico (Android 7 o menor), 48-192 px
+     ic_launcher_round.png       Version redonda, 48-192 px
+     ic_launcher_foreground.png  Capa frontal del icono adaptativo, 108-432 px
+     ic_launcher_monochrome.png  Capa para iconos tematicos (Android 13+)
+   mipmap-anydpi-v26/            ic_launcher.xml e ic_launcher_round.xml (adaptativos)
+   values/ic_launcher_background.xml   Capa de fondo: color #12A36F
+   drawable-*/ic_stat_checkapp.png     Icono pequeno de notificaciones (solo el pin, blanco)
+   playstore/ic_launcher-playstore.png 512x512 para Google Play Console
+
+4) Icono de notificaciones (opcional):
+     .setSmallIcon(R.drawable.ic_stat_checkapp)
+   o en el manifest:
+     <meta-data android:name="com.google.firebase.messaging.default_notification_icon"
+                android:resource="@drawable/ic_stat_checkapp"/>
+
+Flutter: copia res/ en android/app/src/main/res/.
+React Native / Expo: copia res/ en android/app/src/main/res/ (Expo: usa
+  playstore/ic_launcher-playstore.png como icon y ic_launcher_foreground como adaptiveIcon.foregroundImage).
+
+Nota: en el icono adaptativo el logo queda mas pequeno a proposito, porque
+Android recorta los bordes segun la forma que elija cada fabricante.
