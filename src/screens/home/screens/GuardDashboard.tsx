@@ -55,6 +55,7 @@ import { parseLocationQrPayload } from '../../../shared/utils/locationQr';
 import { isOnline } from '../../../offline/network';
 import { getGuardSnapshot, saveGuardSnapshot } from '../../../offline/snapshot';
 import { endLocalRound, getLocalActiveRound, getLocalChecksForRound, startLocalRound } from '../../../offline/rounds';
+import { mergeLocalRoundStatus } from '../../../offline/roundStatus';
 
 const { width } = Dimensions.get('window');
 
@@ -193,30 +194,7 @@ export const GuardDashboard = () => {
   }, [cameraActive, scanLine, scanPulse]);
 
   const applySnapshot = (snapshot: any, localRound?: any, localChecks: any[] = []) => {
-    const resetMissing = !!localRound?.__offline;
-    const allConfigs = (snapshot?.routes || []).map((route: any) => {
-      if (!localRound || route.id !== localRound.recurringConfigurationId) return route;
-      return {
-        ...route,
-        recurringLocations: (route.recurringLocations || []).map((loc: any) => {
-          const check = localChecks.find((c: any) => Number(c.location_id) === Number(loc.locationId));
-          if (!check) {
-            return resetMissing
-              ? { ...loc, completed: false, status: 'PENDING', mediaCount: 0, completedAt: null, startedAt: null }
-              : loc;
-          }
-          return {
-            ...loc,
-            completed: true,
-            status: 'COMPLETED',
-            mediaCount: Number(check.media_count ?? 0),
-            completedAt: check.completed_at ? new Date(Number(check.completed_at)).toISOString() : null,
-            startedAt: check.scanned_at ? new Date(Number(check.scanned_at)).toISOString() : null,
-            reportSaved: true,
-          };
-        }),
-      };
-    });
+    const allConfigs = mergeLocalRoundStatus(snapshot?.routes || [], localRound, localChecks);
     const activeGlobalRounds = snapshot?.activeRounds || [];
     const freeConfigs: any[] = [];
     const busy: any[] = [];
@@ -403,8 +381,8 @@ export const GuardDashboard = () => {
         }
 
         if (configs.length === 1) {
-            // Auto-select the only one - Let API Validate Cooldown
-            onStartRoundConfirmed(configs[0].id);
+            // Siempre pasar por la confirmación: evita iniciar una ronda por accidente.
+            setStartModalConfig(configs[0]);
         } else {
             // Multiple routes: Show Selection Dialog
             setRouteSelectionVisible(true);
@@ -920,7 +898,7 @@ export const GuardDashboard = () => {
                         style={styles.modernModalOption} 
                         onPress={() => {
                             setRouteSelectionVisible(false);
-                            onStartRoundConfirmed(item.id);
+                            setStartModalConfig(item);
                         }}
                     >
                         <View style={styles.optionIconBox}>

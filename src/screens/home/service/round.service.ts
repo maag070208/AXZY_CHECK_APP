@@ -7,7 +7,7 @@ export const startRound = async (
   recurringConfigId?: number,
   options?: { clientRef?: string; startedAt?: string; offline?: boolean },
 ): Promise<TResult<any>> => {
-  const body: any = { guardId, recurringConfigId, clientRef: options?.clientRef };
+  const body: any = { recurringConfigId, clientRef: options?.clientRef, confirmed: true };
   if (options?.startedAt) body.startedAt = options.startedAt;
   return await post(API_CONSTANTS.URLS.ROUNDS.START, body, {
     headers: options?.offline ? { 'X-Offline-Sync': 'true' } : undefined,
