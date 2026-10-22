@@ -1,0 +1,19 @@
+0 verbose cli /Users/axzy/.nvm/versions/node/v22.23.3/bin/node /Users/axzy/.nvm/versions/node/v22.23.3/bin/npm
+1 info using npm@10.9.9
+2 info using node@v22.23.3
+3 silly config load:file:/Users/axzy/.nvm/versions/node/v22.23.3/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/axzy/DEV/CHECK/BARCELONA/APP/.npmrc
+5 silly config load:file:/Users/axzy/.npmrc
+6 silly config load:file:/Users/axzy/.nvm/versions/node/v22.23.3/etc/npmrc
+7 verbose title npm view @op-engineering/op-sqlite version
+8 verbose argv "view" "@op-engineering/op-sqlite" "version" "--fetch-timeout" "8000"
+9 verbose logfile logs-max:10 dir:/Users/axzy/DEV/CHECK/BARCELONA/APP/.npm-cache/_logs/2026-10-22T02_18_34_706Z-
+10 verbose logfile /Users/axzy/DEV/CHECK/BARCELONA/APP/.npm-cache/_logs/2026-10-22T02_18_34_706Z-debug-0.log
+11 silly logfile done cleaning log files
+12 http fetch GET 200 https://registry.npmjs.org/@op-engineering%2fop-sqlite 148ms (cache miss)
+13 verbose cwd /Users/axzy/DEV/CHECK/BARCELONA/APP
+14 verbose os Darwin 25.6.0
+15 verbose node v22.23.3
+16 verbose npm  v10.9.9
+17 verbose exit 0
+18 info ok

@@ -1,0 +1,8 @@
+appId: com.checkapp
+---
+# Suite E2E guardia marcoh con una foto por reporte
+- runFlow: login.yaml
+- runFlow: incident-photo.yaml
+- runFlow: maintenance-photo.yaml
+- runFlow: club-photo.yaml
+- runFlow: round.yaml

@@ -14,7 +14,7 @@ appId: com.checkapp
 - extendedWaitUntil:
     visible: "CÁMARA LISTA"
     timeout: 20000
-- tapOn: "Capturar foto"
+- tapOn: "Tomar foto"
 - extendedWaitUntil:
     notVisible: "CÁMARA LISTA"
     timeout: 20000

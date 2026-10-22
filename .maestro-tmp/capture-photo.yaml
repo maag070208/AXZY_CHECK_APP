@@ -1,0 +1,9 @@
+appId: com.checkapp
+---
+- tapOn: "Tomar foto"
+- extendedWaitUntil:
+    notVisible: "CÁMARA LISTA"
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible: "Subiendo evidencias..."
+    timeout: 60000
