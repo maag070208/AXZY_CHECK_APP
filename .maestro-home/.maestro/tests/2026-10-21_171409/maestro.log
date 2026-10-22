@@ -1,0 +1,24 @@
+17:14:10.030 [ INFO] maestro.cli.report.TestDebugReporter.logSystemInfo: Debug output path: /Users/axzy/DEV/CHECK/BARCELONA/APP/.maestro-home/.maestro/tests/2026-10-21_171409
+17:14:10.031 [ INFO] MAESTRO.logSystemInfo: ---- System Info ----
+17:14:10.031 [ INFO] MAESTRO.logSystemInfo: Maestro Version: 2.5.1
+17:14:10.032 [ INFO] MAESTRO.logSystemInfo: CI: Undefined
+17:14:10.032 [ INFO] MAESTRO.logSystemInfo: OS Name: Mac OS X
+17:14:10.032 [ INFO] MAESTRO.logSystemInfo: OS Version: 26.6.2
+17:14:10.032 [ INFO] MAESTRO.logSystemInfo: Architecture: aarch64
+17:14:10.034 [ INFO] MAESTRO.logSystemInfo: Java Version: 17
+17:14:10.163 [ INFO] MAESTRO.logSystemInfo: Xcode Version: 27.0
+17:14:10.167 [ INFO] MAESTRO.logSystemInfo: Flutter Version: Undefined
+17:14:10.171 [ INFO] MAESTRO.logSystemInfo: Flutter Channel: Undefined
+17:14:10.171 [ INFO] MAESTRO.logSystemInfo: ---------------------
+17:14:10.238 [DEBUG] io.micrometer.common.util.internal.logging.InternalLoggerFactory.newDefaultFactory: Using SLF4J as the default logging framework
+17:14:35.399 [ INFO] maestro.drivers.AndroidDriver.close: [Start] Uninstall driver from device
+17:14:35.398 [ERROR] maestro.cli.session.MaestroSessionManager.newSession$lambda$0: Failed to record heartbeat
+java.lang.InterruptedException: sleep interrupted
+	at java.base/java.lang.Thread.sleep(Native Method)
+	at maestro.cli.session.MaestroSessionManager.newSession$lambda$0(MaestroSessionManager.kt:95)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)

@@ -23,6 +23,7 @@ import { ChatStack } from '../../screens/chat/stack/ChatStack';
 import { ShiftHandoverStack } from '../../screens/shiftHandover/stack/ShiftHandoverStack';
 import { UniformStack } from '../../screens/uniform/stack/UniformStack';
 import { CasetaScreen } from '../../screens/caseta/screens/CasetaScreen';
+import { HeaderBack } from '../header/HeaderBack';
 
 const Drawer = createDrawerNavigator();
 
@@ -190,9 +191,19 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="CASETA"
         component={CasetaScreen}
-        options={{
-            drawerItemStyle: { display: 'none' }
-        }}
+        options={({ navigation }) => ({
+            drawerItemStyle: { display: 'none' },
+            headerShown: true,
+            header: () => (
+              <HeaderBack
+                navigation={navigation}
+                title="Caseta"
+                icon="menu"
+                accessibilityLabel="Abrir menú"
+                onBack={() => navigation.openDrawer()}
+              />
+            ),
+        })}
       />
 
       <Drawer.Screen

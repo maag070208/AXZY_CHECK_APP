@@ -1,7 +1,6 @@
 import dayjs from 'dayjs';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Animated,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -9,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import { Button, Icon, Surface, Text } from 'react-native-paper';
+import { Icon, Surface, Text } from 'react-native-paper';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAppSelector } from '../../../core/store/hooks';
 import { ENVIRONMENT_LABELS } from '../../../core/constants/API_CONSTANTS';
@@ -19,6 +18,8 @@ import {
   ILiveDashboard,
 } from '../service/dashboard.service';
 import { timeAgo } from '../../../shared/utils/duration';
+import { AppButton } from '../../../shared/components/AppButton';
+import { Skeleton } from '../../../shared/components/Skeleton';
 
 const COLORS = {
   ink: '#0F172A',
@@ -51,39 +52,31 @@ const fmtMinutes = (minutes: number | null | undefined) => {
 const deltaText = (value: number) =>
   value === 0 ? '= que ayer' : value > 0 ? `+${value} vs ayer` : `${value} vs ayer`;
 
-/** Bloque gris con pulso para los estados de carga. */
-const Skeleton = ({
-  width,
-  height,
-  radius = 10,
-  style,
-}: {
-  width?: number | string;
-  height: number;
-  radius?: number;
-  style?: any;
-}) => {
-  const opacity = useRef(new Animated.Value(0.45)).current;
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.45, duration: 700, useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [opacity]);
-
-  return (
-    <Animated.View
-      style={[
-        { width, height, borderRadius: radius, backgroundColor: '#E6EFE9', opacity },
-        style,
-      ]}
-    />
-  );
+const ALERT_META: Record<
+  ILiveAlert['type'],
+  { label: string; icon: string; color: string; bg: string; border: string }
+> = {
+  ROUND_STALLED: {
+    label: 'Ronda estancada',
+    icon: 'timer-alert-outline',
+    color: '#B45309',
+    bg: '#FFFBF5',
+    border: '#FED7AA',
+  },
+  INCIDENT_OPEN: {
+    label: 'Incidencia abierta',
+    icon: 'alert-circle-outline',
+    color: '#B91C1C',
+    bg: '#FFF7F7',
+    border: '#FECACA',
+  },
+  SHIFT_HANDOVER_OVERDUE: {
+    label: 'Entrega de turno',
+    icon: 'swap-horizontal-bold',
+    color: '#6D28D9',
+    bg: '#FAF8FF',
+    border: '#DDD6FE',
+  },
 };
 
 /**
@@ -103,8 +96,8 @@ export const AdminDashboardScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const mapRef = useRef<MapView>(null);
 
-  const loadDashboard = useCallback(async (silent = false) => {
-    if (!silent) setLoadingKpis(true);
+  const loadDashboard = useCallback(async () => {
+    setLoadingKpis(true);
     setDashboardError(null);
     try {
       const res = await getLiveDashboard();
@@ -231,27 +224,31 @@ export const AdminDashboardScreen = () => {
   );
 
   const renderAlert = (alert: ILiveAlert, index: number) => {
-    const high = alert.severity === 'high';
+    const meta = ALERT_META[alert.type] ?? ALERT_META.INCIDENT_OPEN;
     return (
-      <View key={`${alert.type}-${alert.refId ?? index}`} style={styles.alertRow}>
-        <View
-          style={[
-            styles.alertIcon,
-            { backgroundColor: high ? '#FEF2F2' : '#FFFBEB' },
-          ]}
-        >
-          <Icon
-            source={high ? 'alert-circle' : 'alert-outline'}
-            size={18}
-            color={high ? COLORS.red : COLORS.amber}
-          />
+      <View
+        key={`${alert.type}-${alert.refId ?? index}`}
+        style={[
+          styles.alertCard,
+          {
+            backgroundColor: meta.bg,
+            borderColor: meta.border,
+          },
+        ]}
+      >
+        <View style={styles.alertTop}>
+          <View style={[styles.alertIcon, { backgroundColor: `${meta.color}14` }]}>
+            <Icon source={meta.icon as any} size={16} color={meta.color} />
+          </View>
+          <Text style={[styles.alertType, { color: meta.color }]}>{meta.label}</Text>
+          {alert.severity === 'high' && (
+            <View style={[styles.alertSeverityDot, { backgroundColor: meta.color }]} />
+          )}
+          <Text style={styles.alertTimeTop}>{timeAgo(alert.at)}</Text>
         </View>
-        <View style={styles.alertBody}>
-          <Text style={styles.alertMessage} numberOfLines={3}>
-            {alert.message}
-          </Text>
-          <Text style={styles.alertTime}>{timeAgo(alert.at)}</Text>
-        </View>
+        <Text style={styles.alertMessage} numberOfLines={3}>
+          {alert.message}
+        </Text>
       </View>
     );
   };
@@ -340,7 +337,7 @@ export const AdminDashboardScreen = () => {
           refreshing={refreshing}
           onRefresh={() => {
             setRefreshing(true);
-            loadDashboard(true);
+            loadDashboard();
           }}
           colors={[COLORS.primaryDark]}
           tintColor={COLORS.primaryDark}
@@ -360,7 +357,7 @@ export const AdminDashboardScreen = () => {
           activeOpacity={0.8}
           onPress={() => {
             setRefreshing(true);
-            loadDashboard(true);
+            loadDashboard();
           }}
         >
           <Icon source="refresh" size={20} color={COLORS.primaryDark} />
@@ -406,28 +403,21 @@ export const AdminDashboardScreen = () => {
 
       {/* Acciones */}
       <View style={styles.actionsRow}>
-        <Button
-          mode="contained"
+        <AppButton
+          label="Nuevo reporte"
           icon="plus"
-          buttonColor={COLORS.primaryDark}
-          style={styles.actionBtn}
-          contentStyle={styles.actionBtnContent}
-          labelStyle={styles.actionBtnLabel}
+          size="sm"
           onPress={() => navigation.navigate('INCIDENT_REPORT')}
-        >
-          Nuevo reporte
-        </Button>
-        <Button
-          mode="outlined"
-          icon="clipboard-text-clock-outline"
-          textColor={COLORS.primaryDark}
           style={styles.actionBtn}
-          contentStyle={styles.actionBtnContent}
-          labelStyle={styles.actionBtnLabel}
+        />
+        <AppButton
+          label="Ver rondas"
+          icon="clipboard-text-clock-outline"
+          variant="outline"
+          size="sm"
           onPress={() => navigation.navigate('ROUNDS_STACK', { screen: 'ROUNDS_LIST' })}
-        >
-          Ver rondas
-        </Button>
+          style={styles.actionBtn}
+        />
       </View>
 
       {dashboardError && !loadingKpis && (
@@ -436,9 +426,7 @@ export const AdminDashboardScreen = () => {
           <Text style={styles.errorText}>
             No se pudieron cargar los datos ({ENVIRONMENT_LABELS[environment]}).
           </Text>
-          <Button compact mode="contained" onPress={() => loadDashboard()} buttonColor={COLORS.primaryDark}>
-            Reintentar
-          </Button>
+          <AppButton label="Reintentar" size="sm" onPress={() => loadDashboard()} />
         </Surface>
       )}
 
@@ -565,12 +553,17 @@ export const AdminDashboardScreen = () => {
         {loadingKpis ? (
           <>
             {[0, 1, 2].map(i => (
-              <View style={styles.alertRow} key={i}>
-                <Skeleton width={32} height={32} radius={10} />
-                <View style={styles.alertBody}>
-                  <Skeleton width="92%" height={10} radius={5} />
-                  <Skeleton width="35%" height={8} radius={4} style={{ marginTop: 6 }} />
+              <View
+                key={i}
+                style={[styles.alertCard, { backgroundColor: '#FFFFFF', borderColor: COLORS.line }]}
+              >
+                <View style={styles.alertTop}>
+                  <Skeleton width={28} height={28} radius={9} />
+                  <Skeleton width={96} height={9} radius={5} />
+                  <Skeleton width={52} height={8} radius={4} style={{ marginLeft: 'auto' }} />
                 </View>
+                <Skeleton width="92%" height={10} radius={5} style={{ marginTop: 10 }} />
+                <Skeleton width="55%" height={9} radius={5} style={{ marginTop: 6 }} />
               </View>
             ))}
           </>
@@ -795,9 +788,7 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 9, fontWeight: '700', color: COLORS.muted, textAlign: 'center', marginTop: 2 },
 
   actionsRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  actionBtn: { flex: 1, borderRadius: 12 },
-  actionBtnContent: { paddingVertical: 4 },
-  actionBtnLabel: { fontSize: 11, fontWeight: '800' },
+  actionBtn: { flex: 1 },
 
   errorCard: {
     backgroundColor: '#FEF2F2',
@@ -888,17 +879,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  alertRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 9 },
+  alertCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+    marginVertical: 5,
+  },
+  alertTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   alertIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  alertBody: { flex: 1 },
-  alertMessage: { fontSize: 11, fontWeight: '700', color: COLORS.ink, lineHeight: 15 },
-  alertTime: { fontSize: 9, fontWeight: '600', color: COLORS.soft, marginTop: 2 },
+  alertType: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  alertSeverityDot: { width: 5, height: 5, borderRadius: 3 },
+  alertTimeTop: { marginLeft: 'auto', fontSize: 9, fontWeight: '600', color: COLORS.soft },
+  alertMessage: { fontSize: 12, fontWeight: '700', color: COLORS.ink, lineHeight: 16, marginTop: 8 },
   moreAlerts: {
     fontSize: 10,
     fontWeight: '700',

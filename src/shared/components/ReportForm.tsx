@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
+  Animated,
   Alert,
   Image,
   StatusBar,
@@ -14,23 +15,22 @@ import {
 import {
   Text,
   TextInput,
-  Button,
-  Chip,
   IconButton,
-  Surface,
   Icon,
   Portal,
   Dialog,
 } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { theme } from '../theme/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { APP_SETTINGS } from '../../core/constants/APP_SETTINGS';
 import { CameraModal } from '../../screens/check/components/CameraModal';
 import { useDispatch } from 'react-redux';
 import { showToast } from '../../core/store/slices/toast.slice';
+import { isSpeechAvailable, startSpeech, stopSpeech } from '../service/speech.service';
 import { uploadFile } from '../service/upload.service';
 import { getCatalog } from '../service/catalog.service';
 import Geolocation from '@react-native-community/geolocation';
+import { AppButton } from './AppButton';
 
 /* ======================================================
    TYPES
@@ -102,6 +102,7 @@ export interface ReportFormProps {
 
 export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
 
   const [categories, setCategories] = useState<CatalogItem[]>([]);
@@ -116,6 +117,74 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
 
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<'photo' | 'video'>('photo');
+  const [dictating, setDictating] = useState(false);
+  const dictationBase = useRef('');
+
+  const scrollRef = useRef<ScrollView>(null);
+  const photoScale = useRef(new Animated.Value(1)).current;
+  const [evidenceY, setEvidenceY] = useState(0);
+
+  useEffect(() => {
+    return () => stopSpeech();
+  }, []);
+
+  const toggleDictation = async () => {
+    if (dictating) {
+      stopSpeech();
+      return;
+    }
+
+    if (!isSpeechAvailable) {
+      dispatch(
+        showToast({
+          message: 'El dictado no está disponible. Compila la app para activarlo.',
+          type: 'error',
+        }),
+      );
+      return;
+    }
+
+    const base = description.trim();
+    dictationBase.current = base;
+    setDictating(true);
+
+    try {
+      const spoken = await startSpeech(partial => {
+        const next = `${base ? `${base} ` : ''}${partial}`.trim();
+        setDescription(next);
+      });
+      const finalText = `${base ? `${base} ` : ''}${spoken}`.trim();
+      if (finalText) setDescription(finalText);
+    } catch (error: any) {
+      dispatch(
+        showToast({
+          message: error?.message || 'No se pudo dictar. Intenta de nuevo.',
+          type: 'error',
+        }),
+      );
+    } finally {
+      setDictating(false);
+    }
+  };
+
+  const pulsePhoto = () => {
+    photoScale.setValue(1);
+    Animated.sequence([
+      Animated.timing(photoScale, { toValue: 1.03, duration: 140, useNativeDriver: true }),
+      Animated.timing(photoScale, { toValue: 0.99, duration: 120, useNativeDriver: true }),
+      Animated.timing(photoScale, { toValue: 1, duration: 160, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const scrollToEvidence = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(evidenceY - 12, 0),
+        animated: true,
+      });
+      pulsePhoto();
+    }, 150);
+  };
 
   const { accent } = config;
 
@@ -353,6 +422,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
     if (type.categoryId != null) {
       setCategoryId(type.categoryId);
     }
+    scrollToEvidence();
   };
 
   const isUploading = media.some(m => m.uploading);
@@ -365,97 +435,125 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
         style={styles.container}
       >
         <StatusBar barStyle="dark-content" />
-        <Surface style={styles.header} elevation={1}>
-          <IconButton
-            icon="chevron-left"
-            size={30}
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+          <TouchableOpacity
+            style={styles.backBtn}
             onPress={() => navigation.goBack()}
-          />
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
+          >
+            <Icon source="chevron-left" size={24} color="#065911" />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>{config.title}</Text>
-          <View style={{ width: 48 }} />
-        </Surface>
+          <View style={{ width: 36 }} />
+        </View>
 
         <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.label}>1. {config.labels.type}</Text>
-          <View style={styles.typeWrapper}>
-            {visibleTypes.map(type => (
-              <Chip
-                key={type.id}
-                selected={typeId === type.id}
-                onPress={() => handleSelectType(type)}
-                style={[
-                  styles.typeChip,
-                  typeId === type.id && {
-                    backgroundColor: `${accent}1A`,
-                    borderColor: accent,
-                  },
-                ]}
-                textStyle={[
-                  styles.typeChipText,
-                  typeId === type.id && { color: accent },
-                ]}
-                showSelectedCheck={false}
-                mode="outlined"
-              >
-                {type.value}
-              </Chip>
-            ))}
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>1. {config.labels.type}</Text>
+            <Text style={styles.labelHint}>Elige una opción</Text>
+          </View>
+          <View style={styles.typeGrid}>
+            {visibleTypes.map(type => {
+              const active = typeId === type.id;
+              return (
+                <TouchableOpacity
+                  key={type.id}
+                  activeOpacity={0.8}
+                  onPress={() => handleSelectType(type)}
+                  style={[
+                    styles.typeTile,
+                    active && {
+                      borderColor: accent,
+                      backgroundColor: `${accent}0D`,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <View
+                    style={[
+                      styles.typeRadio,
+                      active && { borderColor: accent },
+                    ]}
+                  >
+                    {active ? (
+                      <View style={[styles.typeRadioDot, { backgroundColor: accent }]} />
+                    ) : null}
+                  </View>
+                  <Text
+                    style={[styles.typeTileText, active && { color: accent }]}
+                    numberOfLines={2}
+                  >
+                    {type.value}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
             {visibleTypes.length === 0 && (
-              <Text style={styles.emptyTypes}>
-                No hay tipos disponibles para este reporte.
-              </Text>
+              <Text style={styles.emptyTypes}>No hay tipos disponibles para este reporte.</Text>
             )}
           </View>
 
-          <Text style={styles.label}>2. EVIDENCIA</Text>
-          <View style={styles.photoActionRow}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[
-                styles.bigCaptureBtn,
-                {
-                  backgroundColor: '#FFFFFF',
-                  borderColor: accent,
-                  borderWidth: 2,
-                },
-              ]}
-              onPress={() => {
-                setCameraMode('photo');
-                setCameraVisible(true);
-              }}
-            >
-              <Icon source="camera" size={32} color={accent} />
-              <Text style={[styles.bigCaptureText, { color: accent }]}>FOTO</Text>
-            </TouchableOpacity>
+          <View onLayout={event => setEvidenceY(event.nativeEvent.layout.y)}>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>2. EVIDENCIA</Text>
+              <Text style={styles.labelHint}>Foto o video</Text>
+            </View>
+            <View style={styles.captureStack}>
+            <Animated.View style={{ transform: [{ scale: photoScale }] }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.captureRow}
+                onPress={() => {
+                  setCameraMode('photo');
+                  setCameraVisible(true);
+                }}
+              >
+                <View style={styles.captureIcon}>
+                  <Icon source="camera-plus-outline" size={20} color="#065911" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.captureTitle}>Tomar foto</Text>
+                  <Text style={styles.captureSub}>Abre la cámara</Text>
+                </View>
+                <Icon source="chevron-right" size={18} color="#CBD5E1" />
+              </TouchableOpacity>
+            </Animated.View>
 
             <TouchableOpacity
               activeOpacity={0.8}
-              style={[styles.bigCaptureBtn, { backgroundColor: '#455A64' }]}
+              style={styles.captureRow}
               onPress={() => {
                 setCameraMode('video');
                 setCameraVisible(true);
               }}
             >
-              <Icon source="video" size={32} color="white" />
-              <Text style={styles.bigCaptureText}>VIDEO</Text>
+              <View style={styles.captureIcon}>
+                <Icon source="video-plus-outline" size={20} color="#065911" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.captureTitle}>Grabar video</Text>
+                <Text style={styles.captureSub}>Opcional</Text>
+              </View>
+              <Icon source="chevron-right" size={18} color="#CBD5E1" />
             </TouchableOpacity>
+            </View>
           </View>
 
           {media.length > 0 && (
-            <ScrollView
-              horizontal
-              style={styles.mediaList}
-              showsHorizontalScrollIndicator={false}
-            >
+            <ScrollView horizontal style={styles.mediaList} showsHorizontalScrollIndicator={false}>
               {media.map((item, index) => (
                 <View key={item.id} style={styles.mediaItem}>
                   <Image source={{ uri: item.uri }} style={styles.mediaImg} />
                   {item.type === 'video' && (
                     <View style={styles.videoIconOverlay}>
-                      <Icon source="play-circle" color="white" size={30} />
+                      <Icon source="play-circle" color="white" size={28} />
                     </View>
                   )}
                   {item.uploading && (
@@ -468,7 +566,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
                       <IconButton
                         icon="refresh"
                         iconColor="white"
-                        size={28}
+                        size={26}
                         onPress={() => retryUpload(index)}
                         style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
                       />
@@ -476,7 +574,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
                   )}
                   <IconButton
                     icon="close-circle"
-                    size={22}
+                    size={20}
                     containerColor="white"
                     iconColor="#E53935"
                     style={styles.deleteMedia}
@@ -487,7 +585,10 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
             </ScrollView>
           )}
 
-          <Text style={styles.label}>3. OBSERVACIONES ADICIONALES</Text>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>3. OBSERVACIONES ADICIONALES</Text>
+            <Text style={styles.labelHint}>Opcional</Text>
+          </View>
           <TextInput
             mode="outlined"
             multiline
@@ -495,26 +596,31 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
             value={description}
             onChangeText={setDescription}
             style={styles.textInput}
-            outlineColor="#E0E0E0"
+            contentStyle={styles.textInputContent}
+            outlineColor="#E6EEE9"
             activeOutlineColor={accent}
+            outlineStyle={{ borderRadius: 14 }}
+            right={
+              <TextInput.Icon
+                icon={dictating ? 'stop-circle-outline' : 'microphone-outline'}
+                color={dictating ? '#E53935' : '#64748B'}
+                onPress={toggleDictation}
+              />
+            }
           />
+        </ScrollView>
 
-          <Button
-            mode="contained"
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
+          <AppButton
+            label={isUploading ? 'Subiendo evidencias...' : config.labels.submitButton}
+            icon="send-outline"
+            size="md"
             onPress={handleSubmit}
-            style={[
-              styles.mainSubmitBtn,
-              { backgroundColor: canSubmit ? accent : '#BDBDBD' },
-            ]}
-            contentStyle={{ height: 60 }}
             loading={loading}
             disabled={loading || !canSubmit}
-          >
-            <Text style={styles.submitBtnText}>
-              {isUploading ? 'SUBIENDO...' : config.labels.submitButton}
-            </Text>
-          </Button>
-        </ScrollView>
+            style={styles.submit}
+          />
+        </View>
       </KeyboardAvoidingView>
 
       <CameraModal
@@ -549,58 +655,109 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
 ====================================================== */
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#F4F9F6' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 4,
-    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E6EEE9',
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#333' },
-  content: { padding: 16, paddingBottom: 60 },
-  label: {
-    fontSize: 11,
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: '#E8F7EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
     fontWeight: '900',
-    color: '#9E9E9E',
-    marginBottom: 12,
-    marginTop: 15,
-    letterSpacing: 1.2,
+    color: '#0F172A',
   },
-
-  typeWrapper: {
+  scroll: { flex: 1 },
+  content: { padding: 16, paddingBottom: 24 },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    marginBottom: 10,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#64748B',
+    letterSpacing: 0.6,
+  },
+  labelHint: { fontSize: 10, fontWeight: '600', color: '#94A3B8' },
+  typeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    rowGap: 8,
+    marginBottom: 4,
   },
-  typeChip: { borderRadius: 10, borderColor: '#EEEEEE' },
-  typeChipText: { fontSize: 13, fontWeight: '600' },
-  emptyTypes: { color: '#9E9E9E', fontSize: 12 },
-
-  photoActionRow: { flexDirection: 'row', gap: 12, marginBottom: 15 },
-  bigCaptureBtn: {
-    flex: 1,
-    height: 90,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 2,
-  },
-  bigCaptureText: {
-    color: 'white',
-    fontWeight: '900',
-    fontSize: 13,
-    marginTop: 6,
-  },
-
-  mediaList: { marginBottom: 20, paddingVertical: 5 },
-  mediaItem: { marginRight: 15, position: 'relative' },
-  mediaImg: {
-    width: 100,
-    height: 100,
+  typeTile: {
+    width: '48.5%',
+    minHeight: 48,
     borderRadius: 12,
-    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  typeRadio: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  typeRadioDot: { width: 8, height: 8, borderRadius: 4 },
+  typeTileText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#475569', lineHeight: 15 },
+  emptyTypes: { color: '#94A3B8', fontSize: 12 },
+  captureStack: { gap: 8, marginBottom: 6 },
+  captureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 64,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+  },
+  captureIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: '#E8F7EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  captureTitle: { fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  captureSub: { fontSize: 10, fontWeight: '600', color: '#94A3B8', marginTop: 2 },
+  mediaList: { marginTop: 10, marginBottom: 4 },
+  mediaItem: { marginRight: 12, position: 'relative' },
+  mediaImg: {
+    width: 88,
+    height: 88,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
   },
   videoIconOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -609,7 +766,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.2)',
     borderRadius: 12,
   },
-  deleteMedia: { position: 'absolute', top: -12, right: -12, margin: 0 },
+  deleteMedia: { position: 'absolute', top: -10, right: -10, margin: 0 },
   loaderOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
@@ -624,22 +781,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,0,0,0.2)',
     borderRadius: 12,
   },
-
-  textInput: { backgroundColor: 'white', minHeight: 100, fontSize: 15 },
-  mainSubmitBtn: { marginTop: 30, borderRadius: 12, elevation: 4 },
-  submitBtnText: {
-    color: 'white',
-    fontWeight: '900',
-    fontSize: 16,
-    letterSpacing: 1,
+  textInput: {
+    backgroundColor: '#FFFFFF',
+    minHeight: 100,
+    fontSize: 13,
+    borderRadius: 14,
   },
-
+  textInputContent: {
+    paddingTop: 10,
+  },
+  footer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E6EEE9',
+  },
+  submit: { width: '100%', height: 50 },
   dialogTitle: {
     marginTop: 20,
-    fontWeight: 'bold',
+    fontWeight: '800',
     fontSize: 16,
-    color: '#333',
-    textAlign: 'center',
+    color: '#0F172A',
   },
-  dialogSub: { marginTop: 8, color: '#999', fontSize: 12 },
+  dialogSub: { marginTop: 4, fontSize: 12, color: '#64748B' },
 });

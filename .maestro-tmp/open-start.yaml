@@ -1,0 +1,4 @@
+appId: com.checkapp
+---
+- tapOn: "Iniciar ronda"
+- waitForAnimationToEnd

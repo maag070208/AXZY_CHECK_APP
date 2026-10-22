@@ -187,7 +187,6 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
   const userRole = userState.role;
   const focusedPath = getFocusedRoutePath(state);
   const clock = useLiveClock();
-  const greetingTheme = theme.greeting[clock.slot];
 
   const fadeIn = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -227,21 +226,31 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
       <Animated.View
         style={[
           styles.header,
-          { paddingTop: insets.top + 16, backgroundColor: greetingTheme.background, opacity: fadeIn },
+          { paddingTop: insets.top + 16, opacity: fadeIn },
         ]}
       >
         <View style={styles.decoCircleLarge} />
         <View style={styles.decoCircleSmall} />
+
+        <View style={styles.brandRow}>
+          <View style={styles.brandIcon}>
+            <Icon source="qrcode-scan" size={18} color="#A7F3D0" />
+          </View>
+          <Text style={styles.brandText}>
+            Check<Text style={styles.brandAccent}>App</Text>
+          </Text>
+        </View>
+
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
             <View style={styles.greetingPill}>
-              <Icon source={clock.icon} size={15} color={greetingTheme.icon} />
-              <Text style={[styles.greeting, { color: greetingTheme.text }]}>{clock.greeting}</Text>
+              <Icon source={clock.icon} size={15} color="#A7F3D0" />
+              <Text style={styles.greeting}>{clock.greeting}</Text>
             </View>
-            <Text style={[styles.userName, { color: greetingTheme.text }]} numberOfLines={1}>
+            <Text style={styles.userName} numberOfLines={1}>
               {userState.fullName || 'Usuario'}
             </Text>
-            <Text style={[styles.headerMeta, { color: greetingTheme.text }]} numberOfLines={1}>
+            <Text style={styles.headerMeta} numberOfLines={1}>
               Entrada {userState.loggedInAt ? dayjs(userState.loggedInAt).format('HH:mm') : '—'} ·{' '}
               {ROLE_TRANSLATIONS[userRole || ''] || userRole || ''}
             </Text>
@@ -249,7 +258,7 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
 
           <View style={styles.avatarWrap}>
             <View style={styles.avatarButton}>
-              <Text style={[styles.avatarText, { color: greetingTheme.text }]}>
+              <Text style={styles.avatarText}>
                 {userState.fullName?.charAt(0).toUpperCase() || 'U'}
               </Text>
             </View>
@@ -270,6 +279,8 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
+        <Text style={styles.menuCaption}>MENÚ</Text>
+
         {filteredMenuItems.map((item, index) => {
           const isActive = isItemActive(item);
           return (
@@ -285,22 +296,20 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
                 resetToModule(item.route as any, item.screen, params);
               }}
             >
-              <View style={[styles.iconBox, isActive && styles.iconBoxActive]}>
-                <Icon
-                  source={item.icon}
-                  size={20}
-                  color={isActive ? theme.colors.onPrimary : theme.colors.primary}
-                />
-              </View>
+              <Icon
+                source={item.icon}
+                size={20}
+                color={isActive ? theme.colors.primary : '#64748B'}
+              />
 
               <Text style={[styles.menuLabel, isActive && styles.menuLabelActive]}>
                 {item.label}
               </Text>
 
               <Icon
-                source={isActive ? 'chevron-down' : 'chevron-right'}
-                size={16}
-                color={isActive ? theme.colors.primary : theme.colors.outline}
+                source="chevron-right"
+                size={15}
+                color={isActive ? theme.colors.primary : '#CBD5E1'}
               />
             </TouchableOpacity>
           );
@@ -334,11 +343,23 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 22,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     overflow: 'hidden',
+    backgroundColor: '#065911',
   },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 20 },
+  brandIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandText: { color: '#FFFFFF', fontSize: 18, fontWeight: '900', letterSpacing: -0.3 },
+  brandAccent: { color: '#86EFAC' },
   decoCircleLarge: {
     position: 'absolute',
     right: -36,
@@ -346,7 +367,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.09)',
   },
   decoCircleSmall: {
     position: 'absolute',
@@ -355,7 +376,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   headerContent: {
     flexDirection: 'row',
@@ -370,25 +391,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.14)',
     borderRadius: 999,
     paddingVertical: 4,
     paddingHorizontal: 10,
-    marginBottom: 6,
+    marginBottom: 7,
   },
   greeting: {
     fontSize: 12,
     fontWeight: '800',
+    color: '#D1FAE5',
   },
   userName: {
-    fontSize: 21,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     marginBottom: 3,
+    color: '#FFFFFF',
   },
   headerMeta: {
     fontSize: 12,
     fontWeight: '600',
-    opacity: 0.85,
+    color: '#BBF7D0',
   },
   avatarWrap: {
     width: 60,
@@ -398,15 +421,16 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: theme.colors.onPrimary,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.7)',
+    borderColor: 'rgba(255,255,255,0.8)',
   },
   avatarText: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '900',
+    color: '#065911',
   },
   editButton: {
     position: 'absolute',
@@ -415,55 +439,52 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 10,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#12A36F',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: theme.colors.background,
+    borderColor: '#065911',
   },
   menuContainer: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 14,
+  },
+  menuCaption: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#94A3B8',
+    letterSpacing: 1.1,
+    marginLeft: 12,
+    marginBottom: 8,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    gap: 12,
+    paddingVertical: 11,
     paddingHorizontal: 12,
-    borderRadius: 14,
-    marginBottom: 4,
+    borderRadius: 12,
+    marginBottom: 2,
   },
   menuItemActive: {
-    backgroundColor: theme.colors.primaryContainer,
-  },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: theme.colors.primaryContainer,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  iconBoxActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#E8F7EF',
   },
   menuLabel: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.onSurface,
+    color: '#0F172A',
   },
   menuLabelActive: {
     color: theme.colors.primary,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   footer: {
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.surfaceVariant,
+    borderTopColor: '#E6EEE9',
   },
   logoutBtn: {
     flexDirection: 'row',
@@ -472,7 +493,9 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: theme.colors.errorContainer,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   logoutText: {
     fontSize: 15,

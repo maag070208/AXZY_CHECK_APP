@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import {
   Text,
-  Button,
   TextInput,
   ActivityIndicator,
   IconButton,
@@ -37,11 +36,14 @@ import {
 } from '../../assignments/service/assignment.service';
 import { TaskChecklist } from '../components/TaskChecklist';
 import { showToast } from '../../../core/store/slices/toast.slice';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppButton } from '../../../shared/components/AppButton';
 
 const { width } = Dimensions.get('window');
 
 export const CheckReportScreen = ({ route, navigation }: any) => {
   const { location, assignmentId } = route.params;
+  const insets = useSafeAreaInsets();
   const user = useSelector((state: RootState) => state.userState);
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
@@ -51,8 +53,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   const [currentKardexId, setCurrentKardexId] = useState<number | null>(null);
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<'video' | 'photo'>('photo');
-  const [showDescDialog, setShowDescDialog] = useState(false);
-  const [tempDescription, setTempDescription] = useState('');
+  const [exitDialogVisible, setExitDialogVisible] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
   
   // Requirements State (Fixed to Optional/Libre)
@@ -217,21 +218,12 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     } else {
       const newPhoto = {
         uri: file.uri,
-        description: tempDescription,
+        description: '',
         uploading: true,
       };
       setPhotos(prev => [...prev, newPhoto]);
       await performPhotoUpload(newPhoto);
     }
-  };
-
-  const onDescriptionConfirmed = () => {
-    // Empty description is now allowed
-    setShowDescDialog(false);
-    setTimeout(() => {
-      setCameraMode('photo');
-      setCameraVisible(true);
-    }, 500);
   };
 
   const performVideoUpload = async (uri: string) => {
@@ -335,16 +327,18 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   }, [navigation, currentKardexId, photos]); // Deps might need refinement based on when we want to warn
 
   const handleBackPress = () => {
-      // IF report is started (id exists) but not finished, warn user
-      Alert.alert(
-          '¿Salir del reporte?',
-          'Si sales ahora, deberás escanear nuevamente para iniciar otro reporte. (Las evidencias subidas se conservan en el servidor)',
-          [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Salir', style: 'destructive', onPress: () => navigation.goBack() }
-          ]
-      );
+      if (exitDialogVisible) {
+          setExitDialogVisible(false);
+          return true;
+      }
+      // El borrador ya existe: al salir, el punto queda NOT_COMPLETED.
+      setExitDialogVisible(true);
       return true;
+  };
+
+  const handleConfirmExit = () => {
+      setExitDialogVisible(false);
+      navigation.goBack();
   };
 
   // Android Back Button
@@ -444,43 +438,62 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     }
   };
 
+  const hasPendingTasks = !!assignmentId && tasks.some(t => !t.completed);
+  const hasPendingUploads = photos.some(p => p.uploading) || video?.uploading === true;
+  const saveDisabled =
+    loading ||
+    !currentKardexId ||
+    hasPendingUploads ||
+    photos.length < requirements.minPhotos ||
+    (requirements.videoRequired && (!video || !video.url || video.error)) ||
+    hasPendingTasks;
+  const saveLabel = !currentKardexId
+    ? 'Preparando reporte...'
+    : hasPendingUploads
+    ? 'Subiendo evidencias...'
+    : photos.length < requirements.minPhotos
+    ? `Faltan ${requirements.minPhotos - photos.length} fotos`
+    : requirements.videoRequired && !video?.url
+    ? 'Falta video'
+    : hasPendingTasks
+    ? 'Tareas pendientes'
+    : 'Guardar reporte';
+
   return (
     <View style={styles.mainContainer}>
       <ScrollView
+        style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* HEADER PRO */}
-        <View style={styles.headerContainer}>
-          <View>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                <Text style={styles.headerSubtitle}>REPORTE TÉCNICO</Text>
-                <View style={{backgroundColor: '#e0e0e0', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 8, marginBottom: 4}}>
-                    <Text style={{fontSize: 9, fontWeight: 'bold', color: '#555'}}>{requirements.label.toUpperCase()}</Text>
-                </View>
+        {/* HEADER */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroTop}>
+            <View style={styles.heroIcon}>
+              <Icon source="clipboard-text-outline" size={22} color="#065911" />
             </View>
-            <Text style={styles.headerTitle}>
-              {location?.name || 'Zona de Control'}
-            </Text>
-            <View style={styles.locationBadge}>
-              <IconButton
-                icon="map-marker"
-                size={12}
-                iconColor="#065911"
-                style={{ margin: 0 }}
-              />
-              <Text style={styles.locationText}>
-                Verificación en tiempo real
+
+            <View style={styles.heroBody}>
+              <View style={styles.eyebrowRow}>
+                <Text style={styles.eyebrow}>REPORTE TÉCNICO</Text>
+                <View style={styles.levelPill}>
+                  <Text style={styles.levelText}>{requirements.label.toUpperCase()}</Text>
+                </View>
+              </View>
+              <Text style={styles.reportTitle}>
+                {location?.name || 'Zona de Control'}
               </Text>
             </View>
           </View>
-          <Surface style={styles.userAvatar} elevation={2}>
-            <Text style={styles.userInitial}>
-              {user?.username?.charAt(0).toUpperCase()}
-            </Text>
-          </Surface>
-        </View>
 
+          <View style={styles.heroFooter}>
+            <View style={styles.statusDot} />
+            <Text style={styles.heroStatus}>En curso</Text>
+            <Text style={styles.heroDivider}>·</Text>
+            <Icon source="map-marker" size={12} color="#64748B" />
+            <Text style={styles.heroMeta}>Verificación en tiempo real</Text>
+          </View>
+        </View>
 
         {/* TASKS CHECKLIST (If Assignment or Recurring) */}
         {tasks.length > 0 && (
@@ -491,9 +504,17 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
           />
         )}
 
-        {/* NOTAS - ESTILO CLEAN INPUT */}
+        {/* NOTAS */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Observaciones Generales</Text>
+          <View style={styles.sectionHeading}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.sectionIcon}>
+                <Icon source="message-text-outline" size={16} color="#065911" />
+              </View>
+              <Text style={styles.sectionLabelSmall}>Observaciones</Text>
+            </View>
+            <Text style={styles.sectionHint}>Describe lo que encontraste</Text>
+          </View>
           <TextInput
             mode="outlined"
             placeholder="Escribe los detalles de la revisión..."
@@ -501,91 +522,99 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
             onChangeText={setNotes}
             multiline
             numberOfLines={4}
-            style={styles.inputGlass}
-            outlineColor="transparent"
-            activeOutlineColor="#065911"
-            placeholderTextColor="#999"
+            style={styles.inputCard}
+            outlineColor="#E6EEE9"
+            activeOutlineColor="#12A36F"
+            placeholderTextColor="#94A3B8"
+            outlineStyle={{ borderRadius: 16 }}
           />
         </View>
 
-        {/* VIDEO SECTION - ESTILO CARD PREMIUM */}
+        {/* VIDEO */}
         <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Evidencia Multimedia</Text>
-            {video ? (
-                <Surface style={styles.videoCardPro} elevation={1}>
-                <View style={styles.videoHeader}>
-                    <View style={styles.iconCircle}>
-                    <IconButton
-                        icon="play-circle"
-                        iconColor="#065911"
-                        size={24}
-                    />
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.videoTitle}>Video de Inspección</Text>
-                    <Text
-                        style={[
-                        styles.videoStatus,
-                        video.error && { color: '#ff4444' },
-                        ]}
-                    >
-                        {video.uploading
-                        ? 'Procesando archivo...'
-                        : video.error
-                        ? 'Fallo en carga'
-                        : 'Subido correctamente'}
-                    </Text>
-                    </View>
-                    {video.error && (
-                        <IconButton
-                            icon="refresh"
-                            iconColor="#065911"
-                            onPress={() => performVideoUpload(video.uri)}
-                        />
-                    )}
-                    <IconButton
-                    icon="trash-can-outline"
-                    iconColor="#ff4444"
-                    onPress={() => setVideo(null)}
-                    />
+          <View style={styles.sectionHeading}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.sectionIcon}>
+                <Icon source="video-outline" size={16} color="#065911" />
+              </View>
+              <Text style={styles.sectionLabelSmall}>Video de evidencia</Text>
+            </View>
+            <Text style={styles.sectionHint}>Opcional</Text>
+          </View>
+
+          {video ? (
+            <Surface style={styles.videoCardPro} elevation={0}>
+              <View style={styles.videoHeader}>
+                <View style={styles.videoIconCircle}>
+                  <Icon source="play-circle" size={22} color="#065911" />
                 </View>
-                {video.uploading && (
-                    <ProgressBar
-                    indeterminate
-                    color="#065911"
-                    style={styles.proProgress}
-                    />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.videoTitle}>Video de inspección</Text>
+                  <Text
+                    style={[
+                      styles.videoStatus,
+                      video.error && { color: '#B91C1C' },
+                    ]}
+                  >
+                    {video.uploading
+                      ? 'Procesando archivo...'
+                      : video.error
+                      ? 'Fallo en carga'
+                      : 'Subido correctamente'}
+                  </Text>
+                </View>
+                {video.error && (
+                  <IconButton
+                    icon="refresh"
+                    iconColor="#065911"
+                    onPress={() => performVideoUpload(video.uri)}
+                  />
                 )}
-                </Surface>
-            ) : (
-                <TouchableOpacity
-                activeOpacity={0.7}
-                style={styles.videoPlaceholder}
-                onPress={() => {
-                    setCameraMode('video');
-                    setCameraVisible(true);
-                }}
-                >
-                <IconButton icon="video-plus" size={32} iconColor="#555" />
-                <Text style={[styles.videoPlaceholderText, { color: '#555' }]}>
-                    AGREGAR VIDEO (OPCIONAL)
-                </Text>
-                </TouchableOpacity>
-            )}
+                <IconButton
+                  icon="trash-can-outline"
+                  iconColor="#EF4444"
+                  onPress={() => setVideo(null)}
+                />
+              </View>
+              {video.uploading && (
+                <ProgressBar indeterminate color="#12A36F" style={styles.proProgress} />
+              )}
+            </Surface>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.videoAddCard}
+              onPress={() => {
+                setCameraMode('video');
+                setCameraVisible(true);
+              }}
+            >
+              <View style={styles.videoAddIcon}>
+                <Icon source="video-plus-outline" size={21} color="#065911" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.videoAddTitle}>Agregar video</Text>
+                <Text style={styles.videoAddSub}>Opcional · máximo 1 video</Text>
+              </View>
+              <Icon source="chevron-right" size={18} color="#CBD5E1" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* PHOTOS GRID PRO */}
         <View style={styles.section}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.sectionLabel}>Galería de Capturas</Text>
-            <View
-              style={[
-                styles.statusBadge,
-                photos.length >= requirements.minPhotos ? styles.badgeSuccess : styles.badgePending,
-              ]}
-            >
-              <Text style={styles.badgeText}>
-                  {requirements.minPhotos === 0 ? 'Opcional' : `${photos.length}/${requirements.minPhotos} Mínimo`}
+          <View style={styles.sectionHeading}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.sectionIcon}>
+                <Icon source="image-multiple-outline" size={16} color="#065911" />
+              </View>
+              <Text style={styles.sectionLabelSmall}>Galería de capturas</Text>
+            </View>
+            <View style={styles.optionalPill}>
+              <Text style={styles.optionalPillText}>
+                {requirements.minPhotos === 0
+                  ? 'Opcional'
+                  : `${photos.length}/${requirements.minPhotos}`}
               </Text>
             </View>
           </View>
@@ -624,58 +653,48 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
 
             <TouchableOpacity
               style={styles.addPhotoCard}
+              activeOpacity={0.8}
               onPress={() => {
-                setTempDescription('');
-               onDescriptionConfirmed()
+                setCameraMode('photo');
+                setCameraVisible(true);
               }}
             >
-              <IconButton icon="plus" iconColor="#065911" size={28} />
+              <Icon source="plus" size={22} color="#065911" />
               <Text style={styles.addPhotoText}>Añadir</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* SUBMIT BUTTON - ULTRA PRO */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={handleSubmit}
-          disabled={
-              loading || 
-              !currentKardexId || 
-              photos.length < requirements.minPhotos || 
-              (requirements.videoRequired && (!video || !video.url || video.error)) || 
-              (assignmentId && tasks.some(t => !t.completed))
-          }
-          style={[
-            styles.mainActionBtn,
-            (
-                loading || 
-                !currentKardexId || 
-                photos.length < requirements.minPhotos || 
-                (requirements.videoRequired && (!video || !video.url || video.error)) || 
-                (assignmentId && tasks.some(t=> !t.completed))
-            ) && {
-              opacity: 0.5,
-              backgroundColor: '#c8c8c8',
-              shadowOpacity: 0,
-            },
-          ]}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.mainActionText}>
-              {photos.length < requirements.minPhotos
-                ? `Faltan ${requirements.minPhotos - photos.length} fotos`
-                : (requirements.videoRequired && !video?.url)
-                ? 'Falta Video'
-                : (assignmentId && tasks.some(t => !t.completed))
-                ? 'Tareas Pendientes'
-                : 'Guardar Reporte'}
+        <View style={styles.tipsCard}>
+          <View style={styles.tipsIcon}>
+            <Icon source="shield-check-outline" size={18} color="#065911" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tipsTitle}>Antes de guardar</Text>
+            <Text style={styles.tipsText}>
+              Revisa que las fotos se vean claras y que el punto sea el correcto.
             </Text>
-          )}
-        </TouchableOpacity>
+          </View>
+        </View>
+
       </ScrollView>
+
+      <View
+        style={[
+          styles.footerBar,
+          { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+        ]}
+      >
+        <AppButton
+          label={saveLabel}
+          icon="content-save-outline"
+          size="md"
+          onPress={handleSubmit}
+          loading={loading}
+          disabled={saveDisabled}
+          style={styles.saveButton}
+        />
+      </View>
 
       <CameraModal
         visible={cameraVisible}
@@ -683,42 +702,6 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         mode={cameraMode}
         onCapture={handleCapture}
       />
-
-      {/* DIALOG MODERNIZADO */}
-      <Portal>
-        <Dialog
-          visible={showDescDialog}
-          onDismiss={() => setShowDescDialog(false)}
-          style={styles.modernDialog}
-        >
-          <Dialog.Title style={styles.dialogTitlePro}>
-            Anotación de Imagen
-          </Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              mode="flat"
-              placeholder="¿Qué destaca en esta foto?"
-              value={tempDescription}
-              onChangeText={setTempDescription}
-              style={styles.dialogInput}
-              activeUnderlineColor="#065911"
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowDescDialog(false)} textColor="#999">
-              Cancelar
-            </Button>
-            <Button
-              onPress={onDescriptionConfirmed}
-              mode="text"
-              labelStyle={{ fontWeight: 'bold' }}
-              textColor="#065911"
-            >
-              Capturar
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
 
       <Portal>
         {(photos.some(p => p.uploading) || video?.uploading === true) && (
@@ -754,13 +737,145 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
           </View>
         )}
       </Portal>
+
+      <Portal>
+        <Dialog
+          visible={exitDialogVisible}
+          onDismiss={() => setExitDialogVisible(false)}
+          style={styles.exitDialog}
+        >
+          <View style={styles.exitDialogContent}>
+            <View style={styles.exitIconCircle}>
+              <Icon source="alert-circle-outline" size={32} color="#D97706" />
+            </View>
+            <Text style={styles.exitTitle}>¿Salir del reporte?</Text>
+            <Text style={styles.exitMessage}>
+              Si sales ahora, este punto quedará marcado como{' '}
+              <Text style={{ fontWeight: '800', color: '#B45309' }}>No completada</Text>.
+              Podrás escanearlo de nuevo para completarlo. Las evidencias subidas se conservan.
+            </Text>
+            <View style={styles.exitActions}>
+              <AppButton
+                label="Cancelar"
+                variant="outline"
+                onPress={() => setExitDialogVisible(false)}
+                style={styles.exitButton}
+              />
+              <AppButton
+                label="Salir"
+                variant="danger"
+                onPress={handleConfirmExit}
+                style={styles.exitButton}
+              />
+            </View>
+          </View>
+        </Dialog>
+      </Portal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#f6fbf4' },
-  scrollContent: { padding: 24, paddingBottom: 60 },
+  mainContainer: { flex: 1, backgroundColor: '#F4F9F6' },
+  exitDialog: {
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    width: '90%',
+    alignSelf: 'center',
+    padding: 0,
+  },
+  exitDialogContent: {
+    padding: 22,
+    alignItems: 'center',
+  },
+  exitIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFF7ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  exitTitle: {
+    fontSize: 19,
+    fontWeight: '900',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  exitMessage: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  exitActions: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  exitButton: {
+    flex: 1,
+  },
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 12 },
+  heroCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
+    padding: 16,
+    marginBottom: 18,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  heroTop: { flexDirection: 'row', alignItems: 'flex-start' },
+  heroIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#E8F7EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroBody: { flex: 1, marginLeft: 12 },
+  heroFooter: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 12 },
+  statusDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#12A36F' },
+  heroStatus: { fontSize: 11, fontWeight: '800', color: '#065911' },
+  heroDivider: { fontSize: 11, color: '#94A3B8', fontWeight: '700' },
+  heroMeta: { fontSize: 11, fontWeight: '600', color: '#64748B' },
+  reportHeader: { marginTop: 4, marginBottom: 16 },
+  eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 4, flexWrap: 'wrap' },
+  eyebrow: { fontSize: 11, fontWeight: '900', color: '#065911', letterSpacing: 1.2 },
+  levelPill: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  levelText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
+  reportTitle: {
+    fontSize: 21,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.2,
+    lineHeight: 26,
+  },
+  reportMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  reportMetaIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#E8F7EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportMetaText: { fontSize: 11, fontWeight: '600', color: '#64748B' },
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -799,7 +914,49 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   userInitial: { color: '#065911', fontWeight: '800', fontSize: 20 },
-  section: { marginBottom: 32 },
+  section: { marginBottom: 16 },
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sectionIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    backgroundColor: '#E8F7EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionLabelSmall: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.1,
+  },
+  sectionHint: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    flexShrink: 1,
+    textAlign: 'right',
+    marginLeft: 8,
+  },
+  inputCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
+    minHeight: 104,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
+    fontSize: 14,
+    color: '#0F172A',
+    textAlignVertical: 'top',
+  },
   sectionLabel: {
     fontSize: 16,
     fontWeight: '800',
@@ -824,6 +981,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  videoAddCard: {
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+  },
+  videoAddIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#E8F7EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoAddTitle: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
+  videoAddSub: { fontSize: 12, fontWeight: '600', color: '#64748B', marginTop: 2 },
   videoPlaceholderText: {
     fontSize: 11,
     fontWeight: '800',
@@ -831,15 +1009,23 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   videoCardPro: {
-    borderRadius: 20,
-    backgroundColor: '#FFF',
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
     overflow: 'hidden',
-    padding: 4,
   },
   videoHeader: { flexDirection: 'row', alignItems: 'center', padding: 12 },
-  iconCircle: { backgroundColor: '#f1f6eb', borderRadius: 12, padding: 2 },
-  videoTitle: { fontWeight: '700', fontSize: 15, color: '#1A1C3D' },
-  videoStatus: { fontSize: 12, color: '#2e7d32', marginTop: 2 },
+  videoIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#E8F7EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoTitle: { fontWeight: '800', fontSize: 13, color: '#0F172A' },
+  videoStatus: { fontSize: 10, fontWeight: '600', color: '#065911', marginTop: 2 },
   proProgress: { height: 4, borderRadius: 2 },
   rowBetween: {
     flexDirection: 'row',
@@ -851,19 +1037,24 @@ const styles = StyleSheet.create({
   badgePending: { backgroundColor: '#FFDAD6' },
   badgeSuccess: { backgroundColor: '#d0f8d3' },
   badgeText: { fontSize: 11, fontWeight: 'bold' },
-  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  photoContainerPro: {
-    width: (width - 48 - 28) / 3,
-    height: (width - 48 - 28) / 3,
-    borderRadius: 18,
-    backgroundColor: '#FFF',
-    position: 'relative',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+  optionalPill: {
+    backgroundColor: '#E8F7EF',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  photoImage: { width: '100%', height: '100%', borderRadius: 18 },
+  optionalPillText: { fontSize: 10, fontWeight: '800', color: '#065911' },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  photoContainerPro: {
+    width: (width - 32 - 20) / 3,
+    height: (width - 32 - 20) / 3,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
+  },
+  photoImage: { width: '100%', height: '100%', borderRadius: 14 },
   photoDeleteBtn: {
     position: 'absolute',
     top: -8,
@@ -880,27 +1071,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addPhotoCard: {
-    width: (width - 48 - 28) / 3,
-    height: (width - 48 - 28) / 3,
-    borderRadius: 18,
-    backgroundColor: '#FFF',
+    width: (width - 32 - 20) / 3,
+    height: (width - 32 - 20) / 3,
+    borderRadius: 14,
+    backgroundColor: '#F8FDFA',
     borderWidth: 1,
-    borderColor: '#E8EBF3',
+    borderColor: '#C7F0DF',
+    borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 6,
   },
   addPhotoText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#065911',
-    marginTop: -8,
   },
   photoLoader: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(255,255,255,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 14,
   },
   mainActionBtn: {
     backgroundColor: '#065911',
@@ -922,6 +1114,35 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
+  tipsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#E8F7EF',
+    borderWidth: 1,
+    borderColor: '#C7F0DF',
+    borderRadius: 16,
+    padding: 12,
+  },
+  tipsIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipsTitle: { fontSize: 12, fontWeight: '800', color: '#065911' },
+  tipsText: { fontSize: 11, fontWeight: '600', color: '#475569', lineHeight: 15, marginTop: 2 },
+  footerBar: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E6EEE9',
+  },
+  saveButton: { width: '100%', height: 52 },
   modernDialog: { borderRadius: 28, backgroundColor: '#FFF', padding: 8 },
   dialogTitlePro: {
     textAlign: 'center',

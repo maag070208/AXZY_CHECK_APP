@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  DeviceEventEmitter,
   View,
   StyleSheet,
   FlatList,
@@ -8,13 +10,14 @@ import {
   Alert,
   Dimensions,
   StatusBar,
-  ActivityIndicator,
+  LayoutAnimation,
+  Platform,
+  UIManager,
   TouchableOpacity,
 } from 'react-native';
 import {
   Text,
   Card,
-  ProgressBar,
   Icon,
   Button,
   Surface,
@@ -25,6 +28,7 @@ import {
   useFocusEffect,
   useIsFocused,
   useNavigation,
+  useRoute,
 } from '@react-navigation/native';
 import {
   Camera,
@@ -43,10 +47,44 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { theme } from '../../../shared/theme/theme';
+import { AppButton } from '../../../shared/components/AppButton';
+import { Skeleton } from '../../../shared/components/Skeleton';
 import { UserRole } from '../../../core/types/IUser';
 import { ShiftAlertBanner } from '../../shiftHandover/components/ShiftAlertBanner';
+import { parseLocationQrPayload } from '../../../shared/utils/locationQr';
 
 const { width } = Dimensions.get('window');
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const animateLayout = () =>
+  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+const LOCATION_STATUS = {
+  PENDING: {
+    label: 'Pendiente',
+    bg: '#FFFBF5',
+    border: '#FED7AA',
+    dot: '#F59E0B',
+    color: '#B45309',
+  },
+  NOT_COMPLETED: {
+    label: 'No completada',
+    bg: '#FFF7F7',
+    border: '#FECACA',
+    dot: '#EF4444',
+    color: '#B91C1C',
+  },
+  COMPLETED: {
+    label: 'Completada',
+    bg: '#F5FDF8',
+    border: '#BBF7D0',
+    dot: '#22C55E',
+    color: '#065911',
+  },
+} as const;
 
 export const GuardDashboard = () => {
   const navigation = useNavigation<any>();
@@ -60,7 +98,8 @@ export const GuardDashboard = () => {
   
   // State Variables
   const [scanned, setScanned] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [roundLoading, setRoundLoading] = useState(false);
   
   const [activeRound, setActiveRound] = useState<any>(null); // { id, startTime }
@@ -70,6 +109,12 @@ export const GuardDashboard = () => {
   const [specialAssignments, setSpecialAssignments] = useState<any[]>([]);
   const [routeSelectionVisible, setRouteSelectionVisible] = useState(false);
   const [endRoundVisible, setEndRoundVisible] = useState(false);
+  const [roundCompletedVisible, setRoundCompletedVisible] = useState(false);
+  const [scanDialog, setScanDialog] = useState<{
+    title: string;
+    message: string;
+    tone: 'error' | 'warning';
+  } | null>(null);
   const [startModalConfig, setStartModalConfig] = useState<any>(null);
 
   // Cooldown logic has been removed as per user request.
@@ -98,7 +143,54 @@ export const GuardDashboard = () => {
   const isRoundCompleted = activeRound && activeRound.status === 'COMPLETED';
   const isMyRound = isRoundActive && Number(activeRound.guardId) === Number(user.id);
 
+  // El tab bar puede pedir "abrir escáner" al tocar el CTA cuando hay ronda activa.
+  const route = useRoute<any>();
+  const lastAutoScan = useRef<number | null>(null);
+  useEffect(() => {
+    const token = route.params?.autoScanRound;
+    if (!token || token === lastAutoScan.current) return;
+    lastAutoScan.current = token;
+    if (isRoundActive && isMyRound) {
+      animateLayout();
+      setScanned(false);
+      setCameraActive(true);
+    }
+  }, [route.params?.autoScanRound, isRoundActive, isMyRound]);
+
+  // Banda animada + pulso del marco del escáner QR.
+  const scanLine = useRef(new Animated.Value(0)).current;
+  const scanPulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!cameraActive) {
+      scanLine.setValue(0);
+      scanPulse.setValue(0);
+      return;
+    }
+    const beam = Animated.loop(
+      Animated.timing(scanLine, {
+        toValue: 1,
+        duration: 1600,
+        useNativeDriver: true,
+      }),
+    );
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanPulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(scanPulse, { toValue: 0, duration: 700, useNativeDriver: true }),
+      ]),
+    );
+    beam.start();
+    pulse.start();
+    return () => {
+      beam.stop();
+      pulse.stop();
+      scanLine.setValue(0);
+      scanPulse.setValue(0);
+    };
+  }, [cameraActive, scanLine, scanPulse]);
+
   const loadData = async () => {
+    const startedAt = Date.now();
     setLoading(true);
     try {
       const [recurringRes, assignRes, roundRes, activeRoundsRes] = await Promise.all([
@@ -161,7 +253,16 @@ export const GuardDashboard = () => {
       // Fallbacks are already handled by initial state
       dispatch(showToast({ message: 'Error de conexión', type: 'error' }));
     } finally {
+      // En el primer arranque mantenemos el skeleton un momento para que se perciba.
+      if (!hasLoaded) {
+        const remaining = 600 - (Date.now() - startedAt);
+        if (remaining > 0) {
+          await new Promise(resolve => setTimeout(resolve, remaining));
+        }
+      }
+      animateLayout();
       setLoading(false);
+      setHasLoaded(true);
     }
   };
 
@@ -171,7 +272,9 @@ export const GuardDashboard = () => {
       try {
         const res = await startRound(Number(user.id), configId);
         if (res.success) {
+          animateLayout();
           setActiveRound(res.data);
+          DeviceEventEmitter.emit('ROUND_STATE_CHANGED');
           loadData(); // Refresh list to update "Pending" status based on new round
           dispatch(showToast({ message: 'Ronda iniciada', type: 'success' }));
         } else {
@@ -218,8 +321,10 @@ export const GuardDashboard = () => {
     try {
         const res = await endRound(activeRound.id);
         if (res.success) {
+            animateLayout();
             setActiveRound(res.data);
-            dispatch(showToast({ message: 'Ronda finalizada', type: 'success' }));
+            DeviceEventEmitter.emit('ROUND_STATE_CHANGED');
+            setRoundCompletedVisible(true);
         } else {
             dispatch(showToast({ message: res.messages?.[0] || 'Error al finalizar', type: 'error' }));
         }
@@ -249,7 +354,7 @@ export const GuardDashboard = () => {
   };
 
   const codeScanner = useCodeScanner({
-    codeTypes: ['qr', 'ean-13'],
+    codeTypes: ['qr'],
     onCodeScanned: codes => {
       if (scanned || codes.length === 0 || !codes[0].value) return;
       handleCodeScanned(codes[0].value);
@@ -259,135 +364,118 @@ export const GuardDashboard = () => {
   const handleCodeScanned = (code: string) => {
     if (scanned) return;
     setScanned(true);
-    setCameraActive(false); // Turn off camera immediately after scan
 
-    console.log("Scanned Code:", code);
-    let foundLocation: any = null;
-    console.log("Configs:", configs);
-    
-    let scannedId: number | null = null;
-    try {
-        const parsed = JSON.parse(code);
-        if (parsed && parsed.id !== undefined && parsed.id !== null) {
-            scannedId = Number(parsed.id);
-        }
-    } catch (e) {
-        console.log("Scanned code is not JSON");
+    // Solo QRs firmados/emitidos por CheckApp.
+    const payload = parseLocationQrPayload(code);
+    if (!payload) {
+      setScanDialog({
+        title: 'QR no válido',
+        message:
+          'Este código no pertenece a CheckApp. Escanea el QR oficial del punto de control.',
+        tone: 'error',
+      });
+      return;
     }
 
     // Validar SOLO en la configuración de la ronda activa
     const activeConfig = configs.find(c => c.id === activeRound?.recurringConfigurationId);
 
-    if (!activeConfig) {       
-       Alert.alert('Error', 'No se encontró la configuración de la ronda activa.', [{ text: 'OK', onPress: () => setScanned(false) }]);
-       return;
+    if (!activeConfig) {
+      setScanDialog({
+        title: 'Ronda no disponible',
+        message: 'No se encontró la configuración de la ronda activa. Vuelve a intentarlo.',
+        tone: 'warning',
+      });
+      return;
     }
 
     const match = activeConfig.recurringLocations.find(
-      (l: any) => {
-           if (scannedId !== null) {
-               return l.location.id === scannedId && !l.completed;
-           }
-           return l.location.name === code && !l.completed;
-      },
+      (l: any) => l.location.id === payload.id && !l.completed,
     );
 
     if (match) {
-        foundLocation = match;
-    }
-
-    if (foundLocation) {
+      animateLayout();
+      setCameraActive(false);
       navigation.navigate('CHECK_STACK', {
         screen: 'CHECK_MAIN',
         params: {
-          location: foundLocation.location,
-          recurringTasks: foundLocation.tasks,
+          location: match.location,
+          recurringTasks: match.tasks,
         },
       });
     } else {
-      Alert.alert(
-        '❌ No encontrado',
-        'La ubicación escaneada no pertenece a la ronda activa o ya fue completada.',
-        [{ text: 'OK', onPress: () => setScanned(false) }],
-      );
+      setScanDialog({
+        title: 'Punto no encontrado',
+        message:
+          'Este QR es de CheckApp, pero no pertenece a la ronda activa o el punto ya fue completado.',
+        tone: 'warning',
+      });
     }
   };
 
   // --- RENDERS ORIGINALES CON DISEÑO MEJORADO ---
 
   const renderLocationItem = ({ item }: { item: any }) => {
-    const isCompleted = item.completed;
+    const rawStatus = String(item.status ?? '').toUpperCase();
+    const statusKey =
+      rawStatus === 'NOT_COMPLETED' || rawStatus === 'NOT_COMPLETE' || rawStatus === 'INCOMPLETE'
+        ? 'NOT_COMPLETED'
+        : rawStatus === 'COMPLETED' || item.completed
+        ? 'COMPLETED'
+        : 'PENDING';
+    const meta = LOCATION_STATUS[statusKey];
     const taskCount = item.tasks?.length || 0;
+    const mediaCount = Number(
+      item.mediaCount ??
+        item.media?.length ??
+        item.evidences?.length ??
+        item.mediaFiles?.length ??
+        0,
+    );
+    const scannedAt = item.lastCompleted ?? item.completedAt ?? item.startedAt;
 
     return (
       <Surface
-        style={[styles.locCard, isCompleted && styles.completedCard]}
+        style={[styles.locCard, { backgroundColor: meta.bg, borderColor: meta.border }]}
         elevation={0}
       >
         <View style={styles.locContent}>
-          <View style={styles.locMainInfo}>
-            <View style={styles.locHeader}>
-              <View
-                style={[
-                  styles.statusDot,
-                  isCompleted ? styles.completedDot : styles.pendingDot,
-                ]}
-              />
-              <Text
-                style={[styles.locName, isCompleted && styles.completedText]}
-                numberOfLines={1}
-              >
-                {item.location?.name}
-              </Text>
-            </View>
-
-            <View style={styles.metaContainer}>
-              <View
-                style={[
-                  styles.taskBadge,
-                  isCompleted && styles.completedTaskBadge,
-                ]}
-              >
-                <Icon
-                  source={isCompleted ? 'check-circle' : 'clipboard-list'}
-                  size={14}
-                  color={
-                    isCompleted ? theme.colors.primary : theme.colors.secondary
-                  }
-                />
-                <Text
-                  style={[
-                    styles.taskCount,
-                    isCompleted && styles.completedTaskCount,
-                  ]}
-                >
-                  {taskCount} {taskCount === 1 ? 'tarea' : 'tareas'}
-                </Text>
-              </View>
-              {item.lastCompleted && (
-                <View style={styles.timeContainer}>
-                  <Icon
-                    source="clock-outline"
-                    size={12}
-                    color={theme.colors.outline}
-                  />
-                  <Text style={styles.timeText}>
-                    {new Date(item.lastCompleted).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                </View>
-              )}
+          <View style={styles.locHeader}>
+            <View style={[styles.statusDot, { backgroundColor: meta.dot }]} />
+            <Text style={styles.locName} numberOfLines={1}>
+              {item.location?.name}
+            </Text>
+            <View style={styles.locStatusChip}>
+              <Text style={[styles.locStatusText, { color: meta.color }]}>{meta.label}</Text>
             </View>
           </View>
-          {isCompleted && (
-            <Icon
-              source="check-circle"
-              size={24}
-              color={theme.colors.primary}
-            />
-          )}
+
+          <View style={styles.metaContainer}>
+            <View style={styles.locBadge}>
+              <Icon source="clipboard-list-outline" size={13} color={meta.color} />
+              <Text style={styles.locBadgeText}>
+                {taskCount} {taskCount === 1 ? 'tarea' : 'tareas'}
+              </Text>
+            </View>
+            <View style={styles.locBadge}>
+              <Icon source="image-multiple-outline" size={13} color={meta.color} />
+              <Text style={styles.locBadgeText}>Evidencias {mediaCount}</Text>
+            </View>
+          </View>
+
+          <View style={styles.locTimeRow}>
+            <Icon source="clock-outline" size={12} color="#94A3B8" />
+            <Text style={styles.timeText}>
+              {scannedAt
+                ? `${
+                    statusKey === 'NOT_COMPLETED' && !item.reportSaved ? 'Iniciada' : 'Escaneada'
+                  } ${new Date(scannedAt).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}`
+                : 'Aún sin escanear'}
+            </Text>
+          </View>
         </View>
       </Surface>
     );
@@ -406,173 +494,252 @@ export const GuardDashboard = () => {
   const renderBusyConfig = (item: any) => (
     <View style={[styles.configSection, styles.busySection]}>
       <View style={styles.configHeader}>
-        <View style={{ flex: 1 }}>
-          <View style={styles.configTitleRow}>
-            <Text style={[styles.configTitle, { color: '#78909C' }]} numberOfLines={1}>
-              {item.title}
-            </Text>
-            <View style={[styles.configStatusChip, { backgroundColor: '#FFF3E0' }]}>
-              <Text style={[styles.configStatusText, { color: '#E65100' }]}>Ocupada</Text>
-            </View>
-          </View>
-          <View style={styles.configMetaRow}>
-            <Icon source="account-clock-outline" size={13} color="#E65100" />
-            <Text style={styles.configMetaText}>
-              En curso por {item.busyBy} · {formatSince(item.busySince)}
-            </Text>
-          </View>
-          <View style={styles.configMetaRow}>
-            <Icon source="clipboard-check-outline" size={13} color={theme.colors.outline} />
-            <Text style={styles.configMetaText}>{item.recurringLocations?.length ?? 0} puntos</Text>
-          </View>
+        <View style={[styles.configIconBox, { backgroundColor: '#FFF7ED' }]}>
+          <Icon source="lock-outline" size={18} color="#B45309" />
         </View>
-        <Icon source="lock-outline" size={20} color="#B0BEC5" />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.configTitle} numberOfLines={1}>
+            {item.title}
+          </Text>
+          <Text style={styles.configMetaText} numberOfLines={1}>
+            En curso por {item.busyBy} · {formatSince(item.busySince)}
+          </Text>
+          <Text style={styles.configMetaText}>
+            {item.recurringLocations?.length ?? 0} puntos
+          </Text>
+        </View>
+        <View style={[styles.configStatusChip, { backgroundColor: '#FFF3E0' }]}>
+          <Text style={[styles.configStatusText, { color: '#B45309' }]}>Ocupada</Text>
+        </View>
       </View>
     </View>
   );
 
   const renderConfigSection = ({ item }: { item: any }) => {
     if (item.busyBy) return renderBusyConfig(item);
+
     const total = item.recurringLocations.length;
-    const completed = item.recurringLocations.filter(
-      (l: any) => l.completed,
-    ).length;
+    const completed = item.recurringLocations.filter((l: any) => l.completed).length;
     const progress = total > 0 ? completed / total : 0;
     const pct = Math.round(progress * 100);
 
-    const isActiveConfig =
-      activeRound && activeRound.recurringConfigurationId === item.id;
-
+    const isActiveConfig = activeRound && activeRound.recurringConfigurationId === item.id;
     const showContent = isMyRound && isActiveConfig;
-
     const isCompleted = completed === total && total > 0;
+    const available = !showContent && !isCompleted;
 
     const status = showContent
-      ? { label: 'En curso', bg: '#E8F5E9', color: '#2E7D32' }
+      ? { label: 'En curso', bg: '#E8F7EF', color: '#065911', icon: 'play-circle-outline' }
       : isCompleted
-      ? { label: 'Completado', bg: '#E3F2FD', color: '#1565C0' }
-      : { label: 'Asignado', bg: '#ECEFF1', color: '#546E7A' };
+      ? { label: 'Completado', bg: '#EFF6FF', color: '#1D4ED8', icon: 'check-circle-outline' }
+      : { label: 'Asignado', bg: '#F1F5F9', color: '#475569', icon: 'map-marker-path' };
 
     const cardContent = (
       <>
         <View style={styles.configHeader}>
-          <View style={{ flex: 1 }}>
-            <View style={styles.configTitleRow}>
-              <Text style={styles.configTitle} numberOfLines={1}>
-                {item.title}
-              </Text>
-              <View style={[styles.configStatusChip, { backgroundColor: status.bg }]}>
-                <Text style={[styles.configStatusText, { color: status.color }]}>
-                  {status.label}
-                </Text>
-              </View>
-            </View>
+          <View
+            style={[
+              styles.configIconBox,
+              { backgroundColor: showContent ? '#E8F7EF' : isCompleted ? '#EFF6FF' : '#F8FAFC' },
+            ]}
+          >
+            <Icon
+              source={status.icon as any}
+              size={18}
+              color={showContent ? '#065911' : isCompleted ? '#1D4ED8' : '#64748B'}
+            />
+          </View>
 
-            <View style={styles.configMetaRow}>
-              <Icon
-                source="clipboard-check-outline"
-                size={13}
-                color={theme.colors.outline}
-              />
-              <Text style={styles.configMetaText}>
-                {showContent || isCompleted
-                  ? `${completed}/${total} puntos · ${pct}%`
-                  : `${total} puntos`}
-              </Text>
-            </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.configTitle} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.configMetaText}>
+              {showContent || isCompleted
+                ? `${completed} de ${total} puntos completados`
+                : `${total} puntos en la ruta`}
+            </Text>
+          </View>
+
+          <View style={[styles.configStatusChip, { backgroundColor: status.bg }]}>
+            <Text style={[styles.configStatusText, { color: status.color }]}>
+              {status.label}
+            </Text>
           </View>
         </View>
 
         {(showContent || isCompleted) && (
-          <ProgressBar
-            progress={progress}
-            color={showContent ? theme.colors.primary : '#90A4AE'}
-            style={styles.progressBar}
-          />
+          <>
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressLabel}>{pct}% completado</Text>
+              <Text style={styles.progressCount}>
+                {completed}/{total}
+              </Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${Math.min(100, Math.max(0, pct))}%`,
+                    backgroundColor: showContent ? '#12A36F' : '#94A3B8',
+                  },
+                ]}
+              />
+            </View>
+          </>
         )}
 
         {showContent && (
-          <View style={{ paddingBottom: 10 }}>
+          <View style={styles.locationsList}>
             {item.recurringLocations.map((loc: any) => (
               <View key={loc.id}>{renderLocationItem({ item: loc })}</View>
             ))}
           </View>
         )}
+
+        {available && (
+          <>
+            <View style={styles.pointsPreview}>
+              {item.recurringLocations.slice(0, 3).map((loc: any) => (
+                <View key={loc.id} style={styles.pointChip}>
+                  <Icon source="map-marker-outline" size={12} color="#64748B" />
+                  <Text style={styles.pointChipText} numberOfLines={1}>
+                    {loc.location?.name}
+                  </Text>
+                </View>
+              ))}
+              {item.recurringLocations.length > 3 && (
+                <View style={styles.pointChip}>
+                  <Text style={styles.pointChipText}>
+                    +{item.recurringLocations.length - 3} más
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.startHint}>
+              <Icon source="play-circle-outline" size={15} color="#065911" />
+              <Text style={styles.startHintText}>Toca para iniciar esta ruta</Text>
+              <Icon source="chevron-right" size={17} color="#CBD5E1" />
+            </View>
+          </>
+        )}
       </>
     );
 
-    if (!showContent && !isCompleted) {
+    if (available) {
       return (
-        <View style={styles.configSection}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setStartModalConfig(item)}
-          >
-            <View style={styles.configHeader}>
-              <View style={{ flex: 1 }}>
-                <View style={styles.configTitleRow}>
-                  <Text style={styles.configTitle} numberOfLines={1}>
-                    {item.title}
-                  </Text>
-                  <View
-                    style={[
-                      styles.configStatusChip,
-                      { backgroundColor: status.bg },
-                    ]}
-                  >
-                    <Text
-                      style={[styles.configStatusText, { color: status.color }]}
-                    >
-                      {status.label}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.configMetaRow}>
-                  <Icon
-                    source="clipboard-check-outline"
-                    size={13}
-                    color={theme.colors.outline}
-                  />
-                  <Text style={styles.configMetaText}>{total} puntos</Text>
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.pointsCarousel}
-            nestedScrollEnabled
-          >
-            {item.recurringLocations.map((loc: any) => (
-              <View key={loc.id} style={styles.pointChip}>
-                <Icon source="map-marker-outline" size={12} color="#607D8B" />
-                <Text style={styles.pointChipText} numberOfLines={1}>
-                  {loc.location?.name}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
+        <TouchableOpacity
+          style={styles.configSection}
+          activeOpacity={0.85}
+          onPress={() => setStartModalConfig(item)}
+        >
+          {cardContent}
+        </TouchableOpacity>
       );
     }
 
     return (
-      <View
-        style={[
-          styles.configSection,
-          showContent
-            ? { borderColor: theme.colors.primary, borderWidth: 2 }
-            : {},
-        ]}
-      >
+      <View style={[styles.configSection, showContent && styles.configSectionActive]}>
         {cardContent}
       </View>
     );
   };
-  
+
+  const renderAction = (
+    label: string,
+    icon: string,
+    color: string,
+    onPress: () => void,
+  ) => (
+    <TouchableOpacity
+      style={[styles.actionTile, { backgroundColor: color }]}
+      activeOpacity={0.85}
+      onPress={onPress}
+    >
+      <Icon source={icon as any} size={17} color="#FFFFFF" />
+      <Text style={styles.actionTileText} numberOfLines={1} adjustsFontSizeToFit>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const closeScanDialog = () => {
+    setScanDialog(null);
+    setScanned(false);
+  };
+
+  const renderScanDialog = () => (
+    <Portal>
+      <Modal
+        visible={!!scanDialog}
+        onDismiss={closeScanDialog}
+        contentContainerStyle={styles.modernModalContent}
+      >
+        <View style={styles.modalIconContainer}>
+          <View
+            style={[
+              styles.iconCircle,
+              { backgroundColor: scanDialog?.tone === 'error' ? '#FEF2F2' : '#FFF7ED' },
+            ]}
+          >
+            <Icon
+              source="alert-circle-outline"
+              size={40}
+              color={scanDialog?.tone === 'error' ? '#EF4444' : '#D97706'}
+            />
+          </View>
+        </View>
+
+        <Text style={styles.modalTitle}>{scanDialog?.title}</Text>
+        <Text style={styles.modalSubtitle}>{scanDialog?.message}</Text>
+
+        <View style={styles.modalActionRow}>
+          <Button
+            mode="contained"
+            onPress={closeScanDialog}
+            style={styles.modalBtn}
+            buttonColor="#065911"
+            textColor="#FFFFFF"
+          >
+            Volver a escanear
+          </Button>
+        </View>
+      </Modal>
+    </Portal>
+  );
+
+  const renderRoundCompletedModal = () => (
+    <Portal>
+      <Modal
+        visible={roundCompletedVisible}
+        onDismiss={() => setRoundCompletedVisible(false)}
+        contentContainerStyle={styles.modernModalContent}
+      >
+        <View style={styles.modalIconContainer}>
+          <View style={[styles.iconCircle, { backgroundColor: '#E8F7EF' }]}>
+            <Icon source="check-circle" size={44} color="#12A36F" />
+          </View>
+        </View>
+
+        <Text style={styles.modalTitle}>¡Ronda completada!</Text>
+        <Text style={styles.modalSubtitle}>
+          Tu recorrido se guardó correctamente. Gracias por mantener el punto seguro.
+        </Text>
+
+        <View style={styles.modalActionRow}>
+          <AppButton
+            label="Entendido"
+            icon="check"
+            onPress={() => setRoundCompletedVisible(false)}
+            style={styles.modalBtn}
+          />
+        </View>
+      </Modal>
+    </Portal>
+  );
+
   const renderEndRoundModal = () => (
     <Portal>
         <Modal 
@@ -729,26 +896,30 @@ export const GuardDashboard = () => {
   );
 
   return (
-    <View style={loading ? {
-        display: 'flex',
-              justifyContent:'center',
-              alignItems: 'center',
-              height: '100%'
-    } : styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       {user.role === UserRole.SHIFT && <ShiftAlertBanner />}
       <>
-        {loading ? (
-          <>
-            <ActivityIndicator 
-            size={50} color="#28c444ff" />
-          </>
+        {loading && !hasLoaded ? (
+          <View style={styles.skeletonWrap}>
+            <Skeleton height={190} radius={24} />
+            <View style={styles.skeletonActions}>
+              {[0, 1, 2].map(i => (
+                <Skeleton key={i} height={44} radius={12} style={{ flex: 1 }} />
+              ))}
+            </View>
+            <Skeleton width={150} height={10} radius={5} style={{ marginTop: 22 }} />
+            <Skeleton height={72} radius={16} style={{ marginTop: 12 }} />
+            <Skeleton width={150} height={10} radius={5} style={{ marginTop: 22 }} />
+            <Skeleton height={104} radius={16} style={{ marginTop: 12 }} />
+            <Skeleton height={104} radius={16} style={{ marginTop: 10 }} />
+          </View>
         ) : (
           <>
-            <View style={styles.scannerContainer}>
+            <View style={[styles.scannerContainer, cameraActive && styles.scannerContainerActive, isMyRound && !cameraActive && styles.scannerContainerRoundActive]}>
               {!activeRound || isRoundCompleted ? (
                 <View style={styles.startContainer}>
-                  <Icon source="shield-lock-outline" size={44} color="#6b7280" />
+                  <Icon source="shield-lock-outline" size={34} color="#94A3B8" />
                   <Text style={styles.startTitle}>
                     {configs.length > 0
                       ? 'Ronda no iniciada'
@@ -756,21 +927,18 @@ export const GuardDashboard = () => {
                   </Text>
                   <Text style={styles.startSub}>
                     {configs.length > 0
-                      ? 'Inicia tu ronda para habilitar el escáner'
-                      : 'No tienes rutas disponibles'}
+                      ? 'Toca “Iniciar ronda” para comenzar tu recorrido.'
+                      : 'No tienes rutas disponibles.'}
                   </Text>
-                  <Button
-                    mode="contained"
-                    icon="play-circle-outline"
+                  <AppButton
+                    label="Iniciar ronda"
+                    icon="play"
+                    size="sm"
                     onPress={handleToggleRound}
                     loading={roundLoading}
                     disabled={configs.length === 0}
                     style={styles.startButton}
-                    contentStyle={{ height: 52 }}
-                    labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
-                  >
-                    INICIAR RONDA
-                  </Button>
+                  />
                 </View>
               ) : !isMyRound ? (
                 <View style={styles.startContainer}>
@@ -784,22 +952,28 @@ export const GuardDashboard = () => {
                 <>
                   {!cameraActive ? (
                     <View style={styles.startContainer}>
-                      <Button
-                        mode="contained"
+                      <Text style={styles.startTitle}>Ronda en curso</Text>
+                      <Text style={styles.startSub}>
+                        Toca “Escanear QR” y apunta la cámara al código de cada punto.
+                      </Text>
+                      <AppButton
+                        label="Escanear QR"
                         icon="qrcode-scan"
+                        size="md"
                         onPress={() => {
+                          animateLayout();
                           setScanned(false);
                           setCameraActive(true);
                         }}
-                        style={styles.startButton}
-                        contentStyle={{ height: 52 }}
-                        labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
-                      >
-                        ESCANEAR QR
-                      </Button>
-                      <Text style={styles.startSub}>
-                        Presiona para activar la cámara
-                      </Text>
+                        style={styles.roundButton}
+                      />
+                      <AppButton
+                        label="Terminar ronda"
+                        icon="stop-circle-outline"
+                        variant="danger"
+                        onPress={() => setEndRoundVisible(true)}
+                        style={styles.roundButton}
+                      />
                     </View>
                   ) : (
                     <>
@@ -812,77 +986,53 @@ export const GuardDashboard = () => {
                         />
                       )}
                       <View style={styles.scanOverlay}>
-                        <View style={styles.targetBox}>
-                          <View
-                            style={[
-                              styles.corner,
-                              {
-                                top: 0,
-                                left: 0,
-                                borderTopWidth: 4,
-                                borderLeftWidth: 4,
-                              },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              styles.corner,
-                              {
-                                top: 0,
-                                right: 0,
-                                borderTopWidth: 4,
-                                borderRightWidth: 4,
-                              },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              styles.corner,
-                              {
-                                bottom: 0,
-                                left: 0,
-                                borderBottomWidth: 4,
-                                borderLeftWidth: 4,
-                              },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              styles.corner,
-                              {
-                                bottom: 0,
-                                right: 0,
-                                borderBottomWidth: 4,
-                                borderRightWidth: 4,
-                              },
-                            ]}
-                          />
+                        <View style={styles.scanMaskTop}>
+                          <Text style={styles.cameraHint}>
+                            Apunta al QR dentro del marco
+                          </Text>
                         </View>
 
-                        <Button
-                          mode="contained"
-                          onPress={() => setCameraActive(false)}
-                          style={styles.cancelScanButton}
-                          textColor="white"
-                        >
-                          CANCELAR
-                        </Button>
+                        <View style={styles.scanCenterRow}>
+                          <View style={styles.scanMaskSide} />
+                          <View style={styles.targetBox}>
+                            <Animated.View
+                              style={[
+                                styles.scanLine,
+                                {
+                                  opacity: scanPulse.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.55, 1],
+                                  }),
+                                  transform: [
+                                    {
+                                      translateY: scanLine.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0, 198],
+                                      }),
+                                    },
+                                  ],
+                                },
+                              ]}
+                            />
+                          </View>
+                          <View style={styles.scanMaskSide} />
+                        </View>
+
+                        <View style={styles.scanMaskBottom}>
+                          <AppButton
+                            label="Cerrar cámara"
+                            icon="close"
+                            variant="outline"
+                            onPress={() => {
+                              animateLayout();
+                              setCameraActive(false);
+                            }}
+                            style={styles.cancelScanButton}
+                          />
+                        </View>
                       </View>
                     </>
                   )}
-
-                  <Button
-                    mode="contained"
-                    icon="stop-circle-outline"
-                    onPress={() => setEndRoundVisible(true)}
-                    style={styles.endRoundButton}
-                    contentStyle={{ height: 44 }}
-                    labelStyle={{ fontSize: 14, fontWeight: 'bold' }}
-                    buttonColor="#D32F2F"
-                    textColor="white"
-                  >
-                    TERMINAR RONDA
-                  </Button>
                 </>
               )}
             </View>
@@ -893,110 +1043,14 @@ export const GuardDashboard = () => {
               {/* BOTONES DE ACCIÓN */}
               <View style={styles.actionSection}>
                 <View style={styles.actionGrid}>
-                  <TouchableOpacity
-                    style={[styles.actionTile, { backgroundColor: '#E53935' }]}
-                    activeOpacity={0.85}
-                    onPress={() =>
-                      navigation.navigate('INCIDENT_REPORT', {
-                        initialCategory: 'FALTAS',
-                      })
-                    }
-                  >
-                    <Icon source="alert-circle" size={18} color="#ffffff" />
-                    <Text
-                      style={styles.actionTileText}
-                      numberOfLines={2}
-                      adjustsFontSizeToFit
-                    >
-                      INCIDENCIA
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionTile, { backgroundColor: '#FB8C00' }]}
-                    activeOpacity={0.85}
-                    onPress={() => navigation.navigate('MAINTENANCE_REPORT')}
-                  >
-                    <Icon source="wrench" size={18} color="#ffffff" />
-                    <Text
-                      style={styles.actionTileText}
-                      numberOfLines={2}
-                      adjustsFontSizeToFit
-                    >
-                      MANTENIMIENTO
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionTile, { backgroundColor: '#0EA5E9' }]}
-                    activeOpacity={0.85}
-                    onPress={() => navigation.navigate('CLUB_REPORT')}
-                  >
-                    <Icon source="home-modern" size={18} color="#ffffff" />
-                    <Text
-                      style={styles.actionTileText}
-                      numberOfLines={2}
-                      adjustsFontSizeToFit
-                    >
-                      CASA CLUB
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* "4.1 Chat grupal" y, para el jefe de guardias (SHIFT), los
-                      módulos de "4.2 Entrega de turno" y "4.3 Uniforme". */}
-                  <TouchableOpacity
-                    style={[styles.actionTile, { backgroundColor: '#7C3AED' }]}
-                    activeOpacity={0.85}
-                    onPress={() =>
-                      navigation.navigate('CHAT_STACK', { screen: 'CHAT_MAIN' })
-                    }
-                  >
-                    <Icon source="chat-outline" size={18} color="#ffffff" />
-                    <Text
-                      style={styles.actionTileText}
-                      numberOfLines={2}
-                      adjustsFontSizeToFit
-                    >
-                      CHAT
-                    </Text>
-                  </TouchableOpacity>
-
-                  {user.role === UserRole.SHIFT && (
-                    <>
-                      <TouchableOpacity
-                        style={[styles.actionTile, { backgroundColor: '#0F766E' }]}
-                        activeOpacity={0.85}
-                        onPress={() =>
-                          navigation.navigate('SHIFT_HANDOVER_STACK', { screen: 'SHIFT_HANDOVER_FORM' })
-                        }
-                      >
-                        <Icon source="swap-horizontal-bold" size={18} color="#ffffff" />
-                        <Text
-                          style={styles.actionTileText}
-                          numberOfLines={2}
-                          adjustsFontSizeToFit
-                        >
-                          ENTREGA DE TURNO
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[styles.actionTile, { backgroundColor: '#475569' }]}
-                        activeOpacity={0.85}
-                        onPress={() =>
-                          navigation.navigate('UNIFORM_STACK', { screen: 'UNIFORM_CHECKLIST' })
-                        }
-                      >
-                        <Icon source="tshirt-crew-outline" size={18} color="#ffffff" />
-                        <Text
-                          style={styles.actionTileText}
-                          numberOfLines={2}
-                          adjustsFontSizeToFit
-                        >
-                          UNIFORME
-                        </Text>
-                      </TouchableOpacity>
-                    </>
+                  {renderAction('Incidencia', 'alert-circle', '#E53935', () =>
+                    navigation.navigate('INCIDENT_REPORT', { initialCategory: 'FALTAS' }),
+                  )}
+                  {renderAction('Mantenimiento', 'wrench', '#F59E0B', () =>
+                    navigation.navigate('MAINTENANCE_REPORT'),
+                  )}
+                  {renderAction('Casa Club', 'home-modern', '#0EA5E9', () =>
+                    navigation.navigate('CLUB_REPORT'),
                   )}
                 </View>
               </View>
@@ -1019,11 +1073,12 @@ export const GuardDashboard = () => {
                     {/* ASIGNACIONES ESPECIALES - SE MANTIENEN TODAS */}
                     {specialAssignments.length > 0 && (
                       <View style={styles.specialSection}>
-                        <View style={styles.listHeaderLeft}>
-                          <Icon source="star" size={20} color="#FBC02D" />
-                          <Text style={styles.sectionTitle}>
-                            ASIGNACIONES ESPECIALES
-                          </Text>
+                        <View style={styles.sectionHeader}>
+                          <View style={styles.sectionTitleRow}>
+                            <Icon source="star" size={14} color="#F59E0B" />
+                            <Text style={styles.sectionTitle}>ASIGNACIONES ESPECIALES</Text>
+                          </View>
+                          <Text style={styles.sectionAside}>{specialAssignments.length}</Text>
                         </View>
                         {specialAssignments.map(assignment => (
                           <Card
@@ -1060,8 +1115,10 @@ export const GuardDashboard = () => {
                                   </Text>
                                 </View>
                               </View>
-                              <Button
-                                mode="contained"
+                              <AppButton
+                                label="Escanear"
+                                icon="qrcode-scan"
+                                variant="outline"
                                 onPress={() =>
                                   navigation.navigate('ASSIGNMENTS_STACK', {
                                     screen: 'ASSIGNMENT_SCAN',
@@ -1072,19 +1129,7 @@ export const GuardDashboard = () => {
                                     },
                                   })
                                 }
-                                compact
-                                contentStyle={{ height: 36 }}
-                                style={{ borderRadius: 8 }}
-                                buttonColor="#FBC02D"
-                                textColor="#000"
-                                labelStyle={{
-                                  fontWeight: 'bold',
-                                  fontSize: 12,
-                                }}
-                                icon="qrcode-scan"
-                              >
-                                ESCANEAR
-                              </Button>
+                              />
                             </View>
                           </Card>
                         ))}
@@ -1093,14 +1138,17 @@ export const GuardDashboard = () => {
 
                     {/* ALWAYS show the list header if we have recurring items, regardless of round status */}
                     {configs.length + busyConfigs.length > 0 && (
-                      <View style={styles.listHeaderLeft}>
-                        <Icon
-                          source="clipboard-list"
-                          size={20}
-                          color={theme.colors.primary}
-                        />
-                        <Text style={styles.sectionTitle}>
-                          MIS RECORRIDOS ({configs.length + busyConfigs.length})
+                      <View style={styles.sectionHeader}>
+                        <View style={styles.sectionTitleRow}>
+                          <Icon
+                            source="clipboard-text-clock-outline"
+                            size={14}
+                            color={theme.colors.primary}
+                          />
+                          <Text style={styles.sectionTitle}>MIS RECORRIDOS</Text>
+                        </View>
+                        <Text style={styles.sectionAside}>
+                          {configs.length + busyConfigs.length}
                         </Text>
                       </View>
                     )}
@@ -1112,6 +1160,8 @@ export const GuardDashboard = () => {
         )}
       </>
       {renderRouteSelectionModal()}
+      {renderScanDialog()}
+      {renderRoundCompletedModal()}
       {renderEndRoundModal()}
       {renderStartRoundModal()}
     </View>
@@ -1119,27 +1169,84 @@ export const GuardDashboard = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffffff' },
+  container: { flex: 1, backgroundColor: '#F4F9F6' },
+  skeletonWrap: { flex: 1, paddingHorizontal: 16, paddingTop: 8 },
+  skeletonActions: { flexDirection: 'row', gap: 8, marginTop: 16 },
 
   // Escáner
   scannerContainer: {
-    height: '35%',
-    backgroundColor: '#000',
-    marginBottom: 10,
+    height: 190,
+    backgroundColor: '#0B1220',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 0,
+    borderRadius: 24,
     overflow: 'hidden',
     position: 'relative',
   },
+  scannerContainerActive: {
+    height: 360,
+  },
+  scannerContainerRoundActive: {
+    height: 235,
+  },
   scanOverlay: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: 'column',
   },
-  targetBox: { width: 180, height: 180, position: 'relative' },
-  corner: {
+  scanMaskTop: {
+    flex: 1,
+    backgroundColor: 'rgba(2,6,23,0.45)',
+    alignItems: 'center',
+    paddingTop: 16,
+  },
+  scanCenterRow: {
+    height: 230,
+    flexDirection: 'row',
+  },
+  scanMaskSide: {
+    flex: 1,
+    backgroundColor: 'rgba(2,6,23,0.45)',
+  },
+  scanMaskBottom: {
+    flex: 1,
+    backgroundColor: 'rgba(2,6,23,0.45)',
+    alignItems: 'center',
+    paddingTop: 4,
+  },
+  cameraHint: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+    backgroundColor: 'rgba(15,23,42,0.75)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  targetBox: {
+    width: 230,
+    height: 230,
+    position: 'relative',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  scanLine: {
     position: 'absolute',
-    width: 30,
-    height: 30,
-    borderColor: theme.colors.primary,
+    top: 8,
+    left: 10,
+    right: 10,
+    height: 2,
+    borderRadius: 2,
+    backgroundColor: '#22C55E',
+    shadowColor: '#22C55E',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
+    elevation: 6,
   },
   scanTip: {
     position: 'absolute',
@@ -1159,49 +1266,52 @@ const styles = StyleSheet.create({
   // Cuerpo de la pantalla
   contentSheet: {
     flex: 1,
-    backgroundColor: '#F4F7F9',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    marginTop: -20,
-    paddingHorizontal: 15,
+    backgroundColor: '#F4F9F6',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -18,
+    paddingHorizontal: 16,
   },
   dragIndicator: {
     width: 40,
     height: 4,
-    backgroundColor: '#CCC',
+    backgroundColor: '#CBD5E1',
     borderRadius: 2,
     alignSelf: 'center',
     marginVertical: 10,
   },
 
   actionSection: {
-    marginBottom: 20,
+    marginBottom: 14,
     marginTop: 10,
   },
-  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  actionGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   actionTile: {
-    flexBasis: '22%',
-    height: 52,
-    borderRadius: 12,
-    justifyContent: 'center',
+    flex: 1,
+    height: 44,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 2,
-    paddingVertical: 6,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+  },
+  actionIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionTileText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.4,
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.2,
     textAlign: 'center',
-    lineHeight: 12,
-    paddingHorizontal: 2,
   },
 
   // Controles de ronda dentro del escáner
@@ -1209,48 +1319,62 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    gap: 10,
+    paddingHorizontal: 20,
+    gap: 6,
   },
   startTitle: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontWeight: '900',
+    letterSpacing: 0.2,
     textAlign: 'center',
   },
   startSub: {
-    color: '#9ca3af',
-    fontSize: 13,
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '600',
     textAlign: 'center',
   },
   startButton: {
-    marginTop: 8,
-    borderRadius: 14,
-    minWidth: 200,
+    marginTop: 6,
+    borderRadius: 12,
+    minWidth: 190,
+  },
+  roundButton: {
+    marginTop: 4,
+    width: '100%',
+    maxWidth: 260,
   },
   endRoundButton: {
     position: 'absolute',
     bottom: 12,
-    left: 15,
-    right: 15,
+    left: 16,
+    right: 16,
     borderRadius: 12,
   },
   cancelScanButton: {
-    position: 'absolute',
-    bottom: 70,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 200,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
   },
 
   // Secciones
-  specialSection: { marginBottom: 20 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#555',
-    marginLeft: 8,
-    letterSpacing: 0.5,
+  specialSection: { marginBottom: 18 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    marginBottom: 10,
   },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#94A3B8',
+    letterSpacing: 1.1,
+  },
+  sectionAside: { fontSize: 10, fontWeight: '700', color: '#94A3B8' },
   listHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1260,38 +1384,50 @@ const styles = StyleSheet.create({
 
   // Tarjetas Especiales
   specialCard: {
-    backgroundColor: '#FFF',
-    borderLeftWidth: 5,
-    borderLeftColor: '#FBC02D',
+    backgroundColor: '#FFFFFF',
     marginBottom: 8,
-    borderRadius: 12,
-    overflow: 'hidden', // Ensure border radius clips content
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
+    overflow: 'hidden',
   },
-  specialLocName: { fontSize: 16, fontWeight: '800', color: '#333' },
+  specialLocName: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
   specialNotes: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 11,
+    color: '#64748B',
     fontStyle: 'italic',
     marginTop: 4,
   },
   specialBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFF9C4',
+    backgroundColor: '#E8F7EF',
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingVertical: 3,
+    borderRadius: 999,
     marginTop: 8,
   },
-  specialBadgeText: { fontSize: 10, fontWeight: '800', color: '#F57F17' },
+  specialBadgeText: { fontSize: 9, fontWeight: '800', color: '#065911' },
 
   // Rondas (Configs)
   configSection: {
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    marginBottom: 15,
-    padding: 12,
+    marginBottom: 10,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#E0E6ED',
+    borderColor: '#E6EEE9',
+  },
+  configSectionActive: {
+    backgroundColor: '#FBFEFC',
+    borderColor: '#C7F0DF',
+  },
+  configIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
   busySection: {
     backgroundColor: '#FAFAFA',
@@ -1310,15 +1446,15 @@ const styles = StyleSheet.create({
   },
   configTitle: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
-    color: '#222',
+    color: '#0F172A',
     marginRight: 8,
   },
   configStatusChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
   configStatusText: {
     fontSize: 10,
@@ -1332,9 +1468,53 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   configMetaText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#546E7A',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  progressLabel: { fontSize: 10, fontWeight: '700', color: '#64748B' },
+  progressCount: { fontSize: 10, fontWeight: '800', color: '#0F172A' },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EEF3F0',
+    overflow: 'hidden',
+  },
+  progressFill: { height: '100%', borderRadius: 3 },
+  locationsList: {
+    marginTop: 12,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  pointsPreview: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 12,
+  },
+  startHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  startHintText: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#065911',
   },
   pointsCarousel: {
     gap: 8,
@@ -1345,17 +1525,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E3E8EE',
+    borderColor: '#E6EEE9',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   pointChipText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
-    color: '#455A64',
+    color: '#64748B',
     maxWidth: 120,
   },
   modalPointRow: {
@@ -1382,37 +1562,50 @@ const styles = StyleSheet.create({
 
   // Items de ubicación
   locCard: {
-    backgroundColor: '#FAFAFA',
-    borderRadius: 12,
+    borderRadius: 14,
     marginHorizontal: 0,
     marginVertical: 4,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
   },
-  completedCard: { backgroundColor: '#F1F8E9', borderColor: '#DCEDC8' },
-  locContent: { flexDirection: 'row', alignItems: 'center', padding: 12 },
+  completedCard: { backgroundColor: '#F5FDF8', borderColor: '#BBF7D0' },
+  locContent: { flexDirection: 'column', padding: 12 },
   locMainInfo: { flex: 1 },
-  locHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  locHeader: { flexDirection: 'row', alignItems: 'center' },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  pendingDot: { backgroundColor: '#FFA000' },
-  completedDot: { backgroundColor: '#4CAF50' },
-  locName: { fontSize: 14, fontWeight: '700', color: '#333' },
-  completedText: { color: '#888', textDecorationLine: 'line-through' },
-  metaContainer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  taskBadge: {
+  pendingDot: { backgroundColor: '#F59E0B' },
+  completedDot: { backgroundColor: '#22C55E' },
+  locName: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginRight: 8,
+  },
+  locStatusChip: {
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  locStatusText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.3 },
+  completedText: { color: '#64748B' },
+  metaContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 8 },
+  locBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F0F4F8',
+    backgroundColor: 'rgba(255,255,255,0.75)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
   },
+  locBadgeText: { fontSize: 10, fontWeight: '700', color: '#475569' },
   completedTaskBadge: { backgroundColor: '#E8F5E9' },
   taskCount: { fontSize: 11, fontWeight: '700', color: '#546E7A' },
   completedTaskCount: { color: '#43A047' },
   timeContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  timeText: { fontSize: 11, color: '#999' },
+  locTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
+  timeText: { fontSize: 10, fontWeight: '600', color: '#94A3B8' },
   
   // Modern Modal Styles
   modernModalContent: {

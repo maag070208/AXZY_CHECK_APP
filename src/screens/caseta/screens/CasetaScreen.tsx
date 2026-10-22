@@ -1,12 +1,25 @@
 import { useIsFocused } from '@react-navigation/native';
-import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { Icon } from 'react-native-paper';
 import { Camera, useCameraDevice, useCameraPermission, useCodeScanner } from 'react-native-vision-camera';
 import { TResult } from '../../../core/types/TResult';
+import { AppButton } from '../../../shared/components/AppButton';
 import { AccessScope, PassVerification, verifyPass } from '../services/caseta.service';
 import { Tone, describeVerification } from '../services/caseta.view';
 
-const TONE_COLOR: Record<Tone, string> = { ok: '#16a34a', warn: '#d97706', deny: '#dc2626' };
+const TONE_COLOR: Record<Tone, string> = { ok: '#065911', warn: '#B45309', deny: '#B91C1C' };
+const TONE_BG: Record<Tone, string> = { ok: '#F0FDF4', warn: '#FFFBF5', deny: '#FEF2F2' };
+const TONE_BORDER: Record<Tone, string> = { ok: '#BBF7D0', warn: '#FED7AA', deny: '#FECACA' };
 const MIN_CODE_LENGTH = 20;
 
 /** Caseta (guardia): escanea o escribe un pase y muestra si la persona puede entrar. */
@@ -34,7 +47,6 @@ export const CasetaScreen = () => {
       if (res.success && res.data) setResult(res.data);
       else setError(res.messages?.[0] ?? 'No se pudo verificar el pase.');
     } catch (e) {
-      // El cliente lanza el cuerpo de las respuestas no 2xx: trae mensajes del servidor.
       const body = e as Partial<TResult<PassVerification>> | undefined;
       setError(body?.messages?.[0] ?? 'Sin conexión con el servidor.');
     } finally {
@@ -42,11 +54,42 @@ export const CasetaScreen = () => {
     }
   };
 
-  // El QR del pase contiene el token en crudo: se verifica tal cual.
   const scanning = isFocused && !loading && !result;
+
+  const scanLine = useRef(new Animated.Value(0)).current;
+  const scanPulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!scanning) {
+      scanLine.setValue(0);
+      scanPulse.setValue(0);
+      return;
+    }
+    const beam = Animated.loop(
+      Animated.timing(scanLine, {
+        toValue: 1,
+        duration: 1600,
+        useNativeDriver: true,
+      }),
+    );
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanPulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(scanPulse, { toValue: 0, duration: 700, useNativeDriver: true }),
+      ]),
+    );
+    beam.start();
+    pulse.start();
+    return () => {
+      beam.stop();
+      pulse.stop();
+      scanLine.setValue(0);
+      scanPulse.setValue(0);
+    };
+  }, [scanning, scanLine, scanPulse]);
+
   const codeScanner = useCodeScanner({
     codeTypes: ['qr'],
-    onCodeScanned: (codes) => {
+    onCodeScanned: codes => {
       const value = codes[0]?.value;
       if (value) verify(value.trim());
     },
@@ -61,104 +104,292 @@ export const CasetaScreen = () => {
   const view = describeVerification(result);
 
   const cameraBox = !hasPermission ? (
-    <Pressable style={styles.cameraPlaceholder} onPress={requestPermission} accessibilityRole="button">
-      <Text style={styles.placeholderText}>Permitir la cámara para escanear el QR</Text>
+    <Pressable
+      style={styles.scanFramePlaceholder}
+      onPress={requestPermission}
+      accessibilityRole="button"
+    >
+      <View style={styles.placeholderIcon}>
+        <Icon source="camera-outline" size={26} color="#065911" />
+      </View>
+      <Text style={styles.placeholderTitle}>Activa la cámara</Text>
+      <Text style={styles.placeholderText}>Toca para escanear el QR</Text>
     </Pressable>
   ) : !device ? (
-    <View style={styles.cameraPlaceholder}>
-      <Text style={styles.placeholderText}>No hay cámara disponible</Text>
+    <View style={styles.scanFramePlaceholder}>
+      <View style={styles.placeholderIcon}>
+        <Icon source="camera-off-outline" size={26} color="#64748B" />
+      </View>
+      <Text style={styles.placeholderTitle}>Sin cámara</Text>
+      <Text style={styles.placeholderText}>Usa el código de abajo.</Text>
     </View>
   ) : (
-    <View style={styles.cameraBox}>
+    <View style={styles.scanFrame}>
       <Camera style={StyleSheet.absoluteFill} device={device} isActive={scanning} codeScanner={codeScanner} />
+      <Animated.View
+        style={[
+          styles.scanLine,
+          {
+            opacity: scanPulse.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.55, 1],
+            }),
+            transform: [
+              {
+                translateY: scanLine.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 206],
+                }),
+              },
+            ],
+          },
+        ]}
+      />
       {loading ? (
         <View style={styles.cameraOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
+          <ActivityIndicator size="large" color="#FFFFFF" />
         </View>
       ) : null}
     </View>
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Caseta</Text>
-
-      {cameraBox}
-
-      <Text style={styles.orText}>o escribe el código</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Código del pase"
-        value={code}
-        onChangeText={setCode}
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
-
-      <View style={styles.row}>
-        {(['PEDESTRIAN', 'VEHICLE'] as AccessScope[]).map((s) => (
-          <Pressable
-            key={s}
-            onPress={() => setScope(s)}
-            style={[styles.chip, scope === s && styles.chipActive]}
-            accessibilityRole="button"
-            accessibilityState={{ selected: scope === s }}
-          >
-            <Text style={[styles.chipText, scope === s && styles.chipTextActive]}>
-              {s === 'PEDESTRIAN' ? 'Peatón' : 'Vehículo'}
-            </Text>
-          </Pressable>
-        ))}
+    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+      <View style={styles.scanStage}>
+        {cameraBox}
+        <Text style={styles.scanHelp}>Coloca el QR dentro del recuadro</Text>
       </View>
 
-      <Pressable
-        onPress={() => verify(code.trim())}
-        style={styles.button}
-        accessibilityRole="button"
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>Verificar</Text>
-      </Pressable>
+      <View style={styles.orRow}>
+        <View style={styles.orLine} />
+        <Text style={styles.orText}>o escribe el código</Text>
+        <View style={styles.orLine} />
+      </View>
 
-      {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
+      <View style={styles.inputWrap}>
+        <Icon source="key-outline" size={18} color="#64748B" />
+        <TextInput
+          style={styles.input}
+          placeholder="Código del pase"
+          placeholderTextColor="#94A3B8"
+          value={code}
+          onChangeText={setCode}
+          autoCapitalize="none"
+          autoCorrect={false}
+          onSubmitEditing={() => verify(code.trim())}
+        />
+      </View>
+
+      <View style={styles.scopeRow}>
+        {(['PEDESTRIAN', 'VEHICLE'] as AccessScope[]).map(s => {
+          const active = scope === s;
+          return (
+            <Pressable
+              key={s}
+              onPress={() => setScope(s)}
+              style={[styles.chip, active && styles.chipActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+            >
+              <Icon
+                source={s === 'PEDESTRIAN' ? 'walk' : 'car-outline'}
+                size={17}
+                color={active ? '#FFFFFF' : '#64748B'}
+              />
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                {s === 'PEDESTRIAN' ? 'Peatón' : 'Vehículo'}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <AppButton
+        label="Verificar pase"
+        icon="shield-check-outline"
+        size="md"
+        onPress={() => verify(code.trim())}
+        loading={loading}
+        disabled={loading}
+        style={styles.verifyButton}
+      />
+
+      {error ? (
+        <View style={styles.errorCard} accessibilityRole="alert">
+          <Icon source="alert-circle-outline" size={18} color="#B91C1C" />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
 
       {view ? (
-        <View style={[styles.result, { borderColor: TONE_COLOR[view.tone] }]} accessibilityRole="alert">
-          <Text style={[styles.resultTitle, { color: TONE_COLOR[view.tone] }]}>{view.title}</Text>
-          <Text style={styles.resultDetail}>{view.detail}</Text>
+        <View
+          style={[
+            styles.result,
+            { borderColor: TONE_BORDER[view.tone], backgroundColor: TONE_BG[view.tone] },
+          ]}
+          accessibilityRole="alert"
+        >
+          <View style={[styles.resultIcon, { backgroundColor: TONE_COLOR[view.tone] }]}>
+            <Icon
+              source={
+                view.tone === 'ok'
+                  ? 'check'
+                  : view.tone === 'warn'
+                  ? 'alert-outline'
+                  : 'close'
+              }
+              size={20}
+              color="#FFFFFF"
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.resultTitle, { color: TONE_COLOR[view.tone] }]}>
+              {view.title}
+            </Text>
+            <Text style={styles.resultDetail}>{view.detail}</Text>
+          </View>
         </View>
       ) : null}
 
       {view || error ? (
-        <Pressable onPress={reset} style={styles.secondary} accessibilityRole="button">
-          <Text style={styles.secondaryText}>Verificar otro pase</Text>
-        </Pressable>
+        <AppButton
+          label="Verificar otro pase"
+          variant="outline"
+          size="md"
+          onPress={reset}
+          style={styles.resetButton}
+        />
       ) : null}
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 20, gap: 12, backgroundColor: '#f8fafc' },
-  title: { fontSize: 22, fontWeight: '700', color: '#0f172a' },
-  cameraBox: { height: 260, backgroundColor: '#000' },
-  cameraOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  cameraPlaceholder: { height: 260, borderRadius: 12, backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', padding: 16 },
-  placeholderText: { color: '#334155', textAlign: 'center' },
-  orText: { textAlign: 'center', color: '#64748b' },
-  input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, padding: 12, backgroundColor: '#fff' },
-  row: { flexDirection: 'row', gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: '#cbd5e1' },
-  chipActive: { backgroundColor: '#0f172a', borderColor: '#0f172a' },
-  chipText: { color: '#334155' },
-  chipTextActive: { color: '#fff' },
-  button: { backgroundColor: '#0f172a', borderRadius: 10, padding: 14, alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: '700' },
-  secondary: { borderRadius: 10, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#cbd5e1' },
-  secondaryText: { color: '#0f172a', fontWeight: '600' },
-  error: { color: '#dc2626' },
-  result: { borderWidth: 2, borderRadius: 12, padding: 16, backgroundColor: '#fff', gap: 6 },
-  resultTitle: { fontSize: 18, fontWeight: '700' },
-  resultDetail: { color: '#334155' },
+  screen: { flex: 1, backgroundColor: '#F4F9F6' },
+  container: { padding: 16, paddingBottom: 28, gap: 14 },
+  scanStage: { alignItems: 'center', gap: 10 },
+  scanFrame: {
+    width: 230,
+    height: 230,
+    borderRadius: 24,
+    backgroundColor: '#000000',
+    overflow: 'hidden',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  scanFramePlaceholder: {
+    width: 230,
+    height: 230,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#C7F0DF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    gap: 4,
+  },
+  scanLine: {
+    position: 'absolute',
+    top: 8,
+    left: 12,
+    right: 12,
+    height: 2,
+    borderRadius: 2,
+    backgroundColor: '#22C55E',
+    shadowColor: '#22C55E',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  cameraOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanHelp: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  placeholderIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 15,
+    backgroundColor: '#E8F7EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  placeholderTitle: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  placeholderText: { fontSize: 11, fontWeight: '600', color: '#64748B', textAlign: 'center' },
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  orLine: { flex: 1, height: 1, backgroundColor: '#E6EEE9' },
+  orText: { fontSize: 10, fontWeight: '700', color: '#94A3B8' },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
+    paddingHorizontal: 12,
+    height: 50,
+  },
+  input: { flex: 1, fontSize: 13, color: '#0F172A', paddingVertical: 0 },
+  scopeRow: { flexDirection: 'row', gap: 8 },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
+    backgroundColor: '#FFFFFF',
+  },
+  chipActive: { backgroundColor: '#065911', borderColor: '#065911' },
+  chipText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
+  chipTextActive: { color: '#FFFFFF' },
+  verifyButton: { width: '100%' },
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 14,
+    padding: 12,
+  },
+  errorText: { flex: 1, fontSize: 12, fontWeight: '600', color: '#B91C1C' },
+  result: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+  },
+  resultIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resultTitle: { fontSize: 14, fontWeight: '900' },
+  resultDetail: { fontSize: 11, fontWeight: '600', color: '#475569', marginTop: 2 },
+  resetButton: { width: '100%' },
 });

@@ -2,12 +2,13 @@ import { useNavigation } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Button, Card, Divider, Icon, Text, TextInput } from 'react-native-paper';
+import { Icon, Text, TextInput } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppDispatch, useAppSelector } from '../../core/store/hooks';
 import { updateProfile } from '../../core/store/slices/user.slice';
 import { changePassword, updateUserProfile } from '../../core/services/UserService';
 import { showToast } from '../../core/store/slices/toast.slice';
+import { AppButton } from '../../shared/components/AppButton';
 
 const ROLE_TRANSLATIONS: Record<string, string> = {
   ADMIN: 'Administrador',
@@ -35,6 +36,8 @@ export const ProfileScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const roleLabel = ROLE_TRANSLATIONS[user.role || ''] || user.role || '';
+  const entryTime = user.loggedInAt ? dayjs(user.loggedInAt).format('HH:mm') : '—';
+  const entryDate = user.loggedInAt ? dayjs(user.loggedInAt).format('DD/MM/YYYY') : 'Sin registro';
 
   const handleUpdateDetails = async () => {
     if (!user.id) return;
@@ -95,76 +98,100 @@ export const ProfileScreen = () => {
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 30 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
         keyboardShouldPersistTaps="handled"
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7}>
-          <Icon source="arrow-left" size={20} color="#065911" />
-        </TouchableOpacity>
-
-        {/* ===== Header ===== */}
-        <View style={styles.headerCard}>
-          <View style={styles.headerIconContainer}>
-            <Icon source="account-cog" size={32} color="#065911" />
-          </View>
-          <Text style={styles.title}>Mi Perfil</Text>
-          <Text style={styles.subtitle}>
-            {user.fullName} · {roleLabel}
-          </Text>
+        <View style={styles.topRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
+          >
+            <Icon source="arrow-left" size={20} color="#065911" />
+          </TouchableOpacity>
+          <Text style={styles.topTitle}>Mi perfil</Text>
         </View>
 
-        {/* ===== Info (Entrada) ===== */}
-        <Card style={styles.infoCard} elevation={0}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconBox}>
-              <Icon source="clock-in" size={18} color="#065911" />
-            </View>
-            <View style={styles.infoBody}>
-              <Text style={styles.infoLabel}>Entrada a la app</Text>
-              <Text style={styles.infoValue}>
-                {user.loggedInAt ? dayjs(user.loggedInAt).format('HH:mm · DD/MM/YYYY') : '—'}
+        <View style={styles.profileHero}>
+          <View style={styles.heroCircleLarge} />
+          <View style={styles.heroCircleSmall} />
+          <View style={styles.profileRow}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {user.fullName?.charAt(0).toUpperCase() || 'U'}
               </Text>
             </View>
-          </View>
-          <Divider style={styles.infoDivider} />
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconBox}>
-              <Icon source="at" size={18} color="#065911" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.heroName} numberOfLines={1}>
+                {user.fullName || 'Usuario'}
+              </Text>
+              <Text style={styles.heroRole}>{roleLabel}</Text>
+              <View style={styles.usernamePill}>
+                <Icon source="at" size={12} color="#BBF7D0" />
+                <Text style={styles.usernameText}>@{user.username || 'usuario'}</Text>
+              </View>
             </View>
-            <View style={styles.infoBody}>
-              <Text style={styles.infoLabel}>Usuario</Text>
-              <Text style={styles.infoValue}>@{user.username || '—'}</Text>
-            </View>
           </View>
-        </Card>
+        </View>
 
-        {/* ===== Form ===== */}
-        <Card style={styles.formCard} elevation={2}>
-          {/* Tabs */}
-          <View style={styles.tabRow}>
-            <Button
-              mode={mode === 'details' ? 'contained' : 'outlined'}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <View style={styles.statIcon}>
+              <Icon source="clock-in" size={17} color="#065911" />
+            </View>
+            <Text style={styles.statLabel}>Entrada</Text>
+            <Text style={styles.statValue}>{entryTime}</Text>
+            <Text style={styles.statHint}>{entryDate}</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <View style={styles.statIcon}>
+              <Icon source="account-outline" size={17} color="#065911" />
+            </View>
+            <Text style={styles.statLabel}>Cuenta</Text>
+            <Text style={styles.statValue} numberOfLines={1}>
+              @{user.username || 'usuario'}
+            </Text>
+            <Text style={styles.statHint}>CheckApp</Text>
+          </View>
+        </View>
+
+        <View style={styles.formCard}>
+          <View style={styles.segmented}>
+            <TouchableOpacity
+              style={[styles.segment, mode === 'details' && styles.segmentActive]}
               onPress={() => setMode('details')}
-              compact
-              style={styles.tabButton}
-              buttonColor={mode === 'details' ? '#065911' : undefined}
-              textColor={mode === 'details' ? undefined : '#64748B'}
+              activeOpacity={0.85}
             >
-              Datos
-            </Button>
-            <Button
-              mode={mode === 'password' ? 'contained' : 'outlined'}
+              <Text
+                style={[styles.segmentText, mode === 'details' && styles.segmentTextActive]}
+              >
+                Datos
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.segment, mode === 'password' && styles.segmentActive]}
               onPress={() => setMode('password')}
-              compact
-              style={styles.tabButton}
-              buttonColor={mode === 'password' ? '#065911' : undefined}
-              textColor={mode === 'password' ? undefined : '#64748B'}
+              activeOpacity={0.85}
             >
-              Seguridad
-            </Button>
+              <Text
+                style={[styles.segmentText, mode === 'password' && styles.segmentTextActive]}
+              >
+                Seguridad
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <Divider style={styles.divider} />
+          <Text style={styles.formTitle}>
+            {mode === 'details' ? 'Datos personales' : 'Seguridad'}
+          </Text>
+          <Text style={styles.formSubtitle}>
+            {mode === 'details'
+              ? 'Actualiza tu nombre y apellidos.'
+              : 'Cambia tu contraseña de acceso.'}
+          </Text>
 
           {mode === 'details' ? (
             <>
@@ -175,8 +202,11 @@ export const ProfileScreen = () => {
                   value={name}
                   onChangeText={setName}
                   placeholder="Ej. Juan"
-                  left={<TextInput.Icon icon="account" />}
+                  style={styles.input}
+                  outlineColor="#E6EEE9"
+                  activeOutlineColor="#12A36F"
                   outlineStyle={styles.inputOutline}
+                  left={<TextInput.Icon icon="account-outline" color="#64748B" />}
                 />
               </View>
               <View style={styles.inputGroup}>
@@ -186,78 +216,88 @@ export const ProfileScreen = () => {
                   value={lastName}
                   onChangeText={setLastName}
                   placeholder="Ej. Pérez García"
-                  left={<TextInput.Icon icon="account-details" />}
+                  style={styles.input}
+                  outlineColor="#E6EEE9"
+                  activeOutlineColor="#12A36F"
                   outlineStyle={styles.inputOutline}
+                  left={<TextInput.Icon icon="account-details-outline" color="#64748B" />}
                 />
               </View>
-              <Button
-                mode="contained"
+              <AppButton
+                label="Guardar cambios"
+                icon="content-save-outline"
+                size="md"
                 onPress={handleUpdateDetails}
                 loading={loading}
                 disabled={loading}
-                style={[styles.navButton, styles.submitButton]}
-                buttonColor="#065911"
-              >
-                Guardar Cambios
-              </Button>
+                style={styles.saveButton}
+              />
             </>
           ) : (
             <>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Contraseña Actual</Text>
+                <Text style={styles.inputLabel}>Contraseña actual</Text>
                 <TextInput
                   mode="outlined"
                   value={oldPassword}
                   onChangeText={setOldPassword}
                   secureTextEntry={!showPassword}
                   placeholder="••••••••"
-                  left={<TextInput.Icon icon="lock-outline" />}
+                  style={styles.input}
+                  outlineColor="#E6EEE9"
+                  activeOutlineColor="#12A36F"
+                  outlineStyle={styles.inputOutline}
+                  left={<TextInput.Icon icon="lock-outline" color="#64748B" />}
                   right={
                     <TextInput.Icon
                       icon={showPassword ? 'eye-off' : 'eye'}
                       onPress={() => setShowPassword(prev => !prev)}
                     />
                   }
-                  outlineStyle={styles.inputOutline}
                 />
               </View>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Nueva Contraseña</Text>
+                <Text style={styles.inputLabel}>Nueva contraseña</Text>
                 <TextInput
                   mode="outlined"
                   value={newPassword}
                   onChangeText={setNewPassword}
                   secureTextEntry={!showPassword}
                   placeholder="Mínimo 6 caracteres"
-                  left={<TextInput.Icon icon="key-outline" />}
+                  style={styles.input}
+                  outlineColor="#E6EEE9"
+                  activeOutlineColor="#12A36F"
                   outlineStyle={styles.inputOutline}
+                  left={<TextInput.Icon icon="key-outline" color="#64748B" />}
                 />
               </View>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Confirmar Nueva Contraseña</Text>
+                <Text style={styles.inputLabel}>Confirmar nueva contraseña</Text>
                 <TextInput
                   mode="outlined"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showPassword}
                   placeholder="Repite la nueva contraseña"
-                  left={<TextInput.Icon icon="key-change" />}
+                  style={styles.input}
+                  outlineColor="#E6EEE9"
+                  activeOutlineColor="#12A36F"
                   outlineStyle={styles.inputOutline}
+                  left={<TextInput.Icon icon="key-change" color="#64748B" />}
                 />
               </View>
-              <Button
-                mode="contained"
+              <AppButton
+                label="Actualizar contraseña"
+                icon="lock-reset"
+                size="md"
                 onPress={handleChangePassword}
                 loading={loading}
                 disabled={loading}
-                style={[styles.navButton, styles.submitButton]}
-                buttonColor="#065911"
-              >
-                Actualizar Contraseña
-              </Button>
+                style={styles.saveButton}
+              />
             </>
           )}
-        </Card>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -266,10 +306,16 @@ export const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F4F9F6',
   },
   scrollContent: {
     padding: 16,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
   },
   backButton: {
     width: 40,
@@ -277,111 +323,196 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E6EEE9',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
   },
-  headerCard: {
-    backgroundColor: 'transparent',
-    marginBottom: 20,
-    alignItems: 'center',
+  topTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.2,
   },
-  headerIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#D1FAE5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#065911',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  infoCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
+  profileHero: {
+    backgroundColor: '#065911',
+    borderRadius: 20,
     padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    marginBottom: 12,
+    overflow: 'hidden',
+    shadowColor: '#065911',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 5,
   },
-  infoRow: {
+  heroCircleLarge: {
+    position: 'absolute',
+    right: -42,
+    top: -48,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  heroCircleSmall: {
+    position: 'absolute',
+    left: -24,
+    bottom: -42,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  infoIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#D1FAE5',
-    justifyContent: 'center',
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  infoBody: {
+  avatarText: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#065911',
+  },
+  heroName: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  heroRole: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#BBF7D0',
+    marginTop: 2,
+  },
+  usernamePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginTop: 8,
+  },
+  usernameText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#D1FAE5',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  statCard: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
+    padding: 12,
   },
-  infoLabel: {
+  statIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#E8F7EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  statLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginTop: 2,
+  },
+  statHint: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E6EEE9',
+    padding: 16,
+  },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  segment: {
+    flex: 1,
+    height: 38,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentActive: {
+    backgroundColor: '#065911',
+  },
+  segmentText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  segmentTextActive: {
+    color: '#FFFFFF',
+  },
+  formTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  formSubtitle: {
     fontSize: 11,
     fontWeight: '600',
     color: '#64748B',
-    textTransform: 'uppercase',
-  },
-  infoValue: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginTop: 2,
-  },
-  infoDivider: {
-    backgroundColor: '#E2E8F0',
-    marginVertical: 14,
-  },
-  formCard: {
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-  },
-  tabRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  tabButton: {
-    flex: 1,
-    borderRadius: 12,
-  },
-  divider: {
-    marginVertical: 16,
-    backgroundColor: '#F1F5F9',
+    marginBottom: 14,
   },
   inputGroup: {
-    marginBottom: 18,
+    marginBottom: 14,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1E293B',
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
     marginBottom: 6,
+  },
+  input: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    fontSize: 13,
   },
   inputOutline: {
     borderRadius: 12,
   },
-  navButton: {
-    marginTop: 8,
-    borderRadius: 12,
-  },
-  submitButton: {
-    elevation: 3,
+  saveButton: {
+    width: '100%',
+    marginTop: 4,
+    height: 50,
   },
 });

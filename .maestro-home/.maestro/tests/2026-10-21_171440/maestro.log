@@ -1,0 +1,14 @@
+17:14:40.680 [ INFO] maestro.cli.report.TestDebugReporter.logSystemInfo: Debug output path: /Users/axzy/DEV/CHECK/BARCELONA/APP/.maestro-home/.maestro/tests/2026-10-21_171440
+17:14:40.682 [ INFO] MAESTRO.logSystemInfo: ---- System Info ----
+17:14:40.683 [ INFO] MAESTRO.logSystemInfo: Maestro Version: 2.5.1
+17:14:40.683 [ INFO] MAESTRO.logSystemInfo: CI: Undefined
+17:14:40.684 [ INFO] MAESTRO.logSystemInfo: OS Name: Mac OS X
+17:14:40.684 [ INFO] MAESTRO.logSystemInfo: OS Version: 26.6.2
+17:14:40.684 [ INFO] MAESTRO.logSystemInfo: Architecture: aarch64
+17:14:40.685 [ INFO] MAESTRO.logSystemInfo: Java Version: 17
+17:14:40.798 [ INFO] MAESTRO.logSystemInfo: Xcode Version: 27.0
+17:14:40.802 [ INFO] MAESTRO.logSystemInfo: Flutter Version: Undefined
+17:14:40.806 [ INFO] MAESTRO.logSystemInfo: Flutter Channel: Undefined
+17:14:40.806 [ INFO] MAESTRO.logSystemInfo: ---------------------
+17:14:40.910 [DEBUG] io.micrometer.common.util.internal.logging.InternalLoggerFactory.newDefaultFactory: Using SLF4J as the default logging framework
+17:14:59.403 [ INFO] maestro.drivers.AndroidDriver.close: [Start] Uninstall driver from device
