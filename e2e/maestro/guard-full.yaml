@@ -1,0 +1,8 @@
+appId: com.checkapp
+---
+# Suite E2E guardia marcoh: login + reportes sin evidencia + ronda
+- runFlow: login.yaml
+- runFlow: incident.yaml
+- runFlow: maintenance.yaml
+- runFlow: club.yaml
+- runFlow: round.yaml

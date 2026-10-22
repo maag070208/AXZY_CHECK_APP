@@ -11,3 +11,4 @@
 17:18:44.942 [ INFO] MAESTRO.logSystemInfo: Flutter Channel: Undefined
 17:18:44.942 [ INFO] MAESTRO.logSystemInfo: ---------------------
 17:18:45.024 [DEBUG] io.micrometer.common.util.internal.logging.InternalLoggerFactory.newDefaultFactory: Using SLF4J as the default logging framework
+17:19:00.690 [ INFO] maestro.drivers.AndroidDriver.close: [Start] Uninstall driver from device

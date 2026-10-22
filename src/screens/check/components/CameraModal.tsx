@@ -298,7 +298,7 @@ export const CameraModal = ({
             disabled={!isReady || cameraError}
             style={[styles.shutterOuter, (!isReady || cameraError) && { opacity: 0.45 }]}
             accessibilityRole="button"
-            accessibilityLabel={mode === 'photo' ? 'Tomar foto' : recording ? 'Detener grabación' : 'Grabar video'}
+            accessibilityLabel={mode === 'photo' ? 'Capturar foto' : recording ? 'Detener grabación' : 'Grabar video'}
           >
             <View style={styles.shutterInner}>
               {recording ? (

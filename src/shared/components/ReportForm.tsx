@@ -375,6 +375,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
   };
 
   const handleSubmit = async () => {
+    if (loading) return;
     if (!typeId) {
       Alert.alert('Falta información', 'Selecciona el tipo de problema primero.');
       return;

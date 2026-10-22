@@ -1,0 +1,30 @@
+appId: com.checkapp
+---
+# Incidencia sin foto ni video: solo tipo + enviar
+- tapOn: "Incidencia"
+- extendedWaitUntil:
+    visible: "Nuevo Reporte"
+    timeout: 15000
+- tapOn: "Arma de Fuego / Blanca"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "3. OBSERVACIONES ADICIONALES"
+    timeout: 10000
+- waitForAnimationToEnd
+- swipe:
+    start: 50%, 80%
+    end: 50%, 65%
+    duration: 400
+- waitForAnimationToEnd
+- tapOn: "ENVIAR REPORTE"
+- waitForAnimationToEnd
+# Reintento de UI solo si el primer toque se canceló con el scroll y no hay modal de envío.
+- runFlow:
+    when:
+      visible: "ENVIAR REPORTE"
+      notVisible: "Enviando reporte..."
+    commands:
+      - tapOn: "ENVIAR REPORTE"
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 30000
