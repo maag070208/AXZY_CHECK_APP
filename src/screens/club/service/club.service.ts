@@ -10,6 +10,7 @@ export const createClub = async (data: {
     longitude?: number;
     clientRef?: string;
     createdAt?: string;
+    offline?: boolean;
 }) => {
     try {
         const payload = {
@@ -24,7 +25,9 @@ export const createClub = async (data: {
             createdAt: data.createdAt,
         };
 
-        const response = await post('/club', payload);
+        const response = await post('/club', payload, {
+            headers: data.offline ? { 'X-Offline-Sync': 'true' } : undefined,
+        });
         return response;
 
     } catch (error: any) {

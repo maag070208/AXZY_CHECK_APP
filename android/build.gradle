@@ -1,9 +1,9 @@
 buildscript {
     ext {
-        buildToolsVersion = "35.0.0"
+        buildToolsVersion = "36.0.0"
         minSdkVersion = 24
-        compileSdkVersion = 35
-        targetSdkVersion = 35
+        compileSdkVersion = 36
+        targetSdkVersion = 36
         ndkVersion = "27.1.12297006"
         kotlinVersion = "2.1.20"
     }
@@ -19,3 +19,14 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// Android 16 KB page size: op-sqlite compila SQLCipher desde fuente.
+// NDK 27 no aplica 16 KB por defecto; forzamos el segmento LOAD a 16 KB.
+subprojects { subproject ->
+    if (subproject.name == "op-engineering_op-sqlite" || subproject.name == "op-sqlite") {
+        subproject.plugins.withId("com.android.library") {
+            subproject.android.defaultConfig.externalNativeBuild.cmake.arguments +=
+                "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384"
+        }
+    }
+}

@@ -2,8 +2,16 @@ import { post, put, get } from '../../../core/axios';
 import { API_CONSTANTS } from '../../../core/constants/API_CONSTANTS';
 import { TResult } from '../../../core/types/TResult';
 
-export const startRound = async (guardId: number, recurringConfigId?: number): Promise<TResult<any>> => {
-  return await post(API_CONSTANTS.URLS.ROUNDS.START, { guardId, recurringConfigId });
+export const startRound = async (
+  guardId: number,
+  recurringConfigId?: number,
+  options?: { clientRef?: string; startedAt?: string; offline?: boolean },
+): Promise<TResult<any>> => {
+  const body: any = { guardId, recurringConfigId, clientRef: options?.clientRef };
+  if (options?.startedAt) body.startedAt = options.startedAt;
+  return await post(API_CONSTANTS.URLS.ROUNDS.START, body, {
+    headers: options?.offline ? { 'X-Offline-Sync': 'true' } : undefined,
+  });
 };
 
 export const endRound = async (roundId: number): Promise<TResult<any>> => {

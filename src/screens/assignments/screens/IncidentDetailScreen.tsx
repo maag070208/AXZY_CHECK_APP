@@ -302,6 +302,12 @@ export const IncidentDetailScreen = () => {
           <Text style={styles.incidentTitle}>
             {incident.title}
           </Text>
+
+          {incident.createdOffline && (
+            <Chip icon="cloud-off-outline" style={styles.offlineChip} textStyle={styles.offlineChipText}>
+              Creado offline
+            </Chip>
+          )}
           
           <View style={styles.datetimeContainer}>
             <View style={styles.datetimeItem}>
@@ -749,6 +755,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  offlineChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFFBF5',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    marginTop: 6,
+  },
+  offlineChipText: { fontSize: 10, fontWeight: '800', color: '#B45309' },
   guardChip: {
     backgroundColor: COLORS.primaryLight,
     height: 28,

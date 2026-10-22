@@ -14,7 +14,6 @@ import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/shared/components/CustomToast';
 import { ToastHandler } from './src/core/store/hooks/toast';
 import { es, registerTranslation } from 'react-native-paper-dates';
-import { NoInternetScreen } from './src/shared/components/NoInternetScreen';
 
 registerTranslation('es', es);
 
@@ -47,7 +46,6 @@ function App() {
                 <MainNavigator />
                 <ToastHandler />
                 <Toast config={toastConfig} />
-                <NoInternetScreen />
               </PaperProvider>
             </PersistGate>
           </Provider>

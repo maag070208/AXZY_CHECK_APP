@@ -206,6 +206,12 @@ export const MaintenanceListScreen = () => {
                         <Icon source={catInfo.icon || 'wrench'} size={12} color={catInfo.color} />
                         <Text style={[styles.categoryText, { color: catInfo.color }]}>{catInfo.label}</Text>
                     </View>
+                    {item.createdOffline && (
+                        <View style={styles.offlineBadge}>
+                            <Icon source="cloud-off-outline" size={11} color="#B45309" />
+                            <Text style={styles.offlineBadgeText}>Offline</Text>
+                        </View>
+                    )}
                     <View style={styles.idBadge}>
                         <Text style={styles.idText}>{item.id}</Text>
                     </View>
@@ -446,6 +452,19 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 4,
   },
+  offlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FFFBF5',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    marginRight: 6,
+  },
+  offlineBadgeText: { fontSize: 9, fontWeight: '800', color: '#B45309' },
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',

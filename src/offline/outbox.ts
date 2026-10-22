@@ -49,7 +49,7 @@ export const getPendingOutbox = async (db: DB): Promise<OutboxRow[]> => {
      ORDER BY created_at ASC`,
     [Date.now()],
   );
-  return result.rows as OutboxRow[];
+  return result.rows as unknown as OutboxRow[];
 };
 
 export const getAllPendingCount = async (db: DB): Promise<number> => {
@@ -122,7 +122,7 @@ export const setSyncState = async (db: DB, key: string, value: string) => {
 
 export const getSyncState = async (db: DB, key: string): Promise<string | null> => {
   const result = await db.execute(`SELECT value FROM sync_state WHERE key = ?`, [key]);
-  return result.rows?.[0]?.value ?? null;
+  return String(result.rows?.[0]?.value ?? '') || null;
 };
 
 export const enqueueWithNewId = (operation: OfflineOperation, clientId?: string) =>

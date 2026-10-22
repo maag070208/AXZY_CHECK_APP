@@ -72,6 +72,7 @@ const processReport = async (db: DB, row: OutboxRow) => {
     longitude: payload.longitude ?? undefined,
     clientRef: payload.clientRef,
     createdAt: payload.createdAt,
+    offline: true,
   };
 
   const result: any =

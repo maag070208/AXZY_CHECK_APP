@@ -93,6 +93,12 @@ android {
             keyPassword 'android'
         }
     }
+    packaging {
+        jniLibs {
+            // Librerías nativas sin comprimir; requerido para dispositivos de 16 KB.
+            useLegacyPackaging = false
+        }
+    }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
@@ -110,7 +116,7 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-    implementation("com.airbnb.android:lottie:6.6.0")
+    implementation("com.airbnb.android:lottie:6.7.1")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

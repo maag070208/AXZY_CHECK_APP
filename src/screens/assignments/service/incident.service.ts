@@ -10,6 +10,7 @@ export const createIncident = async (data: {
     longitude?: number;
     clientRef?: string;
     createdAt?: string;
+    offline?: boolean;
 }) => {
     try {
         const payload = {
@@ -24,7 +25,9 @@ export const createIncident = async (data: {
             createdAt: data.createdAt,
         };
 
-        const response = await post('/incidents', payload);
+        const response = await post('/incidents', payload, {
+            headers: data.offline ? { 'X-Offline-Sync': 'true' } : undefined,
+        });
         return response;
 
     } catch (error: any) {

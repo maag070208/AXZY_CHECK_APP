@@ -34,6 +34,9 @@ local.properties
 *.keystore
 !debug.keystore
 .kotlin/
+.npm-cache/
+.pnpm-cache/
+.pnpm-store/
 
 # node.js
 #
@@ -66,3 +69,11 @@ npm-debug.log
 /coverage
 
 # Yarn
+
+# Local build caches
+android/.gradle-home/
+.pnpm-store/
+.pnpm-data/
+.pnpm-cache/
+.pnpm-home/
+.npm-cache/

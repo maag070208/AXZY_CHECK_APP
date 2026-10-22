@@ -176,6 +176,12 @@ export const MaintenanceDetailScreen = () => {
           </View>
           
           <Text style={styles.incidentTitle}>{maintenance.title}</Text>
+
+          {maintenance.createdOffline && (
+            <Chip icon="cloud-off-outline" style={styles.offlineChip} textStyle={styles.offlineChipText}>
+              Creado offline
+            </Chip>
+          )}
           
           <View style={styles.datetimeContainer}>
             <View style={styles.datetimeItem}>
@@ -348,6 +354,14 @@ const styles = StyleSheet.create({
   guardName: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 4 },
   guardRole: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 8 },
   guardMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  offlineChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFFBF5',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    marginTop: 6,
+  },
+  offlineChipText: { fontSize: 10, fontWeight: '800', color: '#B45309' },
   guardChip: { backgroundColor: COLORS.primaryLight, height: 28 },
   guardChipText: { fontSize: 11, fontWeight: '600', color: COLORS.primary },
   guardId: { fontSize: 12, color: COLORS.textSecondary, fontFamily: 'monospace' },

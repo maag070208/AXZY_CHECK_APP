@@ -11,6 +11,7 @@ export const createMaintenance = async (data: {
     longitude?: number;
     clientRef?: string;
     createdAt?: string;
+    offline?: boolean;
 }) => {
     try {
         const payload = {
@@ -26,7 +27,9 @@ export const createMaintenance = async (data: {
             createdAt: data.createdAt,
         };
 
-        const response = await post('/maintenance', payload);
+        const response = await post('/maintenance', payload, {
+            headers: data.offline ? { 'X-Offline-Sync': 'true' } : undefined,
+        });
         return response;
 
     } catch (error: any) {
