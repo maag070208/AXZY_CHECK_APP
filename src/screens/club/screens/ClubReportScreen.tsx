@@ -20,6 +20,7 @@ const config: ReportFormConfig = {
     type: 'TIPO DE REPORTE',
     submitButton: 'ENVIAR REPORTE',
   },
+  offlineKind: 'CLUB',
   successMessage: 'Reporte de Casa Club enviado',
 };
 

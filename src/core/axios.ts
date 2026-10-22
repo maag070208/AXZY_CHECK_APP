@@ -10,6 +10,7 @@ import { API_CONSTANTS, ENVIRONMENTS } from './constants/API_CONSTANTS';
 
 import { store } from './store/redux.config';
 import { logout } from './store/slices/user.slice';
+import { APP_VERSION } from './constants/app-version';
 
 /* ---------------------------------------------------------
    1. Axios Instance
@@ -27,6 +28,7 @@ axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const state = store.getState();
     config.baseURL = ENVIRONMENTS[state.environmentState.environment];
+    config.headers['X-App-Version'] = APP_VERSION;
     const token = state.userState.token; // ⬅️ AQUÍ EL TOKEN DEL STORE
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

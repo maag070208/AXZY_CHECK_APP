@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
+import { OfflineHeaderNotice } from '../../shared/components/OfflineHeaderNotice';
 
 export const HeaderBack = ({
   navigation,
@@ -26,6 +27,7 @@ export const HeaderBack = ({
           {title}
         </Text>
       </View>
+      <OfflineHeaderNotice />
     </View>
   );
 };

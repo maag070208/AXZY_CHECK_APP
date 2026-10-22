@@ -20,6 +20,7 @@ const config: ReportFormConfig = {
     type: 'TIPO DE MANTENIMIENTO',
     submitButton: 'ENVIAR REPORTE',
   },
+  offlineKind: 'MAINTENANCE',
   successMessage: 'Mantenimiento reportado con éxito',
 };
 

@@ -20,6 +20,7 @@ const config: ReportFormConfig = {
     type: 'TIPO DE INCIDENCIA',
     submitButton: 'ENVIAR REPORTE',
   },
+  offlineKind: 'INCIDENT',
   successMessage: 'Reporte enviado con éxito',
 };
 

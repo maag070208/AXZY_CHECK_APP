@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
+import { OfflineHeaderNotice } from '../../shared/components/OfflineHeaderNotice';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../core/store/redux.config';
@@ -109,6 +110,7 @@ export const HeaderMain = ({ navigation }: any) => {
           <Text style={styles.avatarText}>{initials}</Text>
         </TouchableOpacity>
       </View>
+      <OfflineHeaderNotice />
     </View>
   );
 };

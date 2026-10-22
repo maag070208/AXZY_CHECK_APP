@@ -24,13 +24,15 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { APP_SETTINGS } from '../../core/constants/APP_SETTINGS';
 import { CameraModal } from '../../screens/check/components/CameraModal';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { showToast } from '../../core/store/slices/toast.slice';
 import { isSpeechAvailable, startSpeech, stopSpeech } from '../service/speech.service';
 import { uploadFile } from '../service/upload.service';
 import { getCatalog } from '../service/catalog.service';
 import Geolocation from '@react-native-community/geolocation';
 import { AppButton } from './AppButton';
+import { isOnline } from '../../offline/network';
+import { queueReport } from '../../offline/reports';
 
 /* ======================================================
    TYPES
@@ -79,6 +81,7 @@ export interface ReportFormCatalogConfig {
 
 export interface ReportFormConfig {
   title: string;
+  offlineKind: 'INCIDENT' | 'MAINTENANCE' | 'CLUB';
   accent: string;
   uploadFolder: string;
   catalogs: ReportFormCatalogConfig;
@@ -114,6 +117,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
+  const userId = useSelector((state: any) => state.userState.id);
 
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<'photo' | 'video'>('photo');
@@ -245,6 +249,15 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
     };
 
     setMedia(prev => [...prev, newItem]);
+
+    if (!(await isOnline())) {
+      setMedia(prev =>
+        prev.map(item =>
+          item.id === tempId ? { ...item, uploading: false, error: false } : item,
+        ),
+      );
+      return;
+    }
 
     try {
       const res = await uploadFile(
@@ -384,6 +397,34 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
     const pending = media.some(m => m.uploading);
     if (pending) {
       Alert.alert('Espera', 'Hay archivos subiéndose, por favor espera.');
+      return;
+    }
+
+    const online = await isOnline();
+    if (!online) {
+      const selectedType = allTypes.find(t => t.id === typeId);
+      const result = await queueReport(Number(userId), {
+        kind: config.offlineKind,
+        title: selectedType?.value || config.title,
+        categoryId,
+        typeId,
+        description,
+        media: media.map(item => ({
+          uri: item.uri,
+          type: item.type === 'video' ? 'video' : 'photo',
+        })),
+      });
+      if (result.success) {
+        dispatch(
+          showToast({
+            message: 'Reporte guardado. Se sincronizará al recuperar conexión.',
+            type: 'success',
+          }),
+        );
+        navigation.goBack();
+      } else {
+        Alert.alert('No se pudo guardar offline', result.error || 'Intenta de nuevo.');
+      }
       return;
     }
 

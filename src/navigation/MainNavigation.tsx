@@ -8,10 +8,13 @@ import LoginScreen from '../screens/auth/screens/LoginScreen';
 import PermissionsScreen from '../screens/auth/screens/PermissionsScreen';
 import LoaderComponent from '../shared/components/LoaderComponent';
 import DrawerNavigator from './drawer/DrawerNavigator';
+import { useOfflineSync } from '../offline/useOfflineSync';
+import { ApiVersionGate } from '../shared/components/ApiVersionGate';
 
 const MainNavigation = () => {
   const { isSignedIn, token } = useAppSelector(state => state.userState);
   const [permissionsAccepted, setPermissionsAccepted] = useState(false);
+  useOfflineSync();
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -58,7 +61,8 @@ const MainNavigation = () => {
   return (
     <>
       <LoaderComponent />
-      <NavigationContainer onStateChange={validateToken}>
+      <ApiVersionGate>
+        <NavigationContainer onStateChange={validateToken}>
         {isSignedIn ? (
           permissionsAccepted ? (
             <DrawerNavigator />
@@ -68,7 +72,8 @@ const MainNavigation = () => {
         ) : (
           <LoginScreen />
         )}
-      </NavigationContainer>
+        </NavigationContainer>
+      </ApiVersionGate>
     </>
   );
 };

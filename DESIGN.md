@@ -147,6 +147,12 @@ Fuente del sistema (sin fuente custom por ahora). Pesos permitidos: `600`, `700`
   en mint con texto/chevron verde.
 - Footer con “Cerrar Sesión” en rojo suave y badge de entorno.
 
+### 5.2.3 Aviso offline
+- `OfflineHeaderNotice` se muestra debajo del header cuando NetInfo indica sin red.
+- No bloquea: “Sin conexión · puedes trabajar offline; se guardará y sincronizará al volver”
+  para GUARD/MAINT; “Sin conexión a internet” para el resto.
+- Nunca usar un modal de pantalla completa para cortar el trabajo offline.
+
 ### 5.3 Tab bar (`AppTabBar`)
 - Barra **plana, anclada y full-width**: fondo blanco, alto **60**, borde superior `line`.
   Sin radio, sin sombra y sin márgenes laterales (coherente con el header plano).
@@ -355,3 +361,4 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 | 2026-10-21 | 2.23 | Botón de video en reposo como punto rojo; stop centrado y timer solo al grabar. |
 | 2026-10-21 | 2.24 | Observaciones con padding y dictado por voz (módulo nativo Android SpeechRecognizer). |
 | 2026-10-21 | 2.25 | Pantalla de permisos obligatorios post-login con bloqueo hasta conceder todo. |
+| 2026-10-21 | 2.26 | Aviso de sin conexión en header para GUARD/MAINT; sin pantalla bloqueante. |

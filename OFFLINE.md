@@ -1,8 +1,7 @@
 # CheckApp APP — Offline para GUARD y MAINT
 
-> **Estado:** propuesta de diseño · v0.1 · 2026-10-21  
-> **Alcance:** APP móvil, roles `GUARD` y `MAINT`.  
-> **No implementar hasta aprobar este documento.**
+> **Estado:** aprobado · v1.0 · 2026-10-21  
+> **Alcance:** APP móvil, roles `GUARD` y `MAINT`.
 
 ---
 
@@ -93,9 +92,10 @@ app muestra el estado de “Sin conexión” existente.
 | D6 | IDs | **UUID local** `clientId` + mapeo a `serverId` | Permite crear offline y reconciliar al volver la red. |
 | D7 | Evidencias | Archivo local + `clientMediaId` | Se sube antes de crear el reporte; el reporte referencia URLs finales. |
 | D8 | Conflictos | Servidor gana + bandeja de conflictos | Evita corrupción de datos globales. |
-| D9 | Sesión offline | Token + ventana de gracia de 24 h desde la última autenticación online | Permite trabajar sin red sin crear sesiones eternas. |
-| D10 | Cifrado | SQLCipher si `op-sqlite` lo permite; si no, datos mínimos y borrado al cerrar sesión | Protección en dispositivo perdido. |
+| D9 | Sesión offline | Token + ventana de gracia de **24 h** desde la última autenticación online | Permite trabajar sin red sin crear sesiones eternas. |
+| D10 | Cifrado | **SQLCipher desde el inicio** | Protección en dispositivo perdido. |
 | D11 | Background sync | No en fase 1; foreground/reconnect/manual | WorkManager/Headless JS se evalúa al final. |
+| D12 | Resolver mantenimiento | **Fase 2** | Primero se estabilizan reportes, evidencias y rondas. |
 
 > D1 y D2 agregan dependencias nativas; requieren rebuild del APK.
 
@@ -643,11 +643,46 @@ adb shell svc data enable
 
 ---
 
-## 17. Decisiones abiertas para aprobar
+## 17. Decisiones aprobadas
 
-1. ¿Se permite **iniciar ronda offline** desde el día 1? (Recomendado: sí.)
-2. ¿SQLite + SQLCipher o SQLite sin cifrar en fase 1?
-3. ¿Cuota de evidencias: 250 MB o 500 MB por usuario?
-4. ¿Se permite resolver mantenimiento offline en fase 1 o fase 2?
-5. ¿Ventana de gracia offline: 24 h o 12 h?
-6. ¿El backend puede implementar `clientId` + `Idempotency-Key` antes del desarrollo?
+| # | Decisión | Elección |
+|---|---|---|
+| 1 | Ronda offline | **A. Ronda completa offline** (iniciar, escanear y terminar sin red). |
+| 2 | Cifrado local | **A. SQLCipher desde el inicio.** |
+| 3 | Cuota de evidencias | **A. 250 MB por usuario.** |
+| 4 | Resolver mantenimiento offline | **A. Fase 2.** |
+| 5 | Sesión offline | **A. 24 horas de gracia.** |
+| 6 | Backend idempotente | **A. Implementar `clientId` + `Idempotency-Key` antes de empezar.** |
+
+## 18. Arranque de implementación (Fase 1)
+
+Orden acordado:
+
+1. Backend: idempotencia, `clientId`, timestamps y `409` de conflicto.
+2. APP: instalar SQLite/SQLCipher + file-access + UUID; migración inicial.
+3. APP: repositorios locales y outbox transaccional.
+4. APP: sync engine (worker, backoff, dependencias, conflictos).
+5. APP: banner/estado de sync y reemplazo del bloqueo global para GUARD/MAINT.
+6. Pruebas unitarias de la cola y de los repositorios antes de conectar pantallas.
+
+**Prerrequisitos técnicos:**
+
+- Rebuild nativo del APK después de agregar SQLite/file-access.
+- El backend debe aceptar `Idempotency-Key` y `clientId`; sin eso la fase de sync no se considera terminada.
+
+
+---
+
+## 19. Estado de implementación
+
+- ✅ Backend: `clientRef` + `Idempotency-Key` en incidentes, mantenimiento, club, ronda, kardex y uploads.
+- ✅ Backend: `Kardex.roundId`, timestamps de cliente y migración aplicada.
+- ✅ APP: dependencias agregadas (`op-sqlite` con SQLCipher, `react-native-file-access`, `react-native-keychain`, `react-native-uuid`).
+- ✅ APP: esquema SQLite local y apertura cifrada con llave en Keychain.
+- ✅ APP: outbox transaccional y persistencia de evidencias.
+- ✅ APP: cola de reportes Incidencia/Mantenimiento/Casa Club desde `ReportForm`.
+- ✅ APP: sync engine para subir evidencias y crear reportes; se activa al login, reconexión y foreground.
+- ⬜ Rondas/checks locales (iniciar, escanear, terminar) y reconciliación de `roundId`.
+- ⬜ Caché de rutas/catálogos y lectura offline del Home.
+- ⬜ Banner/estado de sincronización y pantalla de conflictos.
+- ⬜ Pruebas unitarias/E2E de offline y rebuild nativo con SQLCipher.
