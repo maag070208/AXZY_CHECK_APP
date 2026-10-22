@@ -682,7 +682,9 @@ Orden acordado:
 - ✅ APP: outbox transaccional y persistencia de evidencias.
 - ✅ APP: cola de reportes Incidencia/Mantenimiento/Casa Club desde `ReportForm`.
 - ✅ APP: sync engine para subir evidencias y crear reportes; se activa al login, reconexión y foreground.
-- ⬜ Rondas/checks locales (iniciar, escanear, terminar) y reconciliación de `roundId`.
-- ⬜ Caché de rutas/catálogos y lectura offline del Home.
-- ⬜ Banner/estado de sincronización y pantalla de conflictos.
+- ✅ Rondas/checks locales (iniciar, escanear, terminar) y reconciliación de `roundId`.
+- ✅ Caché de rutas/catálogos y lectura offline del Home (snapshot `GET /sync/pull`).
+- ✅ Login offline con credenciales en Keychain (requiere un login online previo).
+- ✅ Banner/estado de sincronización y botón Sync en header.
+- ⬜ Pantalla de conflictos.
 - ⬜ Pruebas unitarias/E2E de offline y rebuild nativo con SQLCipher.

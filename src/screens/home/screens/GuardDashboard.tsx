@@ -52,6 +52,9 @@ import { Skeleton } from '../../../shared/components/Skeleton';
 import { UserRole } from '../../../core/types/IUser';
 import { ShiftAlertBanner } from '../../shiftHandover/components/ShiftAlertBanner';
 import { parseLocationQrPayload } from '../../../shared/utils/locationQr';
+import { isOnline } from '../../../offline/network';
+import { getGuardSnapshot, saveGuardSnapshot } from '../../../offline/snapshot';
+import { endLocalRound, getLocalActiveRound, getLocalChecksForRound, startLocalRound } from '../../../offline/rounds';
 
 const { width } = Dimensions.get('window');
 
@@ -189,10 +192,86 @@ export const GuardDashboard = () => {
     };
   }, [cameraActive, scanLine, scanPulse]);
 
+  const applySnapshot = (snapshot: any, localRound?: any, localChecks: any[] = []) => {
+    const resetMissing = !!localRound?.__offline;
+    const allConfigs = (snapshot?.routes || []).map((route: any) => {
+      if (!localRound || route.id !== localRound.recurringConfigurationId) return route;
+      return {
+        ...route,
+        recurringLocations: (route.recurringLocations || []).map((loc: any) => {
+          const check = localChecks.find((c: any) => Number(c.location_id) === Number(loc.locationId));
+          if (!check) {
+            return resetMissing
+              ? { ...loc, completed: false, status: 'PENDING', mediaCount: 0, completedAt: null, startedAt: null }
+              : loc;
+          }
+          return {
+            ...loc,
+            completed: true,
+            status: 'COMPLETED',
+            mediaCount: Number(check.media_count ?? 0),
+            completedAt: check.completed_at ? new Date(Number(check.completed_at)).toISOString() : null,
+            startedAt: check.scanned_at ? new Date(Number(check.scanned_at)).toISOString() : null,
+            reportSaved: true,
+          };
+        }),
+      };
+    });
+    const activeGlobalRounds = snapshot?.activeRounds || [];
+    const freeConfigs: any[] = [];
+    const busy: any[] = [];
+    allConfigs.forEach((c: any) => {
+      const other = activeGlobalRounds.find(
+        (r: any) =>
+          r.recurringConfigurationId === c.id &&
+          r.status === 'IN_PROGRESS' &&
+          Number(r.guardId) !== Number(user.id),
+      );
+      if (other) {
+        busy.push({
+          ...c,
+          busyBy: `${other.guard?.name ?? ''} ${other.guard?.lastName ?? ''}`.trim() || 'otro guardia',
+          busySince: other.startTime,
+        });
+      } else {
+        freeConfigs.push(c);
+      }
+    });
+    setConfigs(freeConfigs);
+    setBusyConfigs(busy);
+    setSpecialAssignments(snapshot?.assignments || []);
+    setActiveRound(snapshot?.activeRound || null);
+  };
+
   const loadData = async () => {
     const startedAt = Date.now();
     setLoading(true);
     try {
+      if (!(await isOnline())) {
+        const snapshot = await getGuardSnapshot(Number(user.id));
+        if (snapshot) {
+          const localRound = await getLocalActiveRound(Number(user.id));
+          const serverRound = !localRound ? snapshot.activeRound : null;
+          const roundKey =
+            localRound?.clientId ??
+            (serverRound?.id ? `server-${serverRound.id}` : undefined);
+          const localChecks = roundKey
+            ? await getLocalChecksForRound(Number(user.id), roundKey)
+            : [];
+          const mergeRound = localRound ?? (serverRound ? {
+            clientId: roundKey,
+            recurringConfigurationId: serverRound.recurringConfigurationId,
+            __offline: false,
+          } : undefined);
+          applySnapshot(
+            { ...snapshot, activeRound: localRound ?? snapshot.activeRound },
+            mergeRound,
+            localChecks,
+          );
+          return;
+        }
+      }
+
       const [recurringRes, assignRes, roundRes, activeRoundsRes] = await Promise.all([
         getMyRecurringAssignments().catch(err => {
           console.warn('Recurring Error:', err);
@@ -248,6 +327,14 @@ export const GuardDashboard = () => {
       } else {
         setActiveRound(null);
       }
+
+      await saveGuardSnapshot(Number(user.id), {
+        routes: allConfigs,
+        assignments: assignRes?.data || [],
+        activeRound: roundRes?.success ? roundRes.data : null,
+        activeRounds: activeGlobalRounds,
+        locations: [],
+      });
     } catch (e) {
       console.log('Critical Error loading data:', e);
       // Fallbacks are already handled by initial state
@@ -270,6 +357,19 @@ export const GuardDashboard = () => {
       setRouteSelectionVisible(false); // Close dialog if open
       setRoundLoading(true);
       try {
+        if (!(await isOnline())) {
+          const route = configs.find((c: any) => c.id === configId) || configs[0];
+          const local = await startLocalRound(Number(user.id), route);
+          if (local.success && local.data) {
+            setActiveRound(local.data);
+            DeviceEventEmitter.emit('ROUND_STATE_CHANGED');
+            dispatch(showToast({ message: 'Ronda iniciada offline. Se sincroniza al volver el WiFi.', type: 'success' }));
+            void loadData();
+          } else {
+            Alert.alert('No se pudo iniciar', local.error || 'Intenta de nuevo.');
+          }
+          return;
+        }
         const res = await startRound(Number(user.id), configId);
         if (res.success) {
           animateLayout();
@@ -319,6 +419,17 @@ export const GuardDashboard = () => {
     setEndRoundVisible(false);
     setRoundLoading(true);
     try {
+        if (!(await isOnline()) || activeRound?.__offline) {
+          const local = await endLocalRound(Number(user.id), activeRound);
+          if (local.success && local.data) {
+            setActiveRound(local.data);
+            DeviceEventEmitter.emit('ROUND_STATE_CHANGED');
+            setRoundCompletedVisible(true);
+          } else {
+            dispatch(showToast({ message: local.error || 'No se pudo terminar la ronda offline.', type: 'error' }));
+          }
+          return;
+        }
         const res = await endRound(activeRound.id);
         if (res.success) {
             animateLayout();
@@ -401,6 +512,8 @@ export const GuardDashboard = () => {
         params: {
           location: match.location,
           recurringTasks: match.tasks,
+          roundClientId: activeRound?.clientId ?? (activeRound?.id > 0 ? `server-${activeRound.id}` : undefined),
+          roundServerId: activeRound?.id > 0 ? activeRound.id : undefined,
         },
       });
     } else {

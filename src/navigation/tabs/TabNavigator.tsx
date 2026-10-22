@@ -15,7 +15,7 @@ import { UserRole } from '../../core/types/IUser';
 import { Icon } from 'react-native-paper';
 
 /** Pantallas full-screen (sin tab bar) dentro del HomeStack. */
-const HIDE_TAB_BAR_ROUTES = ['INCIDENT_REPORT', 'MAINTENANCE_REPORT', 'CLUB_REPORT', 'GUARD_TRACKING', 'PASS_SCANNER'];
+const HIDE_TAB_BAR_ROUTES = ['INCIDENT_REPORT', 'MAINTENANCE_REPORT', 'CLUB_REPORT', 'GUARD_TRACKING', 'PASS_SCANNER', 'SYNC_SCREEN'];
 
 const TabNavigator = () => {
   const user = useSelector((state: RootState) => state.userState);

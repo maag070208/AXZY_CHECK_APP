@@ -14,9 +14,12 @@ import {
 import { markReportFailed, markReportSynced } from '../reports';
 import { OutboxRow } from '../types';
 import { uploadFile } from '../../shared/service/upload.service';
+import { pullSync } from './pull';
 import { createIncident } from '../../screens/assignments/service/incident.service';
 import { createMaintenance } from '../../screens/maintenances/service/maintenance.service';
 import { createClub } from '../../screens/club/service/club.service';
+import { startRound, endRound } from '../../screens/home/service/round.service';
+import { registerCheck } from '../../screens/check/service/check.service';
 
 const parse = (value: string | null): any => {
   if (!value) return null;
@@ -90,6 +93,85 @@ const processReport = async (db: DB, row: OutboxRow) => {
   await markReportSynced(db, row.entity_client_id, serverId);
 };
 
+
+const processRoundStart = async (db: DB, row: OutboxRow) => {
+  const payload = parse(row.payload_json);
+  const result: any = await startRound(0, payload.recurringConfigId, {
+    clientRef: payload.clientRef,
+    startedAt: payload.startedAt,
+    offline: true,
+  });
+  if (!result?.success) throw new Error(result?.messages?.[0] || 'No se pudo sincronizar la ronda.');
+  const serverId = result.data?.id;
+  await db.execute(
+    `UPDATE local_rounds SET server_id = ?, sync_state = 'SYNCED' WHERE client_id = ?`,
+    [serverId ?? null, row.entity_client_id],
+  );
+};
+
+const processRoundEnd = async (db: DB, row: OutboxRow) => {
+  const payload = parse(row.payload_json);
+  const local = await db.execute(
+    `SELECT server_id FROM local_rounds WHERE client_id = ?`,
+    [row.entity_client_id],
+  );
+  const serverId = local.rows?.[0]?.server_id ?? payload.serverId;
+  if (!serverId) throw new Error('La ronda local no tiene id del servidor.');
+  const result: any = await endRound(Number(serverId), {
+    endedAt: payload.endedAt,
+    clientRef: payload.clientRef,
+    offline: true,
+  });
+  if (!result?.success) throw new Error(result?.messages?.[0] || 'No se pudo cerrar la ronda.');
+  await db.execute(
+    `UPDATE local_rounds SET sync_state = 'SYNCED' WHERE client_id = ?`,
+    [row.entity_client_id],
+  );
+};
+
+const processCheck = async (db: DB, row: OutboxRow) => {
+  const payload = parse(row.payload_json);
+  const mediaResult = await db.execute(
+    `SELECT kind, server_url FROM local_media WHERE check_client_id = ? AND status = 'UPLOADED'`,
+    [row.entity_client_id],
+  );
+  const media = (mediaResult.rows ?? []).map((item: any) => ({
+    type: item.kind,
+    url: item.server_url,
+  }));
+  let roundServerId: number | undefined = payload.roundServerId
+    ? Number(payload.roundServerId)
+    : undefined;
+  if (!roundServerId && payload.roundClientId) {
+    const round = await db.execute(
+      `SELECT server_id FROM local_rounds WHERE client_id = ?`,
+      [payload.roundClientId],
+    );
+    const value = round.rows?.[0]?.server_id;
+    if (value) roundServerId = Number(value);
+  }
+  const result: any = await registerCheck(
+    Number(payload.locationId),
+    Number(payload.userId),
+    payload.notes || '',
+    media,
+    undefined,
+    undefined,
+    undefined,
+    {
+      clientRef: payload.clientRef,
+      roundId: roundServerId,
+      scannedAt: payload.scannedAt,
+      offline: true,
+    },
+  );
+  if (!result?.success) throw new Error('No se pudo sincronizar el check.');
+  await db.execute(
+    `UPDATE local_checks SET sync_state = 'SYNCED', server_id = ? WHERE client_id = ?`,
+    [result.data?.id ?? null, row.entity_client_id],
+  );
+};
+
 const processOperation = async (db: DB, row: OutboxRow) => {
   if (row.operation === 'MEDIA_UPLOAD') {
     await processMedia(db, row);
@@ -97,6 +179,18 @@ const processOperation = async (db: DB, row: OutboxRow) => {
   }
   if (row.operation === 'REPORT_CREATE') {
     await processReport(db, row);
+    return;
+  }
+  if (row.operation === 'ROUND_START') {
+    await processRoundStart(db, row);
+    return;
+  }
+  if (row.operation === 'ROUND_END') {
+    await processRoundEnd(db, row);
+    return;
+  }
+  if (row.operation === 'CHECK_CREATE') {
+    await processCheck(db, row);
     return;
   }
   throw new Error(`Operación offline no soportada todavía: ${row.operation}`);
@@ -116,6 +210,7 @@ export interface SyncResult {
   pending: number;
   online: boolean;
   unavailable: boolean;
+  pulled: boolean;
 }
 
 let syncInFlight: Promise<SyncResult> | null = null;
@@ -123,7 +218,7 @@ let syncInFlight: Promise<SyncResult> | null = null;
 const runSync = async (userId: number): Promise<SyncResult> => {
   const db = await getOfflineDb(userId);
   if (!db) {
-    return { processed: 0, failed: 0, pending: 0, online: false, unavailable: true };
+    return { processed: 0, failed: 0, pending: 0, online: false, unavailable: true, pulled: false };
   }
   if (!(await isOnline())) {
     return {
@@ -132,6 +227,7 @@ const runSync = async (userId: number): Promise<SyncResult> => {
       pending: await getAllPendingCount(db),
       online: false,
       unavailable: false,
+      pulled: false,
     };
   }
 
@@ -168,6 +264,7 @@ const runSync = async (userId: number): Promise<SyncResult> => {
     if (!progressed) break;
   }
 
+  const pulled = await pullSync(userId);
   await setSyncState(db, 'last_sync_at', String(Date.now()));
   return {
     processed,
@@ -175,6 +272,7 @@ const runSync = async (userId: number): Promise<SyncResult> => {
     pending: await getAllPendingCount(db),
     online: true,
     unavailable: false,
+    pulled: !!pulled,
   };
 };
 

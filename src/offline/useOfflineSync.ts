@@ -4,7 +4,9 @@ import NetInfo from '@react-native-community/netinfo';
 import { useAppSelector } from '../core/store/hooks';
 import { UserRole } from '../core/types/IUser';
 import { getOfflineDb } from './db';
+import { isOnline } from './network';
 import { syncNow } from './sync/engine';
+import { preloadReportCatalogs } from '../shared/service/catalog.service';
 
 /** Activa la sincronización para GUARD/MAINT: login, reconexión y foreground. */
 export const useOfflineSync = () => {
@@ -19,6 +21,9 @@ export const useOfflineSync = () => {
 
     let active = true;
     const run = async () => {
+      if (await isOnline()) {
+        await preloadReportCatalogs();
+      }
       const db = await getOfflineDb(userId);
       if (!active || !db) return;
       try {

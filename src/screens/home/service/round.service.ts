@@ -14,14 +14,19 @@ export const startRound = async (
   });
 };
 
-export const endRound = async (roundId: number): Promise<TResult<any>> => {
-    // The constant ends with /end, we need to inject the ID before it or constructor the url manually
-    // Actually API_CONSTANTS.URLS.ROUNDS.END is just a string. 
-    // The route is PUT /:id/end. 
-    // So the constant might be misleading if used directly. 
-    // I will construct the URL manually or use a base.
-    const url = `/rounds/${roundId}/end`; 
-    return await put(url);
+export const endRound = async (
+  roundId: number,
+  options?: { endedAt?: string; clientRef?: string; offline?: boolean },
+): Promise<TResult<any>> => {
+  const url = `/rounds/${roundId}/end`;
+  return await put(url, { endedAt: options?.endedAt }, {
+    headers: options?.clientRef || options?.offline
+      ? {
+          ...(options?.clientRef ? { 'Idempotency-Key': options.clientRef } : {}),
+          ...(options?.offline ? { 'X-Offline-Sync': 'true' } : {}),
+        }
+      : undefined,
+  });
 };
 
 export const getCurrentRound = async (): Promise<TResult<any>> => {

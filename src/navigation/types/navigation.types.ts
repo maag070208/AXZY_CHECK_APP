@@ -43,6 +43,7 @@ export type RootStackParamList = {
 
   HOME_STACK: {
     HOME_MAIN: ScreenParams;
+    SYNC_SCREEN: ScreenParams;
   };
   INVENTORY_STACK: {
     INVENTORY_MAIN: ScreenParams;
@@ -113,6 +114,7 @@ export const AppStacks: RootStackParamList = {
   },
   HOME_STACK: {
     HOME_MAIN: {},
+    SYNC_SCREEN: {},
   },
   INVENTORY_STACK: {
     INVENTORY_MAIN: {},

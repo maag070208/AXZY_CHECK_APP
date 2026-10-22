@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../core/store/redux.config';
 import { UserRole } from '../../core/types/IUser';
 import { getPendingIncidentsCount } from '../../screens/assignments/service/incident.service';
+import { SyncHeaderButton } from './SyncHeaderButton';
 
 /**
  * Header principal de la APP (HomeStack). Tarjeta blanca flotante con menú,
@@ -68,11 +69,9 @@ export const HeaderMain = ({ navigation }: any) => {
           <Icon source="menu" size={25} color="#065911" />
         </TouchableOpacity>
 
-        <Text style={styles.brand} numberOfLines={1}>
-          Check<Text style={styles.brandAccent}>App</Text>
-        </Text>
-
         <View style={styles.spacer} />
+
+        <SyncHeaderButton onPress={() => navigation.navigate('SYNC_SCREEN')} />
 
         {canChat && (
           <TouchableOpacity

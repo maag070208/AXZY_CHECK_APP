@@ -8,6 +8,7 @@ import { MaintenanceReportScreen } from '../../maintenances/screens/MaintenanceR
 import { ClubReportScreen } from '../../club/screens/ClubReportScreen';
 import { GuardTrackingScreen } from '../../admin/screens/GuardTrackingScreen';
 import { CasetaScreen } from '../../caseta/screens/CasetaScreen';
+import { SyncScreen } from '../../sync/SyncScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,6 +25,13 @@ const HomeStack = () => {
       <Stack.Screen name="INCIDENT_REPORT" component={IncidentReportScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MAINTENANCE_REPORT" component={MaintenanceReportScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CLUB_REPORT" component={ClubReportScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="SYNC_SCREEN"
+        component={SyncScreen}
+        options={({ navigation }) => ({
+          header: () => <HeaderBack navigation={navigation} title="Sincronización" back={true} />,
+        })}
+      />
       <Stack.Screen
         name="PASS_SCANNER"
         component={CasetaScreen}

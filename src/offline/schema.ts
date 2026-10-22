@@ -80,6 +80,11 @@ export const OFFLINE_SCHEMA: string[] = [
     attempts INTEGER NOT NULL DEFAULT 0
   );`,
   `CREATE INDEX IF NOT EXISTS local_media_parent_idx ON local_media(report_client_id, check_client_id);`,
+  `CREATE TABLE IF NOT EXISTS local_snapshot (
+    key TEXT PRIMARY KEY,
+    payload_json TEXT NOT NULL,
+    fetched_at INTEGER NOT NULL
+  );`,
   `CREATE TABLE IF NOT EXISTS catalog_cache (
     cache_key TEXT PRIMARY KEY,
     payload_json TEXT NOT NULL,

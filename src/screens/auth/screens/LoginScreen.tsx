@@ -15,6 +15,8 @@ import {
   LoginFormComponentValues,
 } from '../components/LoginFormComponent';
 import { login as loginService } from '../services/AuthService';
+import { loginOffline, saveOfflineLogin } from '../services/offlineAuth';
+import { isOnline } from '../../../offline/network';
 import { useDispatch } from 'react-redux';
 import { login } from '../../../core/store/slices/user.slice';
 import { useAppSelector } from '../../../core/store/hooks';
@@ -72,6 +74,7 @@ const LoginScreen: React.FC = () => {
       });
 
     if (response.success && response.data) {
+      await saveOfflineLogin(values.username, values.password, response.data);
       dispatch(login(response.data));
       dispatch(
         showToast({
@@ -79,14 +82,37 @@ const LoginScreen: React.FC = () => {
           message: 'Inicio de sesión exitoso',
         }),
       );
-    } else {
+      return;
+    }
+
+    // Sin red: validar contra la última sesión guardada en Keychain.
+    if (!(await isOnline())) {
+      const offline = await loginOffline(values.username, values.password);
+      if (offline.success && offline.data) {
+        dispatch(login(offline.data));
+        dispatch(
+          showToast({
+            type: 'success',
+            message: 'Sesión offline iniciada. Sincronizá al volver el WiFi.',
+          }),
+        );
+        return;
+      }
       dispatch(
         showToast({
           type: 'error',
-          message: response.message,
+          message: offline.message || 'No se pudo iniciar sesión sin conexión.',
         }),
       );
+      return;
     }
+
+    dispatch(
+      showToast({
+        type: 'error',
+        message: response.message,
+      }),
+    );
   };
 
   return (

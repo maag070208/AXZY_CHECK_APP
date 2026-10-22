@@ -38,6 +38,8 @@ import { TaskChecklist } from '../components/TaskChecklist';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../../../shared/components/AppButton';
+import { isOnline } from '../../../offline/network';
+import { queueLocalCheck } from '../../../offline/rounds';
 
 const { width } = Dimensions.get('window');
 
@@ -140,6 +142,10 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
 
   const initReport = async () => {
     try {
+      if (!(await isOnline())) {
+        setCurrentKardexId(-1);
+        return;
+      }
       const hasPermission = await requestLocationPermission();
       let coords = null;
       if (hasPermission) {
@@ -177,7 +183,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   };
 
   const syncMedia = async (updatedPhotos: any[], updatedVideo: any | null) => {
-    if (!currentKardexId) return;
+    if (!currentKardexId || currentKardexId < 0) return;
 
     const mediaToSend: any[] = [];
 
@@ -227,6 +233,10 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   };
 
   const performVideoUpload = async (uri: string) => {
+    if (!(await isOnline())) {
+      setVideo({ uri, uploading: false, error: false });
+      return;
+    }
     setVideo((prev: any) => ({ ...prev, uploading: true, error: false }));
     try {
       const res: any = await uploadFile(uri, 'video', location?.name).catch(
@@ -260,6 +270,12 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   };
 
   const performPhotoUpload = async (photo: any) => {
+    if (!(await isOnline())) {
+      setPhotos(current => current.map(p =>
+        p.uri === photo.uri ? { ...p, uploading: false, error: false } : p,
+      ));
+      return;
+    }
     setPhotos(current => current.map(p => 
       p.uri === photo.uri ? { ...p, uploading: true, error: false } : p
     ));
@@ -372,7 +388,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
 
     // Check for mandatory video if required
     if (requirements.videoRequired) {
-        if (!video || !video.url || video.error) {
+        if (!video || (!video.url && !video.uri) || video.error) {
             Alert.alert('Requisito', 'El video de evidencia es obligatorio en este nivel de reporte.');
             return;
         }
@@ -391,6 +407,34 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     setLoading(true);
 
     try {
+      if (currentKardexId === -1 || !(await isOnline())) {
+        let offlineNotes = notes;
+        if (!assignmentId && tasks.length > 0) {
+          const checklist = tasks.map(t => `[${t.completed ? 'x' : ' '}] ${t.description}`).join('\n');
+          offlineNotes = `${offlineNotes ? offlineNotes + '\n\n' : ''}--- LISTA DE VERIFICACIÓN ---\n${checklist}`;
+        }
+        const media: Array<{ uri: string; type: 'photo' | 'video' }> = [
+          ...photos.filter(p => p.uri).map(p => ({ uri: p.uri, type: 'photo' as const })),
+          ...(video?.uri ? [{ uri: video.uri, type: 'video' as const }] : []),
+        ];
+        const queued = await queueLocalCheck(Number(user.id), {
+          roundClientId: route.params.roundClientId,
+          roundServerId: route.params.roundServerId,
+          locationId: Number(location.id),
+          locationName: location.name,
+          notes: offlineNotes || 'Reporte completado',
+          tasks,
+          media,
+        });
+        if (queued.success) {
+          dispatch(showToast({ message: 'Check guardado offline. Se sincroniza al volver el WiFi.', type: 'success' }));
+          navigation.reset({ index: 0, routes: [{ name: 'Tabs', params: { screen: 'HOME_STACK' } }] });
+        } else {
+          Alert.alert('No se pudo guardar', queued.error || 'Intenta de nuevo.');
+        }
+        return;
+      }
+
       // PERMANENT STORAGE FOR RECURRING TASKS
       // Since recurring tasks don't have a DB table for completion, we save them as text in notes.
       let finalNotes = notes;
@@ -445,7 +489,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     !currentKardexId ||
     hasPendingUploads ||
     photos.length < requirements.minPhotos ||
-    (requirements.videoRequired && (!video || !video.url || video.error)) ||
+    (requirements.videoRequired && (!video || (!video.url && !video.uri) || video.error)) ||
     hasPendingTasks;
   const saveLabel = !currentKardexId
     ? 'Preparando reporte...'
