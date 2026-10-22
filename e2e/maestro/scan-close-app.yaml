@@ -1,0 +1,27 @@
+appId: com.checkapp
+---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "E2E: simular escaneo"
+    timeout: 30000
+# Escanea E2E-03, cierra la APP y la reabre.
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: "Escaneo E2E"
+    timeout: 15000
+- tapOn: "E2E-03"
+- extendedWaitUntil:
+    visible: "E2E-03"
+    timeout: 15000
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      text: "E2E RONDA 8 PUNTOS"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "No completada"

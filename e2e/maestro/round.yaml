@@ -3,13 +3,19 @@ appId: com.checkapp
 # Ronda: solo iniciar y terminar (sin escanear puntos)
 - tapOn: "Iniciar ronda"
 - extendedWaitUntil:
+    visible: "Iniciar Recorrido"
+    timeout: 15000
+- tapOn:
+    text: "^Iniciar$"
+- extendedWaitUntil:
     visible: "Ronda en curso"
     timeout: 15000
 - tapOn: "Terminar ronda"
 - extendedWaitUntil:
     visible: "¿Finalizar Ronda?"
     timeout: 15000
-- tapOn: "Finalizar"
+- tapOn:
+    text: "^Finalizar$"
 - extendedWaitUntil:
     visible: "¡Ronda completada!"
     timeout: 30000

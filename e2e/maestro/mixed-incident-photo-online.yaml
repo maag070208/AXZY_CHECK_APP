@@ -1,0 +1,23 @@
+appId: com.checkapp
+---
+# Deja una incidencia abierta con una foto YA subida, sin enviar.
+- tapOn: "Incidencia"
+- extendedWaitUntil:
+    visible: "Nuevo Reporte"
+    timeout: 15000
+- tapOn: "Arma de Fuego / Blanca"
+- extendedWaitUntil:
+    visible: "3. OBSERVACIONES ADICIONALES"
+    timeout: 10000
+- waitForAnimationToEnd
+- tapOn: "Tomar foto"
+- extendedWaitUntil:
+    visible: "CÁMARA LISTA"
+    timeout: 20000
+- tapOn: "Tomar foto"
+- extendedWaitUntil:
+    notVisible: "CÁMARA LISTA"
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible: "Subiendo evidencias..."
+    timeout: 60000

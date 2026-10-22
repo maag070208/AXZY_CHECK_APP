@@ -155,11 +155,13 @@ export const queueLocalCheck = async (
   input: {
     roundClientId?: string;
     roundServerId?: number;
+    serverId?: number;
     locationId: number;
     locationName?: string;
     notes: string;
     tasks: any[];
-    media: Array<{ uri: string; type: 'photo' | 'video' }>;
+    media: Array<{ uri: string; type: 'photo' | 'video'; url?: string }>;
+    existingClientId?: string;
   },
 ): Promise<{ success: boolean; clientId?: string; error?: string }> => {
   const db = await getOfflineDb(userId);
@@ -167,10 +169,14 @@ export const queueLocalCheck = async (
 
   const clientId = newClientId();
   const now = Date.now();
-  const prepared: Array<{ clientId: string; path: string; type: 'photo' | 'video' }> = [];
+  const prepared: Array<{ clientId: string; path: string; type: 'photo' | 'video'; url?: string }> = [];
 
   try {
     for (const media of input.media) {
+      if (media.url) {
+        prepared.push({ clientId: newClientId(), path: '', type: media.type, url: media.url });
+        continue;
+      }
       const saved = await persistMedia(userId, media.uri, media.type);
       prepared.push({ ...saved, type: media.type });
     }
@@ -178,32 +184,52 @@ export const queueLocalCheck = async (
     return { success: false, error: error?.message || 'No se pudieron guardar las evidencias.' };
   }
 
+  const checkClientId = input.existingClientId ?? clientId;
   try {
     await db.transaction(async tx => {
-      await tx.execute(
-        `INSERT INTO local_checks
-          (client_id, round_client_id, location_id, location_name, status, notes, tasks_json, scanned_at, completed_at, sync_state)
-         VALUES (?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?, 'QUEUED')`,
-        [
-          clientId,
-          input.roundClientId ?? null,
-          input.locationId,
-          input.locationName ?? null,
-          input.notes,
-          JSON.stringify(input.tasks ?? []),
-          now,
-          now,
-        ],
-      );
+      if (input.existingClientId) {
+        await tx.execute(
+          `UPDATE local_checks
+           SET status = 'COMPLETED', notes = ?, tasks_json = ?, completed_at = ?, sync_state = 'QUEUED'
+           WHERE client_id = ?`,
+          [input.notes, JSON.stringify(input.tasks ?? []), now, input.existingClientId],
+        );
+      } else {
+        await tx.execute(
+          `INSERT INTO local_checks
+            (client_id, server_id, round_client_id, location_id, location_name, status, notes, tasks_json, scanned_at, completed_at, sync_state)
+           VALUES (?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?, 'QUEUED')`,
+          [
+            clientId,
+            input.serverId ?? null,
+            input.roundClientId ?? null,
+            input.locationId,
+            input.locationName ?? null,
+            input.notes,
+            JSON.stringify(input.tasks ?? []),
+            now,
+            now,
+          ],
+        );
+      }
 
       const mediaOutbox: string[] = [];
       for (const media of prepared) {
         await tx.execute(
           `INSERT INTO local_media
-            (client_id, check_client_id, kind, local_path, mime_type, status)
-           VALUES (?, ?, ?, ?, ?, 'PENDING')`,
-          [media.clientId, clientId, media.type === 'video' ? 'VIDEO' : 'IMAGE', media.path, mediaMime(media.type)],
+            (client_id, check_client_id, kind, local_path, mime_type, server_url, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            media.clientId,
+            checkClientId,
+            media.type === 'video' ? 'VIDEO' : 'IMAGE',
+            media.path,
+            mediaMime(media.type),
+            media.url ?? null,
+            media.url ? 'UPLOADED' : 'PENDING',
+          ],
         );
+        if (media.url) continue;
         mediaOutbox.push(await enqueue(tx, {
           operation: 'MEDIA_UPLOAD',
           entityType: 'MEDIA',
@@ -219,16 +245,17 @@ export const queueLocalCheck = async (
       }
 
       const dependencies = [...mediaOutbox];
-      if (input.roundClientId && !input.roundClientId.startsWith('server-')) {
+      if (!input.serverId && input.roundClientId && !input.roundClientId.startsWith('server-')) {
         dependencies.push(outboxId('ROUND_START', input.roundClientId));
       }
       await enqueue(tx, {
-        operation: 'CHECK_CREATE',
+        operation: input.serverId ? 'CHECK_UPDATE' : 'CHECK_CREATE',
         entityType: 'CHECK',
-        entityClientId: clientId,
+        entityClientId: checkClientId,
         payload: {
-          clientRef: clientId,
+          clientRef: checkClientId,
           userId,
+          serverId: input.serverId ?? null,
           roundClientId: input.roundClientId ?? null,
           roundServerId: input.roundServerId ?? null,
           locationId: input.locationId,
@@ -247,7 +274,7 @@ export const queueLocalCheck = async (
     return { success: false, error: error?.message || 'No se pudo guardar el check offline.' };
   }
 
-  return { success: true, clientId };
+  return { success: true, clientId: checkClientId };
 };
 
 export const getLocalChecksForRound = async (
@@ -265,4 +292,41 @@ export const getLocalChecksForRound = async (
     [roundClientId],
   );
   return result.rows ?? [];
+};
+
+export const createLocalCheckDraft = async (
+  userId: number,
+  input: { roundClientId?: string; locationId: number; locationName?: string; tasks: any[] },
+): Promise<{ success: boolean; clientId?: string; error?: string }> => {
+  const db = await getOfflineDb(userId);
+  if (!db) return { success: false, error: 'Almacenamiento offline no disponible.' };
+  const clientId = newClientId();
+  const now = Date.now();
+  try {
+    await db.execute(
+      `INSERT INTO local_checks
+        (client_id, round_client_id, location_id, location_name, status, notes, tasks_json, scanned_at, sync_state)
+       VALUES (?, ?, ?, ?, 'DRAFT', '', ?, ?, 'DRAFT')`,
+      [clientId, input.roundClientId ?? null, input.locationId, input.locationName ?? null, JSON.stringify(input.tasks ?? []), now],
+    );
+    return { success: true, clientId };
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'No se pudo crear el borrador local.' };
+  }
+};
+
+export const getLocalCheckDraft = async (
+  userId: number,
+  roundClientId: string | undefined,
+  locationId: number,
+): Promise<any | null> => {
+  const db = await getOfflineDb(userId);
+  if (!db) return null;
+  const result = await db.execute(
+    `SELECT * FROM local_checks
+     WHERE round_client_id = ? AND location_id = ? AND status = 'DRAFT'
+     ORDER BY scanned_at DESC LIMIT 1`,
+    [roundClientId ?? null, locationId],
+  );
+  return result.rows?.[0] ?? null;
 };

@@ -1,0 +1,29 @@
+22:53:01.700 [ INFO] maestro.cli.report.TestDebugReporter.logSystemInfo: Debug output path: /Users/axzy/DEV/CHECK/BARCELONA/APP/.maestro-home/.maestro/tests/2026-10-21_225301
+22:53:01.708 [ INFO] MAESTRO.logSystemInfo: ---- System Info ----
+22:53:01.709 [ INFO] MAESTRO.logSystemInfo: Maestro Version: 2.5.1
+22:53:01.714 [ INFO] MAESTRO.logSystemInfo: CI: Undefined
+22:53:01.714 [ INFO] MAESTRO.logSystemInfo: OS Name: Mac OS X
+22:53:01.715 [ INFO] MAESTRO.logSystemInfo: OS Version: 26.6.2
+22:53:01.715 [ INFO] MAESTRO.logSystemInfo: Architecture: aarch64
+22:53:01.717 [ INFO] MAESTRO.logSystemInfo: Java Version: 17
+22:53:02.232 [ INFO] MAESTRO.logSystemInfo: Xcode Version: 27.0
+22:53:02.238 [ INFO] MAESTRO.logSystemInfo: Flutter Version: Undefined
+22:53:02.246 [ INFO] MAESTRO.logSystemInfo: Flutter Channel: Undefined
+22:53:02.247 [ INFO] MAESTRO.logSystemInfo: ---------------------
+22:53:03.808 [DEBUG] io.micrometer.common.util.internal.logging.InternalLoggerFactory.newDefaultFactory: Using SLF4J as the default logging framework
+22:53:10.308 [ INFO] maestro.cli.command.TestCommand.runShardSuite: [shard 1] Selected device R58YA0MM1TZ using port 7001 with execution plan ExecutionPlan(flowsToRun=[/Users/axzy/DEV/CHECK/BARCELONA/APP/e2e/maestro/scan-without-save.yaml], sequence=FlowSequence(flows=[], continueOnFailure=true), workspaceConfig=WorkspaceConfig(flows=null, includeTags=null, excludeTags=null, executionOrder=null, baselineBranch=null, notifications=null, disableRetries=false, platform=PlatformConfiguration(android=AndroidConfiguration(disableAnimations=false), ios=IOSConfiguration(disableAnimations=false, snapshotKeyHonorModalViews=null)), testOutputDir=null))
+22:53:18.134 [ INFO] maestro.cli.runner.TestRunner.runSingle$lambda$0: Running flow scan-without-save.yaml...
+22:53:18.164 [ INFO] maestro.Maestro.cachedDeviceInfo_delegate$lambda$0: Getting device info
+22:53:18.581 [ INFO] maestro.Maestro.cachedDeviceInfo_delegate$lambda$0: Got device info: DeviceInfo(platform=ANDROID, widthPixels=1080, heightPixels=2340, widthGrid=1080, heightGrid=2340)
+22:53:18.717 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Define variables RUNNING
+22:53:18.732 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Define variables metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(defineVariablesCommand=DefineVariablesCommand(env={MAESTRO_FILENAME=scan-without-save, MAESTRO_DEVICE_UDID=R58YA0MM1TZ, MAESTRO_SHARD_ID=1, MAESTRO_SHARD_INDEX=0}, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+22:53:18.735 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Define variables COMPLETED
+22:53:18.738 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Apply configuration RUNNING
+22:53:18.751 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Apply configuration metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(applyConfigurationCommand=ApplyConfigurationCommand(config=MaestroConfig(appId=com.checkapp, name=null, tags=[], ext={}, onFlowStart=null, onFlowComplete=null, properties={}), label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+22:53:18.751 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Apply configuration COMPLETED
+22:53:18.754 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Stop com.checkapp RUNNING
+22:53:18.756 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Stop com.checkapp metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(stopAppCommand=StopAppCommand(appId=com.checkapp, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+22:53:18.758 [ INFO] maestro.Maestro.stopApp$lambda$3: Stopping app com.checkapp
+22:53:18.899 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Stop com.checkapp COMPLETED
+22:53:18.900 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Launch app "com.checkapp" RUNNING
+22:53:18.904 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Launch app "com.checkapp" metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(launchAppCommand=LaunchAppCommand(appId=com.checkapp, clearState=null, clearKeychain=null, stopApp=null, permissions=null, launchArguments=null, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)

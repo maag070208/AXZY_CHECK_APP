@@ -127,3 +127,19 @@ export const getSyncState = async (db: DB, key: string): Promise<string | null> 
 
 export const enqueueWithNewId = (operation: OfflineOperation, clientId?: string) =>
   outboxId(operation, clientId ?? newClientId());
+
+export const getOutboxIssues = async (userId: number): Promise<Array<{ operation: string; error: string; payload: any }>> => {
+  const { getOfflineDb } = require('./db') as typeof import('./db');
+  const db = await getOfflineDb(userId);
+  if (!db) return [];
+  const result = await db.execute(
+    `SELECT operation, last_error, payload_json FROM outbox
+     WHERE status IN ('FAILED', 'CONFLICT') AND last_error IS NOT NULL
+     ORDER BY updated_at DESC LIMIT 3`,
+  );
+  return (result.rows ?? []).map((row: any) => ({
+    operation: String(row.operation),
+    error: String(row.last_error),
+    payload: (() => { try { return JSON.parse(String(row.payload_json)); } catch { return null; } })(),
+  }));
+};

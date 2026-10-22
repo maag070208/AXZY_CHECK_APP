@@ -1,0 +1,8 @@
+appId: com.checkapp
+---
+# Deja una sesión online y los catálogos/snapshot cacheados antes de apagar WiFi.
+- runFlow: login.yaml
+- extendedWaitUntil:
+    visible: "Iniciar ronda"
+    timeout: 30000
+- waitForAnimationToEnd

@@ -39,7 +39,7 @@ import { showToast } from '../../../core/store/slices/toast.slice';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../../../shared/components/AppButton';
 import { isOnline } from '../../../offline/network';
-import { queueLocalCheck } from '../../../offline/rounds';
+import { createLocalCheckDraft, getLocalCheckDraft, queueLocalCheck } from '../../../offline/rounds';
 
 const { width } = Dimensions.get('window');
 
@@ -53,6 +53,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   const [video, setVideo] = useState<any | null>(null);
   const [notes, setNotes] = useState('');
   const [currentKardexId, setCurrentKardexId] = useState<number | null>(null);
+  const [offlineCheckClientId, setOfflineCheckClientId] = useState<string | undefined>();
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<'video' | 'photo'>('photo');
   const [exitDialogVisible, setExitDialogVisible] = useState(false);
@@ -143,6 +144,23 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   const initReport = async () => {
     try {
       if (!(await isOnline())) {
+        // Borrador local recuperable: si se sale o se cierra la APP, queda NOT_COMPLETED.
+        const existing = await getLocalCheckDraft(
+          Number(user.id),
+          route.params.roundClientId,
+          Number(location.id),
+        );
+        if (existing) {
+          setOfflineCheckClientId(existing.client_id);
+        } else {
+          const draft = await createLocalCheckDraft(Number(user.id), {
+            roundClientId: route.params.roundClientId,
+            locationId: Number(location.id),
+            locationName: location.name,
+            tasks: route.params.recurringTasks || [],
+          });
+          if (draft.clientId) setOfflineCheckClientId(draft.clientId);
+        }
         setCurrentKardexId(-1);
         return;
       }
@@ -413,11 +431,13 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
           const checklist = tasks.map(t => `[${t.completed ? 'x' : ' '}] ${t.description}`).join('\n');
           offlineNotes = `${offlineNotes ? offlineNotes + '\n\n' : ''}--- LISTA DE VERIFICACIÓN ---\n${checklist}`;
         }
-        const media: Array<{ uri: string; type: 'photo' | 'video' }> = [
-          ...photos.filter(p => p.uri).map(p => ({ uri: p.uri, type: 'photo' as const })),
-          ...(video?.uri ? [{ uri: video.uri, type: 'video' as const }] : []),
+        const media: Array<{ uri: string; type: 'photo' | 'video'; url?: string }> = [
+          ...photos.filter(p => p.uri).map(p => ({ uri: p.uri, type: 'photo' as const, url: p.url })),
+          ...(video?.uri ? [{ uri: video.uri, type: 'video' as const, url: video.url }] : []),
         ];
         const queued = await queueLocalCheck(Number(user.id), {
+          serverId: currentKardexId > 0 ? currentKardexId : undefined,
+          existingClientId: offlineCheckClientId,
           roundClientId: route.params.roundClientId,
           roundServerId: route.params.roundServerId,
           locationId: Number(location.id),

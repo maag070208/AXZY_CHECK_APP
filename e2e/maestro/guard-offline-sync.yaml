@@ -1,0 +1,13 @@
+appId: com.checkapp
+---
+# Se ejecuta después de volver a encender WiFi/datos.
+- launchApp
+- extendedWaitUntil:
+    visible: "Sync"
+    timeout: 30000
+- tapOn: "Sync"
+- extendedWaitUntil:
+    visible: "Todo listo"
+    timeout: 60000
+- assertVisible: "Todo listo"
+- assertVisible: "Sin conflictos"

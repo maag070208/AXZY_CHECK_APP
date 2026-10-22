@@ -19,10 +19,20 @@ export const queueReport = async (
     clientId: string;
     path: string;
     type: 'photo' | 'video';
+    url?: string;
   }> = [];
 
   try {
     for (const media of input.media) {
+      if (media.url) {
+        preparedMedia.push({
+          clientId: newClientId(),
+          path: '',
+          type: media.type,
+          url: media.url,
+        });
+        continue;
+      }
       const persisted = await persistMedia(userId, media.uri, media.type);
       preparedMedia.push({ ...persisted, type: media.type });
     }
@@ -56,16 +66,20 @@ export const queueReport = async (
       for (const media of preparedMedia) {
         await tx.execute(
           `INSERT INTO local_media
-            (client_id, report_client_id, kind, local_path, mime_type, status)
-           VALUES (?, ?, ?, ?, ?, 'PENDING')`,
+            (client_id, report_client_id, kind, local_path, mime_type, server_url, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             media.clientId,
             reportClientId,
             media.type === 'video' ? 'VIDEO' : 'IMAGE',
             media.path,
             mediaMime(media.type),
+            media.url ?? null,
+            media.url ? 'UPLOADED' : 'PENDING',
           ],
         );
+        // Si ya se subió online, no se reencola ni se duplica.
+        if (media.url) continue;
         mediaOutboxIds.push(
           await enqueue(tx, {
             operation: 'MEDIA_UPLOAD',

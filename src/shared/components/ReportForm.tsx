@@ -401,7 +401,8 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
     }
 
     const online = await isOnline();
-    if (!online) {
+    const hasLocalEvidence = media.some(item => item.uri && !item.url);
+    if (!online || hasLocalEvidence) {
       const selectedType = allTypes.find(t => t.id === typeId);
       const result = await queueReport(Number(userId), {
         kind: config.offlineKind,
@@ -412,6 +413,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
         media: media.map(item => ({
           uri: item.uri,
           type: item.type === 'video' ? 'video' : 'photo',
+          url: item.url,
         })),
       });
       if (result.success) {

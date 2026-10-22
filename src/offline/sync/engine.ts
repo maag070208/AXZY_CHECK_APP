@@ -19,7 +19,7 @@ import { createIncident } from '../../screens/assignments/service/incident.servi
 import { createMaintenance } from '../../screens/maintenances/service/maintenance.service';
 import { createClub } from '../../screens/club/service/club.service';
 import { startRound, endRound } from '../../screens/home/service/round.service';
-import { registerCheck } from '../../screens/check/service/check.service';
+import { registerCheck, updateCheck } from '../../screens/check/service/check.service';
 
 const parse = (value: string | null): any => {
   if (!value) return null;
@@ -93,6 +93,27 @@ const processReport = async (db: DB, row: OutboxRow) => {
   await markReportSynced(db, row.entity_client_id, serverId);
 };
 
+
+
+const processCheckUpdate = async (db: DB, row: OutboxRow) => {
+  const payload = parse(row.payload_json);
+  const mediaResult = await db.execute(
+    `SELECT kind, server_url FROM local_media WHERE check_client_id = ? AND status = 'UPLOADED'`,
+    [row.entity_client_id],
+  );
+  const media = (mediaResult.rows ?? []).map((item: any) => ({
+    type: item.kind,
+    url: item.server_url,
+  }));
+  const serverId = Number(payload.serverId);
+  if (!serverId) throw new Error('El check no tiene id del servidor.');
+  const result: any = await updateCheck(serverId, payload.notes || 'Reporte completado', media);
+  if (!result?.success) throw new Error('No se pudo actualizar el check.');
+  await db.execute(
+    `UPDATE local_checks SET sync_state = 'SYNCED' WHERE client_id = ?`,
+    [row.entity_client_id],
+  );
+};
 
 const processRoundStart = async (db: DB, row: OutboxRow) => {
   const payload = parse(row.payload_json);
@@ -191,6 +212,10 @@ const processOperation = async (db: DB, row: OutboxRow) => {
   }
   if (row.operation === 'CHECK_CREATE') {
     await processCheck(db, row);
+    return;
+  }
+  if (row.operation === 'CHECK_UPDATE') {
+    await processCheckUpdate(db, row);
     return;
   }
   throw new Error(`Operación offline no soportada todavía: ${row.operation}`);

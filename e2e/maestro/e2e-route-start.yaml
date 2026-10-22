@@ -1,0 +1,17 @@
+appId: com.checkapp
+---
+# Inicia la ruta fixture de 8 puntos.
+- tapOn: "Iniciar ronda"
+- extendedWaitUntil:
+    visible: "Selecciona una Ruta"
+    timeout: 15000
+- tapOn: "E2E RONDA 8 PUNTOS"
+- extendedWaitUntil:
+    visible: "Iniciar Recorrido"
+    timeout: 15000
+- tapOn:
+    text: "^Iniciar$"
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 20000
+- assertVisible: "E2E: simular escaneo"

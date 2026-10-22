@@ -1,0 +1,27 @@
+appId: com.checkapp
+---
+# Continúa el formulario abierto: segunda foto sin WiFi y envío offline.
+- tapOn: "Tomar foto"
+- extendedWaitUntil:
+    visible: "CÁMARA LISTA"
+    timeout: 20000
+- tapOn: "Tomar foto"
+- extendedWaitUntil:
+    notVisible: "CÁMARA LISTA"
+    timeout: 20000
+- swipe:
+    start: 50%, 80%
+    end: 50%, 65%
+    duration: 400
+- waitForAnimationToEnd
+- tapOn: "ENVIAR REPORTE"
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "ENVIAR REPORTE"
+      notVisible: "Enviando reporte..."
+    commands:
+      - tapOn: "ENVIAR REPORTE"
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 30000

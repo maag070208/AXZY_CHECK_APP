@@ -56,6 +56,7 @@ import { isOnline } from '../../../offline/network';
 import { getGuardSnapshot, saveGuardSnapshot } from '../../../offline/snapshot';
 import { endLocalRound, getLocalActiveRound, getLocalChecksForRound, startLocalRound } from '../../../offline/rounds';
 import { mergeLocalRoundStatus } from '../../../offline/roundStatus';
+import { E2E_MODE } from '../../../core/constants/test-mode';
 
 const { width } = Dimensions.get('window');
 
@@ -120,6 +121,7 @@ export const GuardDashboard = () => {
     tone: 'error' | 'warning';
   } | null>(null);
   const [startModalConfig, setStartModalConfig] = useState<any>(null);
+  const [e2eScanVisible, setE2eScanVisible] = useState(false);
 
   // Cooldown logic has been removed as per user request.
   const cooldownMinutes = 0;
@@ -450,6 +452,18 @@ export const GuardDashboard = () => {
     },
   });
 
+  const openCheckLocation = (location: any, tasks: any[]) => {
+    navigation.navigate('CHECK_STACK', {
+      screen: 'CHECK_MAIN',
+      params: {
+        location,
+        recurringTasks: tasks,
+        roundClientId: activeRound?.clientId ?? (activeRound?.id > 0 ? `server-${activeRound.id}` : undefined),
+        roundServerId: activeRound?.id > 0 ? activeRound.id : undefined,
+      },
+    });
+  };
+
   const handleCodeScanned = (code: string) => {
     if (scanned) return;
     setScanned(true);
@@ -485,15 +499,7 @@ export const GuardDashboard = () => {
     if (match) {
       animateLayout();
       setCameraActive(false);
-      navigation.navigate('CHECK_STACK', {
-        screen: 'CHECK_MAIN',
-        params: {
-          location: match.location,
-          recurringTasks: match.tasks,
-          roundClientId: activeRound?.clientId ?? (activeRound?.id > 0 ? `server-${activeRound.id}` : undefined),
-          roundServerId: activeRound?.id > 0 ? activeRound.id : undefined,
-        },
-      });
+      openCheckLocation(match.location, match.tasks);
     } else {
       setScanDialog({
         title: 'Punto no encontrado',
@@ -926,6 +932,52 @@ export const GuardDashboard = () => {
   );
 
   // -- Start Single Round Modal --
+  const renderE2EScanModal = () => {
+    const activeConfig = configs.find(c => c.id === activeRound?.recurringConfigurationId);
+    const points = activeConfig?.recurringLocations || [];
+    return (
+      <Portal>
+        <Modal
+          visible={e2eScanVisible}
+          onDismiss={() => setE2eScanVisible(false)}
+          contentContainerStyle={styles.modernModalContent}
+        >
+          <Text style={styles.modalTitle}>Escaneo E2E</Text>
+          <Text style={styles.modalSubtitle}>Solo debug · elegí un punto o un caso inválido</Text>
+          <ScrollView style={{ maxHeight: 340, marginVertical: 10 }}>
+            {points.map((item: any) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.modalPointRow}
+                onPress={() => {
+                  setE2eScanVisible(false);
+                  openCheckLocation(item.location, item.tasks || []);
+                }}
+              >
+                <View style={styles.modalPointDot} />
+                <Text style={styles.modalPointText}>{item.location?.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <Button
+            mode="outlined"
+            textColor="#B91C1C"
+            onPress={() => {
+              setE2eScanVisible(false);
+              setScanDialog({
+                title: 'QR no válido',
+                message: 'Caso E2E: QR inválido. No se creó ningún check.',
+                tone: 'error',
+              });
+            }}
+          >
+            Simular QR inválido
+          </Button>
+        </Modal>
+      </Portal>
+    );
+  };
+
   const renderStartRoundModal = () => (
     <Portal>
       <Modal
@@ -1162,7 +1214,19 @@ export const GuardDashboard = () => {
                 ListHeaderComponent={
                   <>
                     {/* ASIGNACIONES ESPECIALES - SE MANTIENEN TODAS */}
-                    {specialAssignments.length > 0 && (
+                    {E2E_MODE && isRoundActive && isMyRound && (
+          <TouchableOpacity
+            style={styles.e2eScanBtn}
+            onPress={() => setE2eScanVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="E2E simular escaneo"
+          >
+            <Icon source="qrcode-scan" size={16} color="#7C3AED" />
+            <Text style={styles.e2eScanText}>E2E: simular escaneo</Text>
+          </TouchableOpacity>
+        )}
+
+        {specialAssignments.length > 0 && (
                       <View style={styles.specialSection}>
                         <View style={styles.sectionHeader}>
                           <View style={styles.sectionTitleRow}>
@@ -1254,6 +1318,7 @@ export const GuardDashboard = () => {
       {renderScanDialog()}
       {renderRoundCompletedModal()}
       {renderEndRoundModal()}
+      {renderE2EScanModal()}
       {renderStartRoundModal()}
     </View>
   );
@@ -1629,6 +1694,20 @@ const styles = StyleSheet.create({
     color: '#64748B',
     maxWidth: 120,
   },
+  e2eScanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  e2eScanText: { fontSize: 10, fontWeight: '800', color: '#7C3AED' },
   modalPointRow: {
     flexDirection: 'row',
     alignItems: 'center',

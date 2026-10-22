@@ -45,6 +45,7 @@ describe('mergeLocalRoundStatus', () => {
       [
         {
           location_id: 62,
+          status: 'COMPLETED',
           media_count: 2,
           completed_at: Date.UTC(2026, 9, 21, 20, 30),
           scanned_at: Date.UTC(2026, 9, 21, 20, 20),
@@ -57,6 +58,18 @@ describe('mergeLocalRoundStatus', () => {
     expect(checked.completed).toBe(true);
     expect(checked.mediaCount).toBe(2);
     expect(checked.reportSaved).toBe(true);
+  });
+
+  it('un borrador offline queda NOT_COMPLETED, no completado', () => {
+    const result = mergeLocalRoundStatus(
+      [route],
+      { clientId: 'round-new', recurringConfigurationId: 7, __offline: true },
+      [{ location_id: 62, status: 'DRAFT', media_count: 0 }],
+    );
+
+    const draft = result[0].recurringLocations.find((l: any) => l.locationId === 62);
+    expect(draft.status).toBe('NOT_COMPLETED');
+    expect(draft.completed).toBe(false);
   });
 
   it('en una ronda del servidor conserva los estados que no tengan check local', () => {

@@ -1,0 +1,102 @@
+22:48:43.597 [ INFO] maestro.cli.report.TestDebugReporter.logSystemInfo: Debug output path: /Users/axzy/DEV/CHECK/BARCELONA/APP/.maestro-home/.maestro/tests/2026-10-21_224843
+22:48:43.599 [ INFO] MAESTRO.logSystemInfo: ---- System Info ----
+22:48:43.599 [ INFO] MAESTRO.logSystemInfo: Maestro Version: 2.5.1
+22:48:43.600 [ INFO] MAESTRO.logSystemInfo: CI: Undefined
+22:48:43.600 [ INFO] MAESTRO.logSystemInfo: OS Name: Mac OS X
+22:48:43.600 [ INFO] MAESTRO.logSystemInfo: OS Version: 26.6.2
+22:48:43.600 [ INFO] MAESTRO.logSystemInfo: Architecture: aarch64
+22:48:43.601 [ INFO] MAESTRO.logSystemInfo: Java Version: 17
+22:48:43.854 [DEBUG] io.micrometer.common.util.internal.logging.InternalLoggerFactory.newDefaultFactory: Using SLF4J as the default logging framework
+22:48:43.872 [ INFO] MAESTRO.logSystemInfo: Xcode Version: 27.0
+22:48:43.877 [ INFO] MAESTRO.logSystemInfo: Flutter Version: Undefined
+22:48:43.885 [ INFO] MAESTRO.logSystemInfo: Flutter Channel: Undefined
+22:48:43.885 [ INFO] MAESTRO.logSystemInfo: ---------------------
+22:48:44.086 [ INFO] maestro.orchestra.workspace.WorkspaceExecutionPlanner.plan: Created execution plan: ExecutionPlan(flowsToRun=[/Users/axzy/DEV/CHECK/BARCELONA/APP/e2e/maestro/guard-offline-setup.yaml, /Users/axzy/DEV/CHECK/BARCELONA/APP/e2e/maestro/e2e-route-start.yaml], sequence=FlowSequence(flows=[], continueOnFailure=null), workspaceConfig=WorkspaceConfig(flows=null, includeTags=null, excludeTags=null, executionOrder=null, baselineBranch=null, notifications=null, disableRetries=false, platform=PlatformConfiguration(android=AndroidConfiguration(disableAnimations=false), ios=IOSConfiguration(disableAnimations=false, snapshotKeyHonorModalViews=null)), testOutputDir=null))
+22:48:46.580 [ INFO] maestro.cli.command.TestCommand.runShardSuite: [shard 1] Selected device R58YA0MM1TZ using port 7001 with execution plan ExecutionPlan(flowsToRun=[/Users/axzy/DEV/CHECK/BARCELONA/APP/e2e/maestro/guard-offline-setup.yaml, /Users/axzy/DEV/CHECK/BARCELONA/APP/e2e/maestro/e2e-route-start.yaml], sequence=FlowSequence(flows=[], continueOnFailure=null), workspaceConfig=WorkspaceConfig(flows=null, includeTags=null, excludeTags=null, executionOrder=null, baselineBranch=null, notifications=null, disableRetries=false, platform=PlatformConfiguration(android=AndroidConfiguration(disableAnimations=false), ios=IOSConfiguration(disableAnimations=false, snapshotKeyHonorModalViews=null)), testOutputDir=null))
+22:48:55.199 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow:  Running flow guard-offline-setup
+22:48:55.215 [ INFO] maestro.Maestro.cachedDeviceInfo_delegate$lambda$0: Getting device info
+22:48:55.413 [ INFO] maestro.Maestro.cachedDeviceInfo_delegate$lambda$0: Got device info: DeviceInfo(platform=ANDROID, widthPixels=1080, heightPixels=2340, widthGrid=1080, heightGrid=2340)
+22:48:55.523 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Define variables RUNNING
+22:48:55.527 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Define variables COMPLETED
+22:48:55.528 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Apply configuration RUNNING
+22:48:55.528 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Apply configuration COMPLETED
+22:48:55.529 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Run login.yaml RUNNING
+22:48:55.530 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Apply configuration RUNNING
+22:48:55.531 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Apply configuration COMPLETED
+22:48:55.531 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Launch app "com.checkapp" with clear state RUNNING
+22:48:55.532 [ INFO] maestro.Maestro.clearAppState$lambda$5: Clearing app state com.checkapp
+22:48:59.730 [ INFO] maestro.Maestro.launchApp$lambda$2: Launching app com.checkapp
+22:48:59.730 [ INFO] maestro.Maestro.launchApp$lambda$2: Stopping com.checkapp app during launch
+22:49:00.088 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Launch app "com.checkapp" with clear state COMPLETED
+22:49:00.090 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Assert that "Iniciar sesión" is visible RUNNING
+22:49:11.800 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Assert that "Iniciar sesión" is visible COMPLETED
+22:49:11.802 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Tap on "Usuario" RUNNING
+22:49:12.425 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={text=Usuario, accessibilityText=Usuario, hintText=Usuario, ignoreBoundsFiltering=false, resource-id=, clickable=true, bounds=[207,1134][964,1284], enabled=true, focused=false, checked=false, scrollable=false, selected=false, class=android.widget.EditText, important-for-accessibility=true, error=}, children=[], clickable=true, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=207, y=1134, width=757, height=150))
+22:49:13.823 [ INFO] maestro.Maestro.tap-HgV9Ck0: Refreshed element
+22:49:13.829 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Tapping at (585, 1209) using hierarchy based logic for wait
+22:49:16.758 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Something has changed in the UI judging by view hierarchy. Proceed.
+22:49:16.759 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Tap on "Usuario" COMPLETED
+22:49:16.760 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Input text marcoh RUNNING
+22:49:16.765 [ INFO] maestro.Maestro.inputText: Inputting text: marcoh
+22:49:19.643 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Input text marcoh COMPLETED
+22:49:19.645 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Tap on "Contraseña" RUNNING
+22:49:20.315 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={text=Contraseña, accessibilityText=Contraseña, hintText=Contraseña, ignoreBoundsFiltering=false, resource-id=, clickable=true, bounds=[207,913][884,1064], enabled=true, focused=false, checked=false, scrollable=false, selected=false, class=android.widget.EditText, important-for-accessibility=true, error=}, children=[], clickable=true, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=207, y=913, width=677, height=151))
+22:49:22.177 [ INFO] maestro.Maestro.tap-HgV9Ck0: Refreshed element
+22:49:22.178 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Tapping at (545, 988) using hierarchy based logic for wait
+22:49:24.507 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Something has changed in the UI judging by view hierarchy. Proceed.
+22:49:24.508 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Tap on "Contraseña" COMPLETED
+22:49:24.508 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Input text 123456 RUNNING
+22:49:24.510 [ INFO] maestro.Maestro.inputText: Inputting text: 123456
+22:49:27.265 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Input text 123456 COMPLETED
+22:49:27.265 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Hide Keyboard RUNNING
+22:49:27.270 [ INFO] maestro.Maestro.hideKeyboard$lambda$9: Hiding Keyboard
+22:49:29.372 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Hide Keyboard COMPLETED
+22:49:29.372 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Tap on "Iniciar sesión", Index: 1 RUNNING
+22:49:29.774 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={text=Iniciar sesión, accessibilityText=, hintText=, ignoreBoundsFiltering=false, resource-id=, clickable=false, bounds=[402,1597][678,1658], enabled=true, focused=false, checked=false, scrollable=false, selected=false, class=android.widget.TextView, important-for-accessibility=true, error=}, children=[], clickable=false, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=402, y=1597, width=276, height=61))
+22:49:31.122 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Tapping at (540, 1627) using hierarchy based logic for wait
+22:49:34.628 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Something has changed in the UI judging by view hierarchy. Proceed.
+22:49:34.629 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Tap on "Iniciar sesión", Index: 1 COMPLETED
+22:49:34.629 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Assert that "Ronda no iniciada" is visible RUNNING
+22:49:39.473 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Assert that "Ronda no iniciada" is visible COMPLETED
+22:49:39.474 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Run login.yaml COMPLETED
+22:49:39.474 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Assert that "Iniciar ronda" is visible RUNNING
+22:49:40.156 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Assert that "Iniciar ronda" is visible COMPLETED
+22:49:40.156 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Wait for animation to end RUNNING
+22:49:40.164 [ INFO] maestro.Maestro.waitForAnimationToEnd$lambda$51: Waiting for animation to end with timeout 15000
+22:49:40.166 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to byte array
+22:49:40.166 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+22:49:40.786 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to byte array
+22:49:40.786 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+22:49:41.448 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Wait for animation to end COMPLETED
+22:49:41.754 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow:  Running flow e2e-route-start
+22:49:41.757 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Define variables RUNNING
+22:49:41.758 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Define variables COMPLETED
+22:49:41.758 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Apply configuration RUNNING
+22:49:41.758 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Apply configuration COMPLETED
+22:49:41.759 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Tap on "Iniciar ronda" RUNNING
+22:49:42.960 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={text=Iniciar ronda, accessibilityText=, hintText=, ignoreBoundsFiltering=false, resource-id=, clickable=false, bounds=[475,672][670,718], enabled=true, focused=false, checked=false, scrollable=false, selected=false, class=android.widget.TextView, important-for-accessibility=true, error=}, children=[], clickable=false, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=475, y=672, width=195, height=46))
+22:49:44.413 [ INFO] maestro.Maestro.tap-HgV9Ck0: Refreshed element
+22:49:44.414 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Tapping at (572, 695) using hierarchy based logic for wait
+22:49:47.069 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Something has changed in the UI judging by view hierarchy. Proceed.
+22:49:47.069 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Tap on "Iniciar ronda" COMPLETED
+22:49:47.070 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Assert that "Selecciona una Ruta" is visible RUNNING
+22:49:47.873 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Assert that "Selecciona una Ruta" is visible COMPLETED
+22:49:47.873 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Tap on "E2E RONDA 8 PUNTOS" RUNNING
+22:49:48.648 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={text=E2E RONDA 8 PUNTOS, accessibilityText=, hintText=, ignoreBoundsFiltering=false, resource-id=, clickable=false, bounds=[305,1452][866,1513], enabled=true, focused=false, checked=false, scrollable=false, selected=false, class=android.widget.TextView, important-for-accessibility=true, error=}, children=[], clickable=false, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=305, y=1452, width=561, height=61))
+22:49:50.591 [ INFO] maestro.Maestro.tap-HgV9Ck0: Refreshed element
+22:49:50.592 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Tapping at (585, 1482) using hierarchy based logic for wait
+22:49:52.803 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Something has changed in the UI judging by view hierarchy. Proceed.
+22:49:52.804 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Tap on "E2E RONDA 8 PUNTOS" COMPLETED
+22:49:52.804 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Assert that "Iniciar Recorrido" is visible RUNNING
+22:49:53.201 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Assert that "Iniciar Recorrido" is visible COMPLETED
+22:49:53.201 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Tap on "^Iniciar$" RUNNING
+22:49:53.538 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={text=Iniciar, accessibilityText=, hintText=, ignoreBoundsFiltering=false, resource-id=button-text, clickable=false, bounds=[701,1823][813,1880], enabled=true, focused=false, checked=false, scrollable=false, selected=false, class=android.widget.TextView, important-for-accessibility=true, error=}, children=[], clickable=false, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=701, y=1823, width=112, height=57))
+22:49:54.887 [ INFO] maestro.Maestro.tap-HgV9Ck0: Refreshed element
+22:49:54.888 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Tapping at (757, 1851) using hierarchy based logic for wait
+22:49:57.309 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Something has changed in the UI judging by view hierarchy. Proceed.
+22:49:57.309 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Tap on "^Iniciar$" COMPLETED
+22:49:57.309 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Assert that "Ronda en curso" is visible RUNNING
+22:49:58.371 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Assert that "Ronda en curso" is visible COMPLETED
+22:49:58.371 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$5: Assert that "E2E: simular escaneo" is visible RUNNING
+22:49:58.987 [ INFO] maestro.cli.runner.TestSuiteInteractor.runFlow$lambda$17$lambda$7: Assert that "E2E: simular escaneo" is visible COMPLETED
+22:49:59.007 [ INFO] maestro.cli.report.TestDebugReporter.deleteOldFiles: Performing purge of logs older than 14 days from /Users/axzy/DEV/CHECK/BARCELONA/APP/.maestro-home/.maestro/tests

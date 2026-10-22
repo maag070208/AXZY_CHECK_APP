@@ -30,10 +30,11 @@ export const mergeLocalRoundStatus = (
             ? { ...loc, completed: false, status: 'PENDING', mediaCount: 0, completedAt: null, startedAt: null }
             : loc;
         }
+        const isCompleted = check.status === 'COMPLETED';
         return {
           ...loc,
-          completed: true,
-          status: 'COMPLETED',
+          completed: isCompleted,
+          status: isCompleted ? 'COMPLETED' : 'NOT_COMPLETED',
           mediaCount: Number(check.media_count ?? 0),
           completedAt: check.completed_at ? new Date(Number(check.completed_at)).toISOString() : null,
           startedAt: check.scanned_at ? new Date(Number(check.scanned_at)).toISOString() : null,

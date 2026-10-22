@@ -10,6 +10,7 @@ import { Icon, Text } from 'react-native-paper';
 import { useAppSelector } from '../../core/store/hooks';
 import { isOnline } from '../../offline/network';
 import { syncNow } from '../../offline/sync/engine';
+import { getOutboxIssues } from '../../offline/outbox';
 import { AppButton } from '../../shared/components/AppButton';
 
 type CheckState = 'pending' | 'running' | 'ok' | 'error';
@@ -37,6 +38,7 @@ export const SyncScreen = ({ navigation }: any) => {
   const [done, setDone] = useState(false);
   const [message, setMessage] = useState('Preparando sincronización…');
   const [stats, setStats] = useState({ processed: 0, pending: 0, failed: 0 });
+  const [issues, setIssues] = useState<Array<{ operation: string; error: string; payload: any }>>([]);
   const rotate = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
   const animation = useRef<Animated.CompositeAnimation | null>(null);
@@ -115,6 +117,7 @@ export const SyncScreen = ({ navigation }: any) => {
         result.failed > 0 ? 'Revisá los registros pendientes' : 'Sin conflictos');
 
       setStats({ processed: result.processed, pending: result.pending, failed: result.failed });
+      setIssues(await getOutboxIssues(Number(user.id)));
 
       if (!result.pulled) {
         setMessage('Cambios locales subidos, pero no se pudo descargar la actualización.');
@@ -173,6 +176,13 @@ export const SyncScreen = ({ navigation }: any) => {
           );
         })}
       </View>
+
+      {issues.length > 0 && (
+        <View style={styles.issueCard}>
+          <Text style={styles.issueTitle}>Último error</Text>
+          <Text style={styles.issueText}>{issues[0].error}</Text>
+        </View>
+      )}
 
       {!!stats.processed && (
         <Text style={styles.stats}>{stats.processed} elemento(s) sincronizado(s)</Text>
@@ -251,6 +261,16 @@ const styles = StyleSheet.create({
   checkLabel: { fontSize: 13, fontWeight: '800', color: '#0F172A' },
   checkDetail: { fontSize: 11, fontWeight: '600', color: '#64748B', marginTop: 2 },
   stats: { marginTop: 12, textAlign: 'center', fontSize: 11, fontWeight: '700', color: '#065911' },
+  issueCard: {
+    marginTop: 14,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    padding: 12,
+  },
+  issueTitle: { fontSize: 10, fontWeight: '900', color: '#B91C1C', letterSpacing: 0.8 },
+  issueText: { marginTop: 4, fontSize: 11, fontWeight: '600', color: '#7F1D1D', lineHeight: 16 },
   button: { marginTop: 20, width: '100%' },
   back: { marginTop: 8, width: '100%' },
 });

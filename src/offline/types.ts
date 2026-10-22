@@ -4,7 +4,8 @@ export type OfflineOperation =
   | 'MEDIA_UPLOAD'
   | 'ROUND_START'
   | 'ROUND_END'
-  | 'CHECK_CREATE';
+  | 'CHECK_CREATE'
+  | 'CHECK_UPDATE';
 
 export type SyncStatus = 'QUEUED' | 'SYNCING' | 'SYNCED' | 'FAILED' | 'CONFLICT' | 'DEAD_LETTER';
 export type ReportKind = 'INCIDENT' | 'MAINTENANCE' | 'CLUB';
@@ -27,6 +28,7 @@ export interface OutboxRow {
 export interface OfflineMediaInput {
   uri: string;
   type: 'photo' | 'video';
+  url?: string;
 }
 
 export interface OfflineReportInput {
