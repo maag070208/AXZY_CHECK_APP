@@ -25,10 +25,10 @@ import {
 } from '../service/location.service';
 import { ILocation } from '../type/location.types';
 
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../../core/store/redux.config';
+import { useDispatch } from 'react-redux';
+import { useCan } from '../../../core/permissions/useCan';
+import { P } from '../../../core/permissions/permissions';
 import { showToast } from '../../../core/store/slices/toast.slice';
-import { UserRole } from '../../../core/types/IUser';
 
 // Definimos el color primario para reuso local
 const PRIMARY_COLOR = '#0F4C3A';
@@ -37,8 +37,8 @@ const SECONDARY_COLOR = '#065911';
 export const LocationsScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
-  const user = useSelector((state: RootState) => state.userState);
-  const isAdmin = user.role === UserRole.ADMIN;
+  const can = useCan();
+  const isAdmin = can(P.LOCATIONS_MANAGE);
   const [locations, setLocations] = useState<ILocation[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,8 +87,9 @@ export const LocationsScreen = ({ navigation }: any) => {
 
     const res = await getPaginatedLocations(params);
     if (res.success && res.data) {
-        const newRows = res.data.rows || [];
-        const totalRows = res.data.total || 0;
+        const data = res.data as any;
+        const newRows = data.rows || [];
+        const totalRows = data.total || 0;
 
         if (pageNum === 1) {
             setLocations(newRows);
@@ -176,123 +177,140 @@ export const LocationsScreen = ({ navigation }: any) => {
     );
   };
 
-  const renderItem = ({ item }: { item: ILocation }) => (
-  <Card
-    style={styles.itemCard}
-    elevation={1}
-    onPress={() =>
-      navigation.navigate('LOCATIONS_PRODUCTS', {
-        locationId: item.id,
-        locationName: item.name,
-      })
-    }
-  >
-    <View style={styles.cardLayout}>
-      <View style={styles.avatarSection}>
-        <Avatar.Icon 
-          size={56} 
-          icon="map-marker-radius-outline" 
-          style={styles.avatar} 
-          color="#0F4C3A"
-        />
-        <View style={[styles.statusBadge, { backgroundColor: item.active ? '#059669' : '#64748B' }]}>
-          <Icon source={item.active ? "check" : "minus"} size={10} color="#fff" />
-        </View>
-      </View>
-
-      <View style={styles.infoSection}>
-        <View style={styles.nameRow}>
-          <Text style={styles.propertyName} numberOfLines={1}>{item.name}</Text>
-          <View style={[styles.idBadge, { backgroundColor: '#F1F5F9' }]}>
-            <Text style={[styles.idText, { color: '#64748B' }]}>ZONA</Text>
-          </View>
-        </View>
-        
-        <Text style={styles.ownerText} numberOfLines={1}>Sección: {item.aisle}</Text>
-
-        <View style={styles.detailsRow}>
-          <View style={styles.detailItem}>
-            <Icon source="map-outline" size={14} color="#64748B" />
-            <Text style={styles.detailText} numberOfLines={1}>{item.number}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.actions}>
-        {isAdmin ? (
-          <View style={styles.adminActions}>
-             <IconButton
-                icon="pencil-outline"
-                size={20}
-                onPress={() => handleEdit(item)}
-                iconColor="#64748B"
-                style={{ margin: 0 }}
-            />
-            <IconButton
-                icon="trash-can-outline"
-                size={20}
-                onPress={() => handleDelete(item)}
-                iconColor="#ba1a1a"
-                style={{ margin: 0 }}
-            />
-          </View>
-        ) : (
-          <IconButton 
-            icon="chevron-right" 
-            iconColor="#CBD5E1" 
-            size={24} 
-          />
-        )}
-      </View>
-    </View>
-  </Card>
-);
+  const renderItem = ({ item }: { item: ILocation }) => {
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>Locaciones</Text>
-            <Text style={styles.headerSubtitle}>{total} zonas registradas</Text>
+    <View style={styles.row}>
+      <TouchableOpacity
+        style={styles.rowMain}
+        activeOpacity={0.75}
+        onPress={() =>
+          navigation.navigate('LOCATIONS_PRODUCTS', {
+            locationId: item.id,
+            locationName: item.name,
+          })
+        }
+      >
+        <Avatar.Icon
+          size={42}
+          icon="map-marker-radius-outline"
+          style={styles.avatar}
+          color="#065911"
+        />
+        <View style={styles.copy}>
+          <View style={styles.nameLine}>
+            <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+            <View style={[styles.statusChip, { backgroundColor: item.active ? '#E8F7EF' : '#F1F5F9' }]}>
+              <Text style={[styles.statusChipText, { color: item.active ? '#065911' : '#64748B' }]}>
+                {item.active ? 'Activa' : 'Inactiva'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.metaLine}>
+            <Icon source="map-outline" size={11} color="#94A3B8" />
+            <Text style={styles.meta}>Sección {item.aisle} · #{item.number}</Text>
           </View>
         </View>
-        <Searchbar
-          placeholder="Buscar por nombre..."
-          onChangeText={setSearch}
-          value={search}
-          style={styles.searchBar}
-          inputStyle={styles.searchInput}
-          iconColor="#0F4C3A"
-          placeholderTextColor="#94A3B8"
-          elevation={0}
-        />
-      </View>
+      </TouchableOpacity>
 
-      {loading && !refreshing ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={PRIMARY_COLOR} />
-          <Text style={styles.loadingText}>Cargando ubicaciones...</Text>
+      {isAdmin ? (
+        <View style={styles.rowActions}>
+          <IconButton
+            icon="pencil-outline"
+            size={18}
+            onPress={() => handleEdit(item)}
+            iconColor="#64748B"
+            style={{ margin: 0 }}
+          />
+          <IconButton
+            icon="trash-can-outline"
+            size={18}
+            onPress={() => handleDelete(item)}
+            iconColor="#BA1A1A"
+            style={{ margin: 0 }}
+          />
         </View>
       ) : (
-        <FlatList
-          data={locations}
-          keyExtractor={item => String(item.id)}
-          renderItem={renderItem}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[PRIMARY_COLOR]} tintColor={PRIMARY_COLOR} />
-          }
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            loadingMore ? (
-                <View style={styles.footerLoader}>
-                    <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+        <Icon source="chevron-right" size={18} color="#CBD5E1" />
+      )}
+    </View>
+  );
+  };
+
+  const hasFilter = filterStatus !== 'ALL';
+  const header = (
+    <View>
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryChip}>
+          <Icon source="map-marker-multiple-outline" size={14} color="#065911" />
+          <Text style={styles.summaryText}>{total} zonas</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.summaryChip, hasFilter && styles.summaryChipActive]}
+          onPress={() => setFilterVisible(true)}
+        >
+          <Icon source="filter-variant" size={14} color={hasFilter ? '#FFFFFF' : '#065911'} />
+          <Text style={[styles.summaryText, hasFilter && styles.summaryTextActive]}>
+            {hasFilter ? 'Filtro activo' : 'Filtrar'}
+          </Text>
+        </TouchableOpacity>
+        <IconButton
+          icon="refresh"
+          size={18}
+          iconColor="#065911"
+          containerColor="#E8F7EF"
+          style={styles.refreshBtn}
+          onPress={handleRefresh}
+        />
+      </View>
+      <Searchbar
+        placeholder="Buscar por nombre..."
+        onChangeText={setSearch}
+        value={search}
+        style={styles.searchBar}
+        inputStyle={styles.searchInput}
+        iconColor="#065911"
+        placeholderTextColor="#94A3B8"
+        elevation={0}
+      />
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={locations}
+        keyExtractor={item => String(item.id)}
+        renderItem={renderItem}
+        ListHeaderComponent={header}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[PRIMARY_COLOR]} tintColor={PRIMARY_COLOR} />
+        }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ padding: 16, alignItems: 'center' }}>
+              <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+            </View>
+          ) : null
+        }
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.skeletonList}>
+              {[0, 1, 2, 3, 4].map(index => (
+                <View key={index} style={styles.skeletonRow}>
+                  <View style={styles.skeletonAvatar} />
+                  <View style={styles.skeletonCopy}>
+                    <View style={[styles.skeletonLine, { width: '55%' }]} />
+                    <View style={[styles.skeletonLine, { width: '35%' }]} />
+                  </View>
                 </View>
-            ) : null
-          }
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
+              ))}
+            </View>
+          ) : (
             <View style={styles.emptyState}>
               <View style={styles.emptyIcon}>
                 <IconButton icon={debouncedSearch ? "magnify-off" : "map-marker-off"} size={40} iconColor="#94A3B8" />
@@ -302,9 +320,9 @@ export const LocationsScreen = ({ navigation }: any) => {
                 {debouncedSearch ? "Prueba con otros términos de búsqueda." : "Comienza agregando tu primera ubicación con el botón inferior."}
               </Text>
             </View>
-          }
-        />
-      )}
+          )
+        }
+      />
 
       {isAdmin && (
           <FAB
@@ -370,6 +388,32 @@ export const LocationsScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
+  listContainer: { padding: 16, paddingBottom: 100 },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  summaryChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  summaryChipActive: { backgroundColor: '#065911', borderColor: '#065911' },
+  summaryText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
+  summaryTextActive: { color: '#FFFFFF' },
+  refreshBtn: { marginLeft: 'auto', margin: 0 },
+  searchBar: { backgroundColor: '#FFFFFF', borderRadius: 12, height: 42, borderWidth: 1, borderColor: '#E6EEE9' },
+  searchInput: { fontSize: 12, minHeight: 0 },
+  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 8 },
+  rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 },
+  avatar: { backgroundColor: '#E8F7EF' },
+  copy: { flex: 1, minWidth: 0 },
+  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  statusChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+  statusChipText: { fontSize: 7.5, fontWeight: '900', textTransform: 'uppercase' },
+  metaLine: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  meta: { fontSize: 9.5, fontWeight: '600', color: '#94A3B8' },
+  rowActions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  separator: { height: 1, backgroundColor: '#F1F5F9', marginLeft: 64, marginRight: 12 },
+  skeletonList: { gap: 8, marginTop: 4 },
+  skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 },
+  skeletonAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E6EFE9' },
+  skeletonCopy: { flex: 1, gap: 6 },
+  skeletonLine: { height: 9, borderRadius: 5, backgroundColor: '#EEF3F0' },
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
@@ -398,15 +442,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: -2,
   },
-  searchBar: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    height: 44,
-  },
-  searchInput: {
-    fontSize: 14,
-    minHeight: 0,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -417,10 +452,6 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontSize: 14,
     fontWeight: '500',
-  },
-  listContainer: {
-    padding: 16,
-    paddingBottom: 100,
   },
   itemCard: {
     backgroundColor: '#FFFFFF',
@@ -436,9 +467,6 @@ const styles = StyleSheet.create({
   avatarSection: {
     position: 'relative',
     marginRight: 12,
-  },
-  avatar: {
-    backgroundColor: '#F1F5F9',
   },
   statusBadge: {
     position: 'absolute',

@@ -111,103 +111,106 @@ export const UserListScreen = () => {
         const config = getRoleBadgeConfig(roleName);
 
         return (
-            <Card 
-                style={styles.itemCard} 
-                onPress={() => handleDetail(item)}
-                elevation={1}
-            >
-                <View style={styles.cardLayout}>
-                    <View style={styles.avatarSection}>
-                        <Avatar.Text 
-                            size={52} 
-                            label={item.name ? item.name[0].toUpperCase() : 'U'} 
-                            style={styles.avatar} 
-                            labelStyle={[styles.avatarLabel, { color: config.text }]}
-                        />
-                        <View style={[styles.roleMiniBadge, { backgroundColor: config.text }]}>
-                            <Icon source={config.icon} size={10} color="#fff" />
+            <TouchableOpacity style={styles.row} activeOpacity={0.75} onPress={() => handleDetail(item)}>
+                <Avatar.Text
+                    size={42}
+                    label={item.name ? item.name[0].toUpperCase() : 'U'}
+                    style={[styles.avatar, { backgroundColor: config.bg }]}
+                    labelStyle={[styles.avatarLabel, { color: config.text }]}
+                />
+                <View style={styles.copy}>
+                    <View style={styles.nameLine}>
+                        <Text style={styles.name} numberOfLines={1}>{item.name} {item.lastName}</Text>
+                        <View style={[styles.roleChip, { backgroundColor: config.bg }]}>
+                            <Text style={[styles.roleChipText, { color: config.text }]}>{roleValue}</Text>
                         </View>
                     </View>
-
-                    <View style={styles.infoSection}>
-                        <View style={styles.nameRow}>
-                            <Text style={styles.userName} numberOfLines={1}>{item.name} {item.lastName}</Text>
-                            <View style={[styles.roleBadge, { backgroundColor: config.bg }]}>
-                                <Text style={[styles.roleText, { color: config.text }]}>{roleValue}</Text>
-                            </View>
-                        </View>
-                        
-                        <Text style={styles.usernameText}>@{item.username}</Text>
-
-                        <View style={styles.detailsRow}>
-                            <View style={styles.detailItem}>
-                                <View style={[styles.statusDot, { backgroundColor: item.active ? '#10B981' : '#CBD5E1' }]} />
-                                <Text style={styles.detailText}>{item.active ? 'Acceso Activo' : 'Sin Acceso'}</Text>
-                            </View>
-                            {item.schedule && (
-                                <View style={[styles.detailItem, styles.ml12]}>
-                                    <Icon source="clock-outline" size={14} color="#64748B" />
-                                    <Text style={styles.detailText} numberOfLines={1}>{item.schedule.name}</Text>
-                                </View>
-                            )}
-                        </View>
+                    <View style={styles.metaLine}>
+                        <Text style={styles.username} numberOfLines={1}>@{item.username}</Text>
+                        <Text style={styles.dot}>·</Text>
+                        <View style={[styles.statusDot, { backgroundColor: item.active ? '#12A36F' : '#CBD5E1' }]} />
+                        <Text style={styles.meta}>{item.active ? 'Activo' : 'Sin acceso'}</Text>
+                        {item.schedule ? (
+                            <>
+                                <Text style={styles.dot}>·</Text>
+                                <Text style={styles.meta} numberOfLines={1}>{item.schedule.name}</Text>
+                            </>
+                        ) : null}
                     </View>
-
-                    <IconButton 
-                        icon="chevron-right" 
-                        iconColor="#CBD5E1" 
-                        size={24} 
-                    />
                 </View>
-            </Card>
+                <Icon source="chevron-right" size={18} color="#CBD5E1" />
+            </TouchableOpacity>
         );
     };
 
-    return (
-        <View style={ModernStyles.screenContainer}>
-            <View style={styles.header}>
-                <View style={styles.headerTop}>
-                    <View>
-                        <Text style={styles.headerTitle}>Directorio</Text>
-                        <Text style={styles.headerSubtitle}>{total} usuarios registrados</Text>
-                    </View>
-                    <IconButton
-                        icon="refresh"
-                        mode="contained"
-                        containerColor="#F1F5F9"
-                        iconColor="#64748B"
-                        onPress={onRefresh}
-                    />
+    const activeCount = users.filter(item => item.active).length;
+    const header = (
+        <View>
+            <View style={styles.summaryRow}>
+                <View style={styles.summaryChip}>
+                    <Icon source="account-group-outline" size={14} color={PRIMARY_GREEN} />
+                    <Text style={styles.summaryText}>{total} usuarios</Text>
                 </View>
-                <Searchbar
-                    placeholder="Buscar por nombre o usuario..."
-                    onChangeText={setSearch}
-                    value={search}
-                    style={styles.searchBar}
-                    inputStyle={styles.searchInput}
+                <View style={styles.summaryChip}>
+                    <View style={[styles.statusDot, { backgroundColor: '#12A36F' }]} />
+                    <Text style={styles.summaryText}>{activeCount} activos</Text>
+                </View>
+                <IconButton
+                    icon="refresh"
+                    size={18}
                     iconColor={PRIMARY_GREEN}
-                    placeholderTextColor="#94A3B8"
-                    elevation={0}
+                    containerColor="#E8F7EF"
+                    style={styles.refreshBtn}
+                    onPress={onRefresh}
                 />
             </View>
+            <Searchbar
+                placeholder="Buscar por nombre o usuario..."
+                onChangeText={setSearch}
+                value={search}
+                style={styles.searchBar}
+                inputStyle={styles.searchInput}
+                iconColor={PRIMARY_GREEN}
+                placeholderTextColor="#94A3B8"
+                elevation={0}
+            />
+        </View>
+    );
 
+    return (
+        <View style={ModernStyles.screenContainer}>
             <FlatList
                 data={users}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id.toString()}
+                ListHeaderComponent={header}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[PRIMARY_GREEN]} />}
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.5}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
                 ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color={PRIMARY_GREEN} /> : null}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
                 ListEmptyComponent={
-                    !loading ? (
-                        <View style={styles.emptyContainer}>
-                            <Icon source="account-search-outline" size={64} color="#E2E8F0" />
-                            <Text style={styles.emptyText}>No se encontraron usuarios</Text>
+                    loading ? (
+                        <View style={styles.skeletonList}>
+                            {[0, 1, 2, 3, 4].map(index => (
+                                <View key={index} style={styles.skeletonRow}>
+                                    <View style={styles.skeletonAvatar} />
+                                    <View style={styles.skeletonCopy}>
+                                        <View style={[styles.skeletonLine, { width: '55%' }]} />
+                                        <View style={[styles.skeletonLine, { width: '35%' }]} />
+                                    </View>
+                                </View>
+                            ))}
                         </View>
                     ) : (
-                        <></>
+                        <View style={styles.emptyContainer}>
+                            <View style={styles.emptyIcon}>
+                                <Icon source="account-search-outline" size={30} color="#94A3B8" />
+                            </View>
+                            <Text style={styles.emptyTitle}>Sin usuarios</Text>
+                            <Text style={styles.emptyText}>No se encontraron resultados.</Text>
+                        </View>
                     )
                 }
             />
@@ -227,6 +230,36 @@ export const UserListScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    listContent: { padding: 16 },
+    summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+    summaryChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+    summaryText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
+    refreshBtn: { marginLeft: 'auto', margin: 0 },
+    searchBar: { backgroundColor: '#FFFFFF', borderRadius: 12, height: 42, borderWidth: 1, borderColor: '#E6EEE9' },
+    searchInput: { fontSize: 12, minHeight: 0 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 10 },
+    avatar: { backgroundColor: '#E8F7EF' },
+    avatarLabel: { fontSize: 15, fontWeight: '900' },
+    copy: { flex: 1, minWidth: 0 },
+    nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    name: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+    roleChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+    roleChipText: { fontSize: 7.5, fontWeight: '900', textTransform: 'uppercase' },
+    metaLine: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3, minWidth: 0 },
+    username: { fontSize: 10, fontWeight: '600', color: '#64748B', flexShrink: 1 },
+    dot: { fontSize: 10, color: '#CBD5E1' },
+    meta: { fontSize: 9.5, fontWeight: '600', color: '#94A3B8', flexShrink: 1 },
+    statusDot: { width: 6, height: 6, borderRadius: 3 },
+    separator: { height: 1, backgroundColor: '#F1F5F9', marginLeft: 64, marginRight: 12 },
+    skeletonList: { gap: 8, marginTop: 4 },
+    skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 },
+    skeletonAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E6EFE9' },
+    skeletonCopy: { flex: 1, gap: 6 },
+    skeletonLine: { height: 9, borderRadius: 5, backgroundColor: '#EEF3F0' },
+    emptyContainer: { alignItems: 'center', paddingTop: 48, gap: 6 },
+    emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', alignItems: 'center', justifyContent: 'center' },
+    emptyTitle: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+    emptyText: { fontSize: 11, fontWeight: '600', color: '#94A3B8' },
     header: {
         backgroundColor: '#FFFFFF',
         paddingHorizontal: 20,
@@ -251,18 +284,6 @@ const styles = StyleSheet.create({
         color: '#64748B',
         marginTop: -4,
     },
-    searchBar: {
-        backgroundColor: '#F1F5F9',
-        borderRadius: 12,
-        height: 44,
-    },
-    searchInput: {
-        fontSize: 14,
-        minHeight: 0,
-    },
-    listContent: {
-        padding: 16,
-    },
     itemCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 20,
@@ -277,14 +298,6 @@ const styles = StyleSheet.create({
     avatarSection: {
         position: 'relative',
         marginRight: 12,
-    },
-    avatar: {
-        backgroundColor: '#F8FAFC',
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-    },
-    avatarLabel: {
-        fontWeight: 'bold',
     },
     roleMiniBadge: {
         position: 'absolute',
@@ -343,21 +356,6 @@ const styles = StyleSheet.create({
     },
     ml12: {
         marginLeft: 12,
-    },
-    statusDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        marginTop: 80,
-        gap: 12,
-    },
-    emptyText: {
-        color: '#94A3B8',
-        fontSize: 16,
-        fontWeight: '500',
     },
     fab: {
         position: 'absolute',

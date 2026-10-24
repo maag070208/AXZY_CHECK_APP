@@ -3,8 +3,11 @@ import ModernStyles from '../../../shared/theme/app.styles';
 import { HomeItemComponent } from '../components/HomeItemComponent';
 import { UserRole } from '../../../core/types/IUser';
 import { useSelector } from 'react-redux';
+import { useCan } from '../../../core/permissions/useCan';
+import { P } from '../../../core/permissions/permissions';
 import { RootState } from '../../../core/store/redux.config';
 import { GuardDashboard } from './GuardDashboard';
+import { ResidentHomeScreen } from './ResidentHomeScreen';
 import { ShiftDashboard } from './ShiftDashboard';
 import { AdminDashboardScreen } from '../../admin/screens/AdminDashboardScreen';
 import { useFocusEffect } from '@react-navigation/native';
@@ -13,6 +16,7 @@ import { getPendingIncidentsCount } from '../../assignments/service/incident.ser
 
 export const HomeScreen = () => {
   const user = useSelector((state: RootState) => state.userState);
+  const can = useCan();
   const [pendingIncidents, setPendingIncidents] = useState(0);
 
   // Administrador: home = dashboard operativo (misma fuente que la WEB).
@@ -31,6 +35,11 @@ export const HomeScreen = () => {
     user.role === UserRole.MAINT
   ) {
     return <GuardDashboard />;
+  }
+
+  // Residente: home propio de autoservicio (perfil, contactos y pases).
+  if (user.role === UserRole.RESDN) {
+    return <ResidentHomeScreen />;
   }
 
   useFocusEffect(
@@ -56,7 +65,7 @@ export const HomeScreen = () => {
       screen: 'USER_LIST',
       color: '#db2777',
       gradient: ['#db2777', '#ec4899'],
-      roles: [UserRole.ADMIN],
+      permission: P.USERS_MANAGE,
     },
     // {
     //   id: 'properties',
@@ -96,7 +105,7 @@ export const HomeScreen = () => {
       screen: 'GUARD_LIST',
       color: '#7c3aed',
       gradient: ['#7c3aed', '#8b5cf6'],
-      roles: [UserRole.ADMIN, UserRole.SHIFT],
+      permission: P.ASSIGNMENTS_MANAGE,
     },
     {
       id: 'incidents',
@@ -106,7 +115,7 @@ export const HomeScreen = () => {
       screen: 'INCIDENT_LIST',
       color: '#dc2626',
       gradient: ['#dc2626', '#ef4444'],
-      roles: [UserRole.ADMIN],
+      permission: P.INCIDENT_VIEW,
       badge: pendingIncidents > 0 ? pendingIncidents : undefined,
     },
     {
@@ -117,7 +126,7 @@ export const HomeScreen = () => {
       screen: 'MAINTENANCE_LIST',
       color: '#e65100',
       gradient: ['#e65100', '#fb8c00'],
-      roles: [UserRole.ADMIN, UserRole.MAINT],
+      permission: P.MAINTENANCE_VIEW,
     },
     {
       id: 'club',
@@ -127,7 +136,7 @@ export const HomeScreen = () => {
       screen: 'CLUB_LIST',
       color: '#0EA5E9',
       gradient: ['#0EA5E9', '#38BDF8'],
-      roles: [UserRole.ADMIN, UserRole.SHIFT, UserRole.GUARD, UserRole.MAINT],
+      permission: P.CLUB_VIEW,
     },
     {
       id: 'locations',
@@ -137,7 +146,7 @@ export const HomeScreen = () => {
       screen: 'LOCATIONS_MAIN',
       color: '#2563eb',
       gradient: ['#2563eb', '#3b82f6'],
-      roles: [UserRole.ADMIN, UserRole.SHIFT],
+      permission: P.LOCATIONS_MANAGE,
     },
     {
       id: 'recurring',
@@ -147,7 +156,7 @@ export const HomeScreen = () => {
       screen: 'RECURRING_LIST',
       color: '#059669',
       gradient: ['#059669', '#10b981'],
-      roles: [UserRole.ADMIN, UserRole.SHIFT],
+      permission: P.RECURRING_MANAGE,
     },
     {
       id: 'rounds_history',
@@ -157,7 +166,7 @@ export const HomeScreen = () => {
       screen: 'ROUNDS_LIST',
       color: '#4f46e5',
       gradient: ['#4f46e5', '#6366f1'],
-      roles: [UserRole.ADMIN, UserRole.SHIFT],
+      permission: P.DASHBOARD_VIEW,
     },
     {
       id: 'kardex',
@@ -167,7 +176,7 @@ export const HomeScreen = () => {
       screen: 'KARDEX_LIST',
       color: '#0891b2',
       gradient: ['#0891b2', '#06b6d4'],
-      roles: [UserRole.ADMIN, UserRole.SHIFT],
+      permission: P.KARDEX_VIEW,
     },
     {
       id: 'schedules',
@@ -177,7 +186,7 @@ export const HomeScreen = () => {
       screen: 'SCHEDULES_LIST',
       color: '#f59e0b',
       gradient: ['#f59e0b', '#fbbf24'],
-      roles: [UserRole.ADMIN],
+      permission: P.SCHEDULES_MANAGE,
     },
     {
       id: 'invitation_form',
@@ -186,7 +195,7 @@ export const HomeScreen = () => {
       stack: 'INVITATIONS_STACK',
       screen: 'INVITATION_FORM',
       color: '#059669',
-      roles: [UserRole.RESDN],
+      permission: P.INVITATION_CREATE,
     },
     {
       id: 'invitations_list',
@@ -195,7 +204,7 @@ export const HomeScreen = () => {
       stack: 'INVITATIONS_STACK',
       screen: 'INVITATIONS_MAIN',
       color: '#0891b2',
-      roles: [UserRole.RESDN],
+      permission: P.INVITATION_VIEW,
     },
     {
       id: 'my_contacts',
@@ -205,7 +214,7 @@ export const HomeScreen = () => {
       screen: 'RESIDENT_CONTACTS',
       color: '#4f46e5',
       params: { residentId: Number(user.id) },
-      roles: [UserRole.RESDN],
+      permission: P.RESIDENT_SELF,
     },
     {
       id: 'my_profile',
@@ -214,7 +223,7 @@ export const HomeScreen = () => {
       stack: 'RESIDENTS_STACK',
       screen: 'RESIDENT_PROFILE',
       color: '#6366f1',
-      roles: [UserRole.RESDN],
+      permission: P.RESIDENT_SELF,
     },
     {
       id: 'chat',
@@ -224,12 +233,10 @@ export const HomeScreen = () => {
       screen: 'CHAT_MAIN',
       color: '#7c3aed',
       gradient: ['#7c3aed', '#8b5cf6'],
-      roles: [UserRole.ADMIN],
+      permission: P.CHAT_USE,
     },
   ];
-  const filteredModules = MODULES.filter(m =>
-    m.roles.includes(user.role as UserRole),
-  );
+  const filteredModules = MODULES.filter(m => can(m.permission));
 
   return (
     <View style={[ModernStyles.screenContainer, styles.container]}>

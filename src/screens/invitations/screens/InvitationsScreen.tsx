@@ -2,7 +2,7 @@ import { useFocusEffect, useIsFocused, useNavigation, useRoute } from '@react-na
 import dayjs from 'dayjs';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, NativeScrollEvent, NativeSyntheticEvent, Platform, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Avatar, FAB, Icon, Portal, Searchbar, Surface, Text } from 'react-native-paper';
+import { Avatar, FAB, Icon, IconButton, Portal, Searchbar, Surface, Text } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserRole } from '../../../core/types/IUser';
 import { getCatalog } from '../../../shared/service/catalog.service';
@@ -147,63 +147,46 @@ export const InvitationsScreen = () => {
     const renderItem = ({ item }: { item: Invitation }) => {
         const config = getStatusConfig(item.status);
         const isProvider = item.type === 'PROVIDER';
-        
         return (
-            <TouchableOpacity 
+            <TouchableOpacity
+                style={styles.iRow}
+                activeOpacity={0.75}
                 onPress={() => navigation.navigate('INVITATION_DETAIL', { invitation: item })}
-                activeOpacity={0.7}
             >
-                <Surface style={[ModernStyles.card, styles.itemCard]} elevation={0}>
-                    <View style={[styles.cardHero, { backgroundColor: config.color }]} />
-                    
-                    <View style={styles.cardContent}>
-                        <View style={styles.cardHeader}>
-                            <View style={styles.guestHero}>
-                                <Avatar.Icon 
-                                    size={44} 
-                                    icon={isProvider ? 'moped' : 'account-circle'} 
-                                    style={[styles.guestAvatar, { backgroundColor: isProvider ? '#EFF6FF' : '#F0FDF4' }]}
-                                    color={isProvider ? '#3B82F6' : '#10B981'}
-                                />
-                                <View style={styles.guestMainInfo}>
-                                    <View style={styles.nameRow}>
-                                        <Text style={styles.guestName} numberOfLines={1}>{item.guestName}</Text>
-                                        {isProvider && (
-                                            <View style={styles.providerBadge}>
-                                                <Text style={styles.providerBadgeText}>PROVEEDOR</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                    <Text style={styles.propertyInfo}>
-                                        Propiedad: <Text style={styles.propertyValue}>{item.property?.identifier || 'N/A'}</Text>
-                                    </Text>
-                                </View>
+                <Avatar.Icon
+                    size={40}
+                    icon={isProvider ? 'moped' : 'account-circle'}
+                    style={[styles.iAvatar, { backgroundColor: isProvider ? '#EFF6FF' : '#E8F7EF' }]}
+                    color={isProvider ? '#3B82F6' : '#065911'}
+                />
+                <View style={styles.iCopy}>
+                    <View style={styles.iNameLine}>
+                        <Text style={styles.iName} numberOfLines={1}>{item.guestName}</Text>
+                        {isProvider ? (
+                            <View style={styles.iProvider}>
+                                <Text style={styles.iProviderText}>PROVEEDOR</Text>
                             </View>
-                            
-                            <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
-                                <Icon source={config.icon} size={12} color={config.color} />
-                                <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.cardDivider} />
-
-                        <View style={styles.cardFooter}>
-                            <View style={styles.footerDetail}>
-                                <Icon source="ticket-outline" size={14} color="#64748B" />
-                                <Text style={styles.codeText}>{item.code}</Text>
-                            </View>
-                            
-                            <View style={styles.footerDetail}>
-                                <Icon source="calendar-clock" size={14} color="#64748B" />
-                                <View>
-                                    <Text style={styles.dateLabelCompact}>Desde: <Text style={styles.validityText}>{dayjs(item.validFrom).format('DD/MM HH:mm')}</Text></Text>
-                                    <Text style={styles.dateLabelCompact}>Hasta: <Text style={styles.validityText}>{dayjs(item.validUntil).format('DD/MM HH:mm')}</Text></Text>
-                                </View>
-                            </View>
-                        </View>
+                        ) : null}
                     </View>
-                </Surface>
+                    <View style={styles.iMetaLine}>
+                        <Text style={styles.iMeta} numberOfLines={1}>
+                            {item.property?.identifier ?? 'N/A'} · {item.code}
+                        </Text>
+                    </View>
+                    <View style={styles.iMetaLine}>
+                        <Icon source="calendar-clock" size={10} color="#94A3B8" />
+                        <Text style={styles.iMeta} numberOfLines={1}>
+                            {dayjs(item.validFrom).format('DD MMM HH:mm')} → {dayjs(item.validUntil).format('DD MMM HH:mm')}
+                        </Text>
+                    </View>
+                </View>
+                <View style={styles.iStatusCol}>
+                    <View style={[styles.iStatus, { backgroundColor: config.bg }]}>
+                        <View style={[styles.iDot, { backgroundColor: config.color }]} />
+                        <Text style={[styles.iStatusText, { color: config.color }]}>{config.label}</Text>
+                    </View>
+                    <Icon source="chevron-right" size={18} color="#CBD5E1" />
+                </View>
             </TouchableOpacity>
         );
     };
@@ -211,11 +194,19 @@ export const InvitationsScreen = () => {
     return (
         <SafeAreaView style={[ModernStyles.screenContainer, { backgroundColor: '#f8fafc' }]} edges={['left', 'right', 'bottom']}>
             <View style={styles.header}>
-                <View style={styles.headerTop}>
-                    <View>
-                        <Text style={styles.headerTitle}>Invitaciones</Text>
-                        <Text style={styles.headerSubtitle}>{total} registros encontrados</Text>
+                <View style={styles.compactSummary}>
+                    <View style={styles.compactChip}>
+                        <Icon source="ticket-confirmation-outline" size={14} color="#065911" />
+                        <Text style={styles.compactText}>{total} pases</Text>
                     </View>
+                    <IconButton
+                        icon="refresh"
+                        size={18}
+                        iconColor="#065911"
+                        containerColor="#E8F7EF"
+                        style={{ margin: 0, marginLeft: 'auto' }}
+                        onPress={() => fetchInvitationsFromServer(1)}
+                    />
                 </View>
 
                 <View style={styles.searchContainer}>
@@ -285,7 +276,7 @@ export const InvitationsScreen = () => {
                 />
             )}
 
-            {isFocused && user.role !== UserRole.RESIDENT && (
+            {isFocused && user.role !== UserRole.RESDN && (
                 <Portal>
                     <FAB
                         icon="qrcode-scan"
@@ -301,6 +292,22 @@ export const InvitationsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    compactSummary: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+    compactChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+    compactText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
+    iRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 10 },
+    iAvatar: { backgroundColor: '#E8F7EF' },
+    iCopy: { flex: 1, minWidth: 0 },
+    iNameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    iName: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+    iProvider: { backgroundColor: '#EFF6FF', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 999 },
+    iProviderText: { fontSize: 7, fontWeight: '900', color: '#3B82F6' },
+    iMetaLine: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+    iMeta: { fontSize: 9.5, fontWeight: '600', color: '#94A3B8', flexShrink: 1 },
+    iStatusCol: { alignItems: 'flex-end', gap: 4 },
+    iStatus: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
+    iDot: { width: 5, height: 5, borderRadius: 3 },
+    iStatusText: { fontSize: 8, fontWeight: '900' },
     header: {
         backgroundColor: '#FFFFFF',
         paddingHorizontal: 20,

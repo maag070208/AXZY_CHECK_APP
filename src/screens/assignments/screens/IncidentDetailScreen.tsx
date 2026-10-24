@@ -3,10 +3,10 @@ import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, Dimension
 import { Text, Surface, IconButton, Avatar, Chip, Button } from 'react-native-paper';
 import Video from 'react-native-video';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../../core/store/redux.config';
+import { useDispatch } from 'react-redux';
+import { useCan } from '../../../core/permissions/useCan';
+import { P } from '../../../core/permissions/permissions';
 import { showToast } from '../../../core/store/slices/toast.slice';
-import { UserRole } from '../../../core/types/IUser';
 import { resolveIncident, deleteIncident } from '../service/incident.service';
 import { formatDuration, timeAgo as timeAgoUtil } from '../../../shared/utils/duration';
 
@@ -56,7 +56,7 @@ export const IncidentDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const dispatch = useDispatch();
-  const user = useSelector((state: RootState) => state.userState);
+  const can = useCan();
   
   // Use local state effectively
   const [incident, setIncident] = useState(route.params.incident);
@@ -131,8 +131,8 @@ export const IncidentDetailScreen = () => {
   const timeAgo = getTimeAgo(incident.createdAt);
 
   const isPending = incident.status === 'PENDING' || !incident.status;
-  const canResolve = isPending && (user.role === UserRole.ADMIN || user.role === UserRole.SHIFT_GUARD);
-  const canDelete = user.role === UserRole.ADMIN;
+  const canResolve = isPending && can(P.INCIDENT_RESOLVE);
+  const canDelete = can(P.INCIDENT_DELETE);
 
   const handleDelete = async () => {
     Alert.alert(

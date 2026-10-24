@@ -10,6 +10,8 @@ import { logout } from '../../core/store/slices/user.slice';
 import { RootState } from '../../core/store/redux.config';
 import { theme } from '../../shared/theme/theme';
 import EnvironmentBadge from '../../shared/components/EnvironmentBadge';
+import { useCan } from '../../core/permissions/useCan';
+import { P, PermissionRequirement } from '../../core/permissions/permissions';
 
 /* ======================================================
    TYPES
@@ -21,7 +23,10 @@ interface MenuItem {
   icon: string;
   route: string;
   screen: string;
-  roles: Role[];
+  permission?: PermissionRequirement;
+  excludePermission?: PermissionRequirement;
+  /** Solo para items que no se pueden expresar con un permiso sin abrir el menú a otro rol. */
+  roles?: Role[];
 }
 
 /* ======================================================
@@ -40,41 +45,51 @@ const MENU_ITEMS: MenuItem[] = [
     icon: 'account-group',
     route: 'GUARDS_STACK',
     screen: 'GUARD_LIST',
-    roles: ['ADMIN', 'SHIFT'],
+    permission: P.ASSIGNMENTS_MANAGE,
   },
   {
     label: 'Mis Asignaciones',
     icon: 'clipboard-list-outline',
     route: 'ASSIGNMENTS_STACK',
     screen: 'MY_ASSIGNMENTS_MAIN',
-    roles: ['GUARD', 'MAINT'],
+    permission: P.ASSIGNMENT_VIEW,
+    excludePermission: P.ASSIGNMENTS_MANAGE,
+  },
+  {
+    label: 'Roles y permisos',
+    icon: 'shield-account',
+    route: 'RBAC_STACK',
+    screen: 'RBAC_MAIN',
+    permission: P.USERS_MANAGE,
   },
   {
     label: 'Usuarios',
     icon: 'account-plus',
     route: 'USERS_STACK',
     screen: 'USER_LIST',
-    roles: ['ADMIN'],
+    permission: P.USERS_MANAGE,
   },
   {
     label: 'Historial',
     icon: 'history',
     route: 'Tabs',
     screen: 'Kardex',
-    roles: ['ADMIN', 'SHIFT'],
+    permission: P.KARDEX_VIEW,
   },
   {
     label: 'Rutas',
     icon: 'briefcase-clock-outline',
     route: 'RECURRING_STACK',
     screen: 'RecurringList',
-    roles: ['ADMIN', 'SHIFT'],
+    permission: P.RECURRING_MANAGE,
   },
   {
     label: 'Mis Rutinas',
     icon: 'clipboard-check-outline',
     route: 'RECURRING_STACK',
     screen: 'MyRecurring',
+    permission: P.RECURRING_OPERATE,
+    // El guardia ejecuta rutas desde su dashboard; no se le agrega este ítem.
     roles: ['SHIFT', 'MAINT'],
   },
   {
@@ -82,42 +97,85 @@ const MENU_ITEMS: MenuItem[] = [
     icon: 'alert-circle-outline',
     route: 'INCIDENTS_STACK',
     screen: 'INCIDENT_LIST',
-    roles: ['ADMIN', 'SHIFT'],
+    permission: P.INCIDENT_VIEW,
   },
   {
     label: 'Mantenimiento',
     icon: 'toolbox-outline',
     route: 'MAINTENANCE_STACK',
     screen: 'MAINTENANCE_LIST',
-    roles: ['ADMIN', 'MAINT'],
+    permission: P.MAINTENANCE_VIEW,
   },
   {
     label: 'Casa Club',
     icon: 'home-modern',
     route: 'CLUB_STACK',
     screen: 'CLUB_LIST',
-    roles: ['ADMIN', 'SHIFT', 'MAINT'],
+    permission: P.CLUB_MANAGE,
   },
   {
     label: 'Hist. Recorridos',
     icon: 'clipboard-text-clock',
     route: 'ROUNDS_STACK',
     screen: 'ROUNDS_LIST',
-    roles: ['ADMIN', 'SHIFT'],
+    permission: P.DASHBOARD_VIEW,
   },
   {
     label: 'Horarios',
     icon: 'clock-outline',
     route: 'SCHEDULES_STACK',
-    screen: 'SCHEDULES_LIST',
-    roles: ['ADMIN'],
+    screen: 'SchedulesList',
+    permission: P.SCHEDULES_MANAGE,
+  },
+  {
+    label: 'Chat',
+    icon: 'chat-outline',
+    route: 'CHAT_STACK',
+    screen: 'CHAT_MAIN',
+    permission: P.CHAT_USE,
+    roles: ['ADMIN', 'SHIFT'],
+  },
+  {
+    label: 'Propiedades',
+    icon: 'home-city-outline',
+    route: 'PROPERTIES_STACK',
+    screen: 'PROPERTIES_MAIN',
+    permission: P.PROPERTIES_VIEW,
+  },
+  {
+    label: 'Residentes',
+    icon: 'account-group-outline',
+    route: 'RESIDENTS_STACK',
+    screen: 'RESIDENTS_MAIN',
+    permission: P.PROPERTIES_VIEW,
+  },
+  {
+    label: 'Invitaciones',
+    icon: 'ticket-confirmation-outline',
+    route: 'INVITATIONS_STACK',
+    screen: 'INVITATIONS_MAIN',
+    permission: P.PROPERTIES_VIEW,
+  },
+  {
+    label: 'Entrega de turno',
+    icon: 'swap-horizontal',
+    route: 'SHIFT_HANDOVER_STACK',
+    screen: 'SHIFT_HANDOVER_LIST',
+    permission: P.SHIFT_HANDOVER_MANAGE,
+  },
+  {
+    label: 'Uniforme',
+    icon: 'tshirt-crew-outline',
+    route: 'UNIFORM_STACK',
+    screen: 'UNIFORM_LIST',
+    permission: P.UNIFORM_MANAGE,
   },
   {
     label: 'Caseta',
     icon: 'shield-check-outline',
     route: 'CASETA',
     screen: 'CASETA',
-    roles: ['ADMIN', 'SHIFT', 'GUARD'],
+    permission: P.ACCESS_CHECK,
   },
 ];
 
@@ -185,6 +243,7 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
 
   const userState = useAppSelector((state: RootState) => state.userState);
   const userRole = userState.role;
+  const can = useCan();
   const focusedPath = getFocusedRoutePath(state);
   const clock = useLiveClock();
 
@@ -197,9 +256,12 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
     }).start();
   }, [fadeIn]);
 
-  const filteredMenuItems = MENU_ITEMS.filter(item =>
-    item.roles.includes(userRole as Role),
-  );
+  const filteredMenuItems = MENU_ITEMS.filter(item => {
+    if (item.roles && !item.roles.includes(userRole as Role)) return false;
+    if (item.permission && !can(item.permission)) return false;
+    if (item.excludePermission && can(item.excludePermission)) return false;
+    return true;
+  });
 
   // Los items anclados a "Tabs" (Inicio/Historial) se distinguen por su
   // pantalla interna; el resto, por su stack o su pantalla.

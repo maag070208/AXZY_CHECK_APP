@@ -180,64 +180,37 @@ export const SchedulesListScreen = () => {
   };
 
   const renderItem = ({ item }: { item: ISchedule }) => (
-    <Card 
-        style={styles.itemCard} 
-        onPress={() => openForm(item)}
-        elevation={1}
-    >
-        <View style={styles.cardLayout}>
-            <View style={styles.avatarSection}>
-                <Avatar.Text 
-                    size={56} 
-                    label={item.name ? item.name[0].toUpperCase() : 'H'} 
-                    style={styles.avatar} 
-                    labelStyle={styles.avatarLabel}
-                />
-                <View style={[styles.statusBadge, { backgroundColor: item.active ? COLORS.success : COLORS.danger }]}>
-                    <Icon source={item.active ? "clock-check" : "clock-remove"} size={10} color="#fff" />
-                </View>
-            </View>
-
-            <View style={styles.infoSection}>
-                <View style={styles.nameRow}>
-                    <Text style={styles.scheduleName} numberOfLines={1}>{item.name}</Text>
-                    <View style={styles.idBadge}>
-                        <Text style={styles.idText}>ID: {item.id}</Text>
-                    </View>
-                </View>
-                
-                <Text style={styles.subtitleText}>{item.active ? 'Turno Activo' : 'Turno Inactivo'}</Text>
-
-                <View style={styles.detailsRow}>
-                    <View style={styles.detailItem}>
-                        <Icon source="login-variant" size={14} color="#64748B" />
-                        <Text style={styles.detailText}>{item.startTime}</Text>
-                    </View>
-                    <View style={[styles.detailItem, styles.ml12]}>
-                        <Icon source="logout-variant" size={14} color="#64748B" />
-                        <Text style={styles.detailText}>{item.endTime}</Text>
-                    </View>
-                </View>
-            </View>
-
-            <View style={styles.actionsColumn}>
-                <IconButton 
-                    icon="pencil-outline" 
-                    iconColor="#CBD5E1" 
-                    size={24} 
-                    onPress={() => openForm(item)}
-                    style={{ margin: 0 }}
-                />
-                <IconButton 
-                    icon="trash-can-outline" 
-                    iconColor={COLORS.danger} 
-                    size={24} 
-                    onPress={() => handleDelete(item.id)}
-                    style={{ margin: 0 }}
-                />
-            </View>
+    <View style={styles.row}>
+      <Avatar.Text
+        size={42}
+        label={item.name ? item.name[0].toUpperCase() : 'H'}
+        style={styles.avatar}
+        labelStyle={styles.avatarLabel}
+      />
+      <View style={styles.copy}>
+        <View style={styles.nameLine}>
+          <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+          <View style={[styles.statusChip, { backgroundColor: item.active ? '#E8F7EF' : '#FEF2F2' }]}>
+            <Text style={[styles.statusChipText, { color: item.active ? '#065911' : '#B91C1C' }]}>
+              {item.active ? 'Activo' : 'Inactivo'}
+            </Text>
+          </View>
         </View>
-    </Card>
+        <View style={styles.metaLine}>
+          <Icon source="login-variant" size={11} color="#94A3B8" />
+          <Text style={styles.meta}>{item.startTime}</Text>
+          <Text style={styles.dot}>→</Text>
+          <Icon source="logout-variant" size={11} color="#94A3B8" />
+          <Text style={styles.meta}>{item.endTime}</Text>
+          <Text style={styles.dot}>·</Text>
+          <Text style={styles.meta}>ID {item.id}</Text>
+        </View>
+      </View>
+      <View style={styles.rowActions}>
+        <IconButton icon="pencil-outline" iconColor="#64748B" size={18} onPress={() => openForm(item)} style={{ margin: 0 }} />
+        <IconButton icon="trash-can-outline" iconColor="#BA1A1A" size={18} onPress={() => handleDelete(item.id)} style={{ margin: 0 }} />
+      </View>
+    </View>
   );
 
   return (
@@ -245,28 +218,29 @@ export const SchedulesListScreen = () => {
       <StatusBar barStyle="dark-content" />
       
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-            <View>
-                <Text style={styles.headerTitle}>Horarios</Text>
-                <Text style={styles.headerSubtitle}>{total} turnos registrados</Text>
-            </View>
-            <IconButton
-                icon="refresh"
-                mode="contained"
-                containerColor="#F1F5F9"
-                iconColor="#64748B"
-                onPress={() => fetchSchedules(1, true)}
-            />
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryChip}>
+            <Icon source="clock-outline" size={14} color={COLORS.primary} />
+            <Text style={styles.summaryText}>{total} turnos</Text>
+          </View>
+          <IconButton
+            icon="refresh"
+            size={18}
+            iconColor={COLORS.primary}
+            containerColor="#E8F7EF"
+            style={{ margin: 0, marginLeft: 'auto' }}
+            onPress={() => fetchSchedules(1, true)}
+          />
         </View>
         <Searchbar
-            placeholder="Buscar horario..."
-            onChangeText={setSearch}
-            value={search}
-            style={styles.searchBar}
-            inputStyle={styles.searchInput}
-            iconColor={COLORS.primary}
-            placeholderTextColor="#94A3B8"
-            elevation={0}
+          placeholder="Buscar horario..."
+          onChangeText={setSearch}
+          value={search}
+          style={styles.searchBar}
+          inputStyle={styles.searchInput}
+          iconColor={COLORS.primary}
+          placeholderTextColor="#94A3B8"
+          elevation={0}
         />
       </View>
 
@@ -277,15 +251,31 @@ export const SchedulesListScreen = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color={COLORS.primary} /> : null}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
         ListEmptyComponent={
-          !loading ? (
-            <View style={styles.emptyContainer}>
-              <Icon source="clock-alert-outline" size={64} color="#E2E8F0" />
-              <Text style={styles.emptyText}>No se encontraron horarios</Text>
+          loading ? (
+            <View style={styles.skeletonList}>
+              {[0, 1, 2, 3].map(index => (
+                <View key={index} style={styles.skeletonRow}>
+                  <View style={styles.skeletonAvatar} />
+                  <View style={styles.skeletonCopy}>
+                    <View style={[styles.skeletonLine, { width: '55%' }]} />
+                    <View style={[styles.skeletonLine, { width: '35%' }]} />
+                  </View>
+                </View>
+              ))}
             </View>
-          ) : null
+          ) : (
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIcon}>
+                <Icon source="clock-alert-outline" size={30} color="#94A3B8" />
+              </View>
+              <Text style={styles.emptyTitle}>Sin horarios</Text>
+              <Text style={styles.emptyText}>No se encontraron resultados.</Text>
+            </View>
+          )
         }
       />
 
@@ -356,6 +346,34 @@ export const SchedulesListScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  summaryChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  summaryText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 10 },
+  avatar: { backgroundColor: '#E8F7EF' },
+  avatarLabel: { color: '#065911', fontSize: 15, fontWeight: '900' },
+  copy: { flex: 1, minWidth: 0 },
+  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  statusChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+  statusChipText: { fontSize: 7.5, fontWeight: '900', textTransform: 'uppercase' },
+  metaLine: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  meta: { fontSize: 9.5, fontWeight: '600', color: '#94A3B8' },
+  dot: { fontSize: 10, color: '#CBD5E1' },
+  rowActions: { flexDirection: 'row', alignItems: 'center' },
+  separator: { height: 1, backgroundColor: '#F1F5F9', marginLeft: 64, marginRight: 12 },
+  skeletonList: { gap: 8, marginTop: 4 },
+  skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 },
+  skeletonAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E6EFE9' },
+  skeletonCopy: { flex: 1, gap: 6 },
+  skeletonLine: { height: 9, borderRadius: 5, backgroundColor: '#EEF3F0' },
+  emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  emptyContainer: { alignItems: 'center', paddingTop: 48, gap: 6 },
+  emptyText: { fontSize: 11, fontWeight: '600', color: '#94A3B8', textAlign: 'center' },
+  searchBar: { backgroundColor: '#FFFFFF', borderRadius: 12, height: 42, borderWidth: 1, borderColor: '#E6EEE9' },
+  searchInput: { fontSize: 12, minHeight: 0 },
+  listContent: { padding: 16 },
   header: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
@@ -380,18 +398,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: -4,
   },
-  searchBar: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    height: 44,
-  },
-  searchInput: {
-    fontSize: 14,
-    minHeight: 0,
-  },
-  listContent: {
-    padding: 16,
-  },
   itemCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
@@ -406,13 +412,6 @@ const styles = StyleSheet.create({
   avatarSection: {
     position: 'relative',
     marginRight: 12,
-  },
-  avatar: {
-    backgroundColor: '#F1F5F9',
-  },
-  avatarLabel: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
   },
   statusBadge: {
     position: 'absolute',
@@ -472,16 +471,6 @@ const styles = StyleSheet.create({
   },
   ml12: {
     marginLeft: 12,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    marginTop: 80,
-    gap: 12,
-  },
-  emptyText: {
-    color: '#94A3B8',
-    fontSize: 16,
-    fontWeight: '500',
   },
   fab: {
     position: 'absolute',

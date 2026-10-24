@@ -1,7 +1,7 @@
 # CheckApp APP — Design System
 
 > Fuente de verdad del diseño de la aplicación móvil (React Native + React Native Paper).
-> Última actualización: **2026-10-23 · v2.30**
+> Última actualización: **2026-10-23 · v2.40**
 >
 > Antes de modificar cualquier pantalla, lee este documento. Si introduces un patrón nuevo,
 > actualízalo aquí en el mismo cambio (ver “Cómo mantener este documento”).
@@ -267,7 +267,28 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 - Estados: skeleton de 3 cards al cargar, empty “¡Todo listo!” y error con “Reintentar”.
 - Pull-to-refresh conserva la lista; el refrescar del header también recarga.
 
-### 6.9 Secciones
+### 6.8.4 Homes por rol
+- ADMIN → `AdminDashboardScreen` (KPIs, alertas, mapa, rondas).
+- SHIFT → `ShiftDashboard` (hero, KPIs, alertas, operaciones, rondas activas y equipo) + `ShiftRoundScreen`, que reutiliza `GuardDashboard` en modo ronda: misma pantalla que Guardia/Mantenimiento.
+- GUARD y MAINT → `GuardDashboard` (mismo home: ronda, escaneo y reportes).
+- RESDN → `ResidentHomeScreen` (hero de bienvenida, propiedad, perfil, contactos y pases).
+- El home se elige por rol; dentro de cada uno, los accesos se filtran por permisos.
+
+### 6.9.0 Listas operativas (estándar)
+- Resumen compacto arriba: total, en turno y refrescar.
+- Buscador de 42 px y filtros en chips (Todos / rol).
+- Filas densas de 64–72 px: avatar 42, nombre 13/800, meta 10, chip de rol y estado a la derecha.
+- Separadores suaves; sin cards gigantes por elemento.
+- Skeleton de filas al cargar y estado vacío con icono.
+- Paginación con “cargar más” silencioso.
+
+### 6.9 RBAC en la APP
+- `userState.permissions` guarda los permisos de `GET /users/me/permissions`; se hidratan al iniciar sesión y hay respaldo local por rol si no hay red.
+- Drawer, Home y botones de acción usan `useCan()`; no se compara `role ===`.
+- ADMIN tiene “Roles y permisos” en el drawer para editar la matriz (mismos endpoints que la WEB).
+- El guardia conserva sus accesos: Inicio, Mis Asignaciones, Caseta y su dashboard de rondas.
+
+### 6.9.1 Secciones
 - Header de sección: label 10/900 `soft` mayúsculas + `letterSpacing 1.1`; a la derecha un aside 10/700
   `soft` o chip de conteo.
 - Separación superior 22, inferior 10.
@@ -373,3 +394,13 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 | 2026-10-23 | 2.28 | Mis asignaciones: header plano con flecha atrás y refrescar, cards con estado/progreso/CTA, skeleton, empty y error. |
 | 2026-10-23 | 2.29 | Header con separación 10 entre acciones; chat con estados de carga/error/reintento sobre `/chat/messages`. |
 | 2026-10-23 | 2.30 | Campana de alertas solo para ADMIN y SHIFT; el badge cuenta las alertas de `/dashboard/live`. GUARD/MAINT ya no ven la campana. |
+| 2026-10-23 | 2.31 | RBAC en APP: permisos del API, drawer/Home/acciones por permiso, módulos de Propiedades/Residentes/Invitaciones/Entrega/Uniforme y editor de Roles y permisos para ADMIN. |
+| 2026-10-23 | 2.32 | Homes distintos por rol: Admin, Jefe, Guardia/Mantenimiento y Residente; nuevo home de autoservicio para residente con accesos por permiso. |
+| 2026-10-23 | 2.33 | Home del Jefe de Guardias enriquecido: KPIs de supervisión, alertas, acciones en tarjetas blancas, rondas activas, mi ronda y guardias en turno. |
+| 2026-10-23 | 2.34 | Campana = notificaciones de incidencias + mantenimiento + casa club, con pantalla propia; guardias en turno en verde; sin CTA duplicado de iniciar ronda en Mi recorrido. |
+| 2026-10-23 | 2.35 | Rondas del Jefe unificadas en una sola tarjeta: en curso + mi ronda, sin secciones duplicadas; duración legible (d/h/min) y límite de 3 con “+N más”. |
+| 2026-10-23 | 2.36 | Home y ronda separados para SHIFT: el dashboard solo muestra el resumen y “Mi ronda” abre `ShiftRoundScreen` para iniciar, escanear y terminar. |
+| 2026-10-23 | 2.37 | La ronda del Jefe reutiliza la misma pantalla de ronda de Guardia/Mantenimiento (`GuardDashboard roundOnly`); sin variante visual propia. |
+| 2026-10-23 | 2.38 | Estándar de listas operativas aplicado a Gestión de Guardias: resumen, búsqueda, filtros por rol, filas densas, skeleton y vacío. |
+| 2026-10-23 | 2.39 | Mismo estándar de lista aplicado a Residentes, Usuarios, Propiedades y Ubicaciones: chips de resumen, búsqueda, filas densas y estados. |
+| 2026-10-23 | 2.40 | Estándar aplicado a Invitaciones y Horarios: filas densas con estado, resumen, skeleton y vacío. |

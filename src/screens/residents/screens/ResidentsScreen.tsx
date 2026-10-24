@@ -7,11 +7,14 @@ import ModernStyles from '../../../shared/theme/app.styles';
 import { getPaginatedResidents, ResidentUser } from '../service/resident.service';
 import { getCatalog } from '../../../shared/service/catalog.service';
 import { SearchComponent } from '../../../shared/components/SearchComponent';
+import { useCan } from '../../../core/permissions/useCan';
+import { P } from '../../../core/permissions/permissions';
 
 export const ResidentsScreen = () => {
     const navigation = useNavigation<any>();
     const isFocused = useIsFocused();
     const insets = useSafeAreaInsets();
+    const can = useCan();
     
     const [residents, setResidents] = useState<ResidentUser[]>([]);
     const [loading, setLoading] = useState(true);
@@ -33,7 +36,7 @@ export const ResidentsScreen = () => {
             try {
                 const res = await getCatalog('property');
                 if (res.success) {
-                    const mapped = res.data.map((p: any) => ({
+                    const mapped = (res.data ?? []).map((p: any) => ({
                         label: `${p.name} • ${p.value}`,
                         value: p.id
                     }));
@@ -123,103 +126,116 @@ export const ResidentsScreen = () => {
         navigation.navigate('RESIDENT_DETAIL', { residentId: resident.id });
     };
 
-    const renderItem = ({ item }: { item: ResidentUser }) => (
-        <Card 
-            style={styles.itemCard} 
-            onPress={() => handleDetail(item)}
-            elevation={1}
-        >
-            <View style={styles.cardLayout}>
-                <View style={styles.avatarSection}>
-                    <Avatar.Text 
-                        size={56} 
-                        label={item.name ? item.name[0].toUpperCase() : 'R'} 
-                        style={styles.avatar} 
-                        labelStyle={styles.avatarLabel}
-                    />
-                    <View style={item.role === 'OWNER' ? styles.ownerBadge : styles.residentBadge}>
-                        <Icon source={item.role === 'OWNER' ? "crown" : "account"} size={10} color="#fff" />
-                    </View>
-                </View>
-
-                <View style={styles.infoSection}>
-                    <View style={styles.nameRow}>
-                        <Text style={styles.residentName} numberOfLines={1}>{item.name} {item.lastName}</Text>
-                        <View style={styles.idBadge}>
-                            <Text style={styles.idText}>{item.property?.identifier || 'S/N'}</Text>
+    const renderItem = ({ item }: { item: ResidentUser }) => {
+        const isOwner = item.role === 'OWNER';
+        return (
+            <TouchableOpacity
+                style={styles.row}
+                activeOpacity={0.75}
+                onPress={() => handleDetail(item)}
+            >
+                <Avatar.Text
+                    size={42}
+                    label={item.name ? item.name[0].toUpperCase() : 'R'}
+                    style={styles.avatar}
+                    labelStyle={styles.avatarLabel}
+                />
+                <View style={styles.copy}>
+                    <View style={styles.nameLine}>
+                        <Text style={styles.name} numberOfLines={1}>{item.name} {item.lastName}</Text>
+                        <View style={[styles.roleChip, isOwner ? styles.ownerChip : styles.tenantChip]}>
+                            <Text style={[styles.roleChipText, isOwner ? styles.ownerChipText : styles.tenantChipText]}>
+                                {isOwner ? 'Propietario' : 'Residente'}
+                            </Text>
                         </View>
                     </View>
-                    
-                    <Text style={styles.usernameText}>@{item.username}</Text>
-
-                    <View style={styles.detailsRow}>
-                        <View style={styles.detailItem}>
-                            <Icon source="home-outline" size={14} color="#64748B" />
-                            <Text style={styles.detailText} numberOfLines={1}>{item.property?.name || 'No asignada'}</Text>
-                        </View>
-                        {item.residentProfile?.phoneNumber && (
-                            <View style={[styles.detailItem, styles.ml12]}>
-                                <Icon source="phone-outline" size={14} color="#64748B" />
-                                <Text style={styles.detailText}>{item.residentProfile.phoneNumber}</Text>
-                            </View>
-                        )}
+                    <View style={styles.metaLine}>
+                        <Text style={styles.username} numberOfLines={1}>@{item.username}</Text>
+                        <Text style={styles.dot}>·</Text>
+                        <Icon source="home-outline" size={11} color="#94A3B8" />
+                        <Text style={styles.meta} numberOfLines={1}>
+                            {item.property ? `${item.property.identifier} · ${item.property.name}` : 'Sin propiedad'}
+                        </Text>
                     </View>
                 </View>
+                <Icon source="chevron-right" size={18} color="#CBD5E1" />
+            </TouchableOpacity>
+        );
+    };
 
-                <IconButton 
-                    icon="chevron-right" 
-                    iconColor="#CBD5E1" 
-                    size={24} 
-                    onPress={() => handleDetail(item)}
+    const header = (
+        <View>
+            <View style={styles.summaryRow}>
+                <View style={styles.summaryChip}>
+                    <Icon source="account-group-outline" size={14} color="#065911" />
+                    <Text style={styles.summaryText}>{total} registrados</Text>
+                </View>
+                <TouchableOpacity
+                    style={[styles.summaryChip, filterProperty !== 'ALL' && styles.summaryChipActive]}
+                    onPress={() => setFilterVisible(true)}
+                >
+                    <Icon source="filter-variant" size={14} color={filterProperty !== 'ALL' ? '#FFFFFF' : '#065911'} />
+                    <Text style={[styles.summaryText, filterProperty !== 'ALL' && styles.summaryTextActive]}>
+                        {filterProperty === 'ALL' ? 'Filtrar' : 'Filtro activo'}
+                    </Text>
+                </TouchableOpacity>
+                <IconButton
+                    icon="refresh"
+                    size={18}
+                    iconColor="#065911"
+                    containerColor="#E8F7EF"
+                    style={styles.refreshBtn}
+                    onPress={onRefresh}
                 />
             </View>
-        </Card>
+            <Searchbar
+                placeholder="Buscar por nombre..."
+                onChangeText={setSearch}
+                value={search}
+                style={styles.searchBar}
+                inputStyle={styles.searchInput}
+                iconColor="#065911"
+                placeholderTextColor="#94A3B8"
+                elevation={0}
+            />
+        </View>
     );
 
     return (
         <View style={ModernStyles.screenContainer}>
-            <View style={styles.header}>
-                <View style={styles.headerTop}>
-                    <View>
-                        <Text style={styles.headerTitle}>Residentes</Text>
-                        <Text style={styles.headerSubtitle}>{total} registros encontrados</Text>
-                    </View>
-                    <IconButton
-                        icon="filter-variant"
-                        mode="contained"
-                        containerColor={filterProperty !== 'ALL' ? '#0F4C3A' : '#F1F5F9'}
-                        iconColor={filterProperty !== 'ALL' ? '#FFFFFF' : '#64748B'}
-                        onPress={() => setFilterVisible(true)}
-                    />
-                </View>
-                <Searchbar
-                    placeholder="Buscar por nombre..."
-                    onChangeText={setSearch}
-                    value={search}
-                    style={styles.searchBar}
-                    inputStyle={styles.searchInput}
-                    iconColor="#0F4C3A"
-                    placeholderTextColor="#94A3B8"
-                    elevation={0}
-                />
-            </View>
-
             <FlatList
                 data={residents}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id.toString()}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#0F4C3A"]} />}
+                ListHeaderComponent={header}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#065911"]} />}
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.5}
-                ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color="#0F4C3A" /> : null}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+                ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color="#065911" /> : null}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
                 ListEmptyComponent={
-                    !loading ? (
-                        <View style={styles.emptyContainer}>
-                            <Icon source="account-search-outline" size={64} color="#E2E8F0" />
-                            <Text style={styles.emptyText}>No se encontraron residentes</Text>
+                    loading ? (
+                        <View style={styles.skeletonList}>
+                            {[0, 1, 2, 3, 4].map(index => (
+                                <View key={index} style={styles.skeletonRow}>
+                                    <View style={styles.skeletonAvatar} />
+                                    <View style={styles.skeletonCopy}>
+                                        <View style={[styles.skeletonLine, { width: '55%' }]} />
+                                        <View style={[styles.skeletonLine, { width: '35%' }]} />
+                                    </View>
+                                </View>
+                            ))}
                         </View>
-                    ) : null
+                    ) : (
+                        <View style={styles.emptyContainer}>
+                            <View style={styles.emptyIcon}>
+                                <Icon source="account-search-outline" size={30} color="#94A3B8" />
+                            </View>
+                            <Text style={styles.emptyTitle}>Sin residentes</Text>
+                            <Text style={styles.emptyText}>No se encontraron resultados.</Text>
+                        </View>
+                    )
                 }
             />
 
@@ -281,12 +297,14 @@ export const ResidentsScreen = () => {
                 </Modal>
 
                 {isFocused && (
-                    <FAB
+                    can(P.RESIDENTS_MANAGE) ? (
+                      <FAB
                         icon="plus"
                         style={[styles.fab, { bottom: insets.bottom + 24 }]}
                         color="white"
                         onPress={() => navigation.navigate('RESIDENT_FORM')}
-                    />
+                      />
+                    ) : null
                 )}
             </Portal>
         </View>
@@ -294,6 +312,41 @@ export const ResidentsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    listContent: { padding: 16 },
+    summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+    summaryChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+    summaryChipActive: { backgroundColor: '#065911', borderColor: '#065911' },
+    summaryText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
+    summaryTextActive: { color: '#FFFFFF' },
+    refreshBtn: { marginLeft: 'auto', margin: 0 },
+    searchBar: { backgroundColor: '#FFFFFF', borderRadius: 12, height: 42, borderWidth: 1, borderColor: '#E6EEE9' },
+    searchInput: { fontSize: 12, minHeight: 0 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 10 },
+    avatar: { backgroundColor: '#E8F7EF' },
+    avatarLabel: { color: '#065911', fontSize: 15, fontWeight: '900' },
+    copy: { flex: 1, minWidth: 0 },
+    nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    name: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+    roleChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+    ownerChip: { backgroundColor: '#FEF3C7' },
+    tenantChip: { backgroundColor: '#E8F7EF' },
+    roleChipText: { fontSize: 7.5, fontWeight: '900', textTransform: 'uppercase' },
+    ownerChipText: { color: '#B45309' },
+    tenantChipText: { color: '#065911' },
+    metaLine: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3, minWidth: 0 },
+    username: { fontSize: 10, fontWeight: '600', color: '#64748B', flexShrink: 1 },
+    dot: { fontSize: 10, color: '#CBD5E1' },
+    meta: { fontSize: 9.5, fontWeight: '600', color: '#94A3B8', flexShrink: 1 },
+    separator: { height: 1, backgroundColor: '#F1F5F9', marginLeft: 64, marginRight: 12 },
+    skeletonList: { gap: 8, marginTop: 4 },
+    skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 },
+    skeletonAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E6EFE9' },
+    skeletonCopy: { flex: 1, gap: 6 },
+    skeletonLine: { height: 9, borderRadius: 5, backgroundColor: '#EEF3F0' },
+    emptyContainer: { alignItems: 'center', paddingTop: 48, gap: 6 },
+    emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', alignItems: 'center', justifyContent: 'center' },
+    emptyTitle: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+    emptyText: { fontSize: 11, fontWeight: '600', color: '#94A3B8' },
     header: {
         backgroundColor: '#FFFFFF',
         paddingHorizontal: 20,
@@ -325,18 +378,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#0F4C3A',
         borderRadius: 28,
     },
-    searchBar: {
-        backgroundColor: '#F1F5F9',
-        borderRadius: 12,
-        height: 44,
-    },
-    searchInput: {
-        fontSize: 14,
-        minHeight: 0,
-    },
-    listContent: {
-        padding: 16,
-    },
     itemCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 20,
@@ -351,13 +392,6 @@ const styles = StyleSheet.create({
     avatarSection: {
         position: 'relative',
         marginRight: 12,
-    },
-    avatar: {
-        backgroundColor: '#F1F5F9',
-    },
-    avatarLabel: {
-        color: '#0F4C3A',
-        fontWeight: 'bold',
     },
     ownerBadge: {
         position: 'absolute',
@@ -431,16 +465,6 @@ const styles = StyleSheet.create({
     },
     ml12: {
         marginLeft: 12,
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        marginTop: 80,
-        gap: 12,
-    },
-    emptyText: {
-        color: '#94A3B8',
-        fontSize: 16,
-        fontWeight: '500',
     },
     modalContent: {
         backgroundColor: 'white',

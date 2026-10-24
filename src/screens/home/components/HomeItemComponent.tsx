@@ -12,10 +12,11 @@ interface HomeItemComponentProps {
   color?: string;
   gradient?: string[];
   badge?: number;
+  params?: any;
 }
 
 // HomeItemComponent sin gradient
-export const HomeItemComponent = ({ icon, label, stack, screen, color, badge }: HomeItemComponentProps) => {
+export const HomeItemComponent = ({ icon, label, stack, screen, color, badge, params }: HomeItemComponentProps) => {
   const { resetToModule } = useAppNavigation();
 
   return (
@@ -26,7 +27,7 @@ export const HomeItemComponent = ({ icon, label, stack, screen, color, badge }: 
         { backgroundColor: color },
       ]}
       activeOpacity={0.8}
-      onPress={() => resetToModule(stack, screen)}
+      onPress={() => resetToModule(stack, screen, params)}
     >
       <View style={styles.contentContainer}>
         {/* Icono */}

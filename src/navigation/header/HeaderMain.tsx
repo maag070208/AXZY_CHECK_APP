@@ -5,8 +5,11 @@ import { OfflineHeaderNotice } from '../../shared/components/OfflineHeaderNotice
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../core/store/redux.config';
-import { UserRole } from '../../core/types/IUser';
-import { getLiveDashboard } from '../../screens/admin/service/dashboard.service';
+import { getPendingIncidentsCount } from '../../screens/assignments/service/incident.service';
+import { getPendingMaintenancesCount } from '../../screens/maintenances/service/maintenance.service';
+import { getPendingClubsCount } from '../../screens/club/service/club.service';
+import { useCan } from '../../core/permissions/useCan';
+import { P } from '../../core/permissions/permissions';
 import { SyncHeaderButton } from './SyncHeaderButton';
 
 /**
@@ -15,12 +18,12 @@ import { SyncHeaderButton } from './SyncHeaderButton';
  */
 export const HeaderMain = ({ navigation }: any) => {
   const user = useSelector((state: RootState) => state.userState);
-  const role = user.role;
   const [alertCount, setAlertCount] = useState(0);
+  const can = useCan();
 
-  const canChat = role !== UserRole.RESDN;
-  // Alertas del dashboard operativo: solo administración y jefe de guardias.
-  const canSeeAlerts = role === UserRole.ADMIN || role === UserRole.SHIFT;
+  const canChat = can(P.CHAT_USE);
+  // Alertas del dashboard operativo: ADMIN/SHIFT tienen dashboard.view.
+  const canSeeAlerts = can(P.DASHBOARD_VIEW);
 
   useFocusEffect(
     useCallback(() => {
@@ -33,11 +36,15 @@ export const HeaderMain = ({ navigation }: any) => {
         };
       }
 
-      getLiveDashboard()
-        .then((res: any) => {
-          if (active && res?.success && res?.data) {
-            setAlertCount(res.data.alerts?.length ?? 0);
-          }
+      Promise.all([
+        getPendingIncidentsCount().catch(() => null),
+        getPendingMaintenancesCount().catch(() => null),
+        getPendingClubsCount().catch(() => null),
+      ])
+        .then(([incidents, maintenance, club]) => {
+          if (!active) return;
+          const count = (res: any) => (res?.success ? Number(res.data?.count) || 0 : 0);
+          setAlertCount(count(incidents) + count(maintenance) + count(club));
         })
         .catch(() => {});
 
@@ -57,8 +64,8 @@ export const HeaderMain = ({ navigation }: any) => {
   const goChat = () =>
     navigation.getParent()?.navigate?.('CHAT_STACK', { screen: 'CHAT_MAIN' });
   const goAlerts = () => {
-    // La campana solo se renderiza para ADMIN/SHIFT; ambos pueden ver incidencias.
-    navigation.getParent()?.navigate?.('INCIDENTS_STACK', { screen: 'INCIDENT_LIST' });
+    // Notificaciones = incidencias + mantenimiento + casa club.
+    navigation.navigate('NOTIFICATIONS');
   };
 
   return (

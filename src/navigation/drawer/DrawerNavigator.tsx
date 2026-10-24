@@ -24,6 +24,7 @@ import { ShiftHandoverStack } from '../../screens/shiftHandover/stack/ShiftHando
 import { UniformStack } from '../../screens/uniform/stack/UniformStack';
 import { CasetaScreen } from '../../screens/caseta/screens/CasetaScreen';
 import { HeaderBack } from '../header/HeaderBack';
+import { RbacStack } from '../../screens/rbac/stack/RbacStack';
 
 const Drawer = createDrawerNavigator();
 
@@ -159,6 +160,14 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="SCHEDULES_STACK"
         component={SchedulesStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="RBAC_STACK"
+        component={RbacStack}
         options={{
             drawerItemStyle: { display: 'none' }
         }}

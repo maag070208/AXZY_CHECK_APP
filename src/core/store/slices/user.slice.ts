@@ -11,6 +11,7 @@ export interface IUserState {
   token: string | null;
   isSignedIn: boolean;
   loggedInAt: string | null;
+  permissions: string[] | null;
 }
 
 const initialState: IUserState = {
@@ -22,6 +23,7 @@ const initialState: IUserState = {
   token: null,
   isSignedIn: false,
   loggedInAt: null,
+  permissions: null,
 };
 
 export const userSlice = createSlice({
@@ -42,9 +44,14 @@ export const userSlice = createSlice({
       state.isSignedIn = true;
       state.token = action.payload;
       state.loggedInAt = new Date().toISOString();
+      state.permissions = null;
     },
 
     logout: () => initialState,
+
+    setPermissions: (state, action: PayloadAction<string[]>) => {
+      state.permissions = action.payload;
+    },
 
     updateProfile: (state, action: PayloadAction<{ name: string; lastName: string }>) => {
       state.fullName = `${action.payload.name} ${action.payload.lastName}`.trim();
@@ -52,6 +59,6 @@ export const userSlice = createSlice({
   },
 });
 
-export const { login, logout, updateProfile } = userSlice.actions;
+export const { login, logout, updateProfile, setPermissions } = userSlice.actions;
 
 export default userSlice.reducer;

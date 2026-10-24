@@ -2,7 +2,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { jwtDecode } from 'jwt-decode';
 import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../core/store/hooks';
-import { logout } from '../core/store/slices/user.slice';
+import { logout, setPermissions } from '../core/store/slices/user.slice';
 import { IAuthToken } from '../core/types/IUser';
 import LoginScreen from '../screens/auth/screens/LoginScreen';
 import PermissionsScreen from '../screens/auth/screens/PermissionsScreen';
@@ -10,9 +10,11 @@ import LoaderComponent from '../shared/components/LoaderComponent';
 import DrawerNavigator from './drawer/DrawerNavigator';
 import { useOfflineSync } from '../offline/useOfflineSync';
 import { ApiVersionGate } from '../shared/components/ApiVersionGate';
+import { getMyPermissions } from '../screens/auth/services/permissions.service';
+import { ROLE_PERMISSIONS } from '../core/permissions/permissions';
 
 const MainNavigation = () => {
-  const { isSignedIn, token } = useAppSelector(state => state.userState);
+  const { isSignedIn, token, permissions, role } = useAppSelector(state => state.userState);
   const [permissionsAccepted, setPermissionsAccepted] = useState(false);
   useOfflineSync();
   const dispatch = useAppDispatch();
@@ -20,6 +22,24 @@ const MainNavigation = () => {
   useEffect(() => {
     if (!isSignedIn) setPermissionsAccepted(false);
   }, [isSignedIn]);
+
+  useEffect(() => {
+    if (!isSignedIn || !token || permissions != null) return;
+    let active = true;
+    getMyPermissions()
+      .then(res => {
+        if (active && res.success && Array.isArray(res.data?.permissions)) {
+          dispatch(setPermissions(res.data.permissions));
+        }
+      })
+      .catch(() => {
+        // Sin red: la APP usa el respaldo de la matriz por rol.
+        if (active && role) dispatch(setPermissions(ROLE_PERMISSIONS[role] ?? []));
+      });
+    return () => {
+      active = false;
+    };
+  }, [isSignedIn, token, permissions, role, dispatch]);
 
   const validateToken = () => {
     if (isSignedIn && token) {

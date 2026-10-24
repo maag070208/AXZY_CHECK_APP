@@ -23,10 +23,10 @@ import {
   Provider as PaperProvider,
   Text,
 } from 'react-native-paper';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../../core/store/redux.config';
+import { useDispatch } from 'react-redux';
+import { useCan } from '../../../core/permissions/useCan';
+import { P } from '../../../core/permissions/permissions';
 import { showToast } from '../../../core/store/slices/toast.slice';
-import { UserRole } from '../../../core/types/IUser';
 import { useAppNavigation } from '../../../navigation/hooks/useAppNavigation';
 import {
   deleteProperty,
@@ -42,14 +42,13 @@ export const PropertyDetailScreen = () => {
   const route = useRoute<any>();
   const { navigateToScreen, goBack } = useAppNavigation();
   const dispatch = useDispatch();
-  const user = useSelector((state: RootState) => state.userState);
+  const can = useCan();
   const [property, setProperty] = useState<Property>(route.params.property);
   const [residents, setResidents] = useState<ResidentUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const isAuthorized =
-    user.role === UserRole.ADMIN || user.role === UserRole.SHIFT_GUARD;
+  const isAuthorized = can(P.PROPERTIES_MANAGE);
 
   const fetchPropertyDetail = async (silent = false) => {
     if (!silent) setRefreshing(true);

@@ -91,7 +91,7 @@ const LOCATION_STATUS = {
   },
 } as const;
 
-export const GuardDashboard = () => {
+export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = {}) => {
   const navigation = useNavigation<any>();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.userState);
@@ -1046,7 +1046,7 @@ export const GuardDashboard = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      {user.role === UserRole.SHIFT && <ShiftAlertBanner />}
+      {!roundOnly && user.role === UserRole.SHIFT && <ShiftAlertBanner />}
       <>
         {loading && !hasLoaded ? (
           <View style={styles.skeletonWrap}>
@@ -1185,7 +1185,7 @@ export const GuardDashboard = () => {
               )}
             </View>
 
-            <View style={styles.contentSheet}>
+            <View style={[styles.contentSheet, roundOnly && styles.contentSheetHidden]}>
               <View style={styles.dragIndicator} />
 
               {/* BOTONES DE ACCIÓN */}
@@ -1425,6 +1425,7 @@ const styles = StyleSheet.create({
   },
 
   // Cuerpo de la pantalla
+  contentSheetHidden: { display: 'none' },
   contentSheet: {
     flex: 1,
     backgroundColor: '#F4F9F6',

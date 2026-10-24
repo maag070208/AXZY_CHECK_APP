@@ -3,10 +3,10 @@ import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, SafeAreaV
 import { Text, Surface, IconButton, Avatar, Chip, Button } from 'react-native-paper';
 import Video from 'react-native-video';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../../core/store/redux.config';
+import { useDispatch } from 'react-redux';
+import { useCan } from '../../../core/permissions/useCan';
+import { P } from '../../../core/permissions/permissions';
 import { showToast } from '../../../core/store/slices/toast.slice';
-import { UserRole } from '../../../core/types/IUser';
 import { resolveMaintenance } from '../service/maintenance.service';
 import { formatDuration, timeAgo as timeAgoUtil } from '../../../shared/utils/duration';
 
@@ -40,7 +40,7 @@ const CATEGORIES = {
 export const MaintenanceDetailScreen = () => {
   const route = useRoute<any>();
   const dispatch = useDispatch();
-  const user = useSelector((state: RootState) => state.userState);
+  const can = useCan();
   
   const [maintenance, setMaintenance] = useState(route.params.maintenance);
   const [resolving, setResolving] = useState(false);
@@ -96,7 +96,7 @@ export const MaintenanceDetailScreen = () => {
   const timeAgo = getTimeAgo(maintenance.createdAt);
 
   const isPending = maintenance.status === 'PENDING' || !maintenance.status;
-  const canResolve = isPending && (user.role === UserRole.ADMIN || user.role === UserRole.SHIFT_GUARD || user.role === UserRole.MANTENIMIENTO);
+  const canResolve = isPending && can(P.MAINTENANCE_RESOLVE);
 
   const renderMediaItem = (media: any, index: number) => {
     const isVideo = media.type === 'VIDEO';
