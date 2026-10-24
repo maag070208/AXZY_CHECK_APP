@@ -1,7 +1,7 @@
 # CheckApp APP — Design System
 
 > Fuente de verdad del diseño de la aplicación móvil (React Native + React Native Paper).
-> Última actualización: **2026-10-23 · v2.40**
+> Última actualización: **2026-10-24 · v2.42**
 >
 > Antes de modificar cualquier pantalla, lee este documento. Si introduces un patrón nuevo,
 > actualízalo aquí en el mismo cambio (ver “Cómo mantener este documento”).
@@ -404,3 +404,5 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 | 2026-10-23 | 2.38 | Estándar de listas operativas aplicado a Gestión de Guardias: resumen, búsqueda, filtros por rol, filas densas, skeleton y vacío. |
 | 2026-10-23 | 2.39 | Mismo estándar de lista aplicado a Residentes, Usuarios, Propiedades y Ubicaciones: chips de resumen, búsqueda, filas densas y estados. |
 | 2026-10-23 | 2.40 | Estándar aplicado a Invitaciones y Horarios: filas densas con estado, resumen, skeleton y vacío. |
+| 2026-10-24 | 2.41 | Lista de Incidencias con el mismo estándar; fix del home de residente al leer invitaciones (`data.rows`). |
+| 2026-10-24 | 2.42 | Estándar aplicado a Mantenimiento, Casa Club, Recorridos y Kardex; cierre del rollout de listas. |

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useAppSelector } from '../store/hooks';
-import { PermissionRequirement, ROLE_PERMISSIONS } from './permissions';
+import { PermissionRequirement } from './permissions';
+import { hasPermission } from './check';
 
 /** RBAC en la APP: permisos del API con respaldo de la matriz local. */
 export const useCan = () => {
@@ -9,12 +10,7 @@ export const useCan = () => {
 
   return useCallback(
     (required: PermissionRequirement, mode: 'any' | 'all' = 'any') => {
-      const effective = permissions ?? (role ? ROLE_PERMISSIONS[role] ?? [] : []);
-      const list = Array.isArray(required) ? required : [required];
-      if (!list.length) return true;
-      return mode === 'all'
-        ? list.every(code => effective.includes(code))
-        : list.some(code => effective.includes(code));
+      return hasPermission(required, mode, permissions, role);
     },
     [permissions, role],
   );

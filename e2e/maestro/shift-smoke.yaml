@@ -1,0 +1,31 @@
+appId: com.checkapp
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "e2e_shift"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- extendedWaitUntil:
+    visible: "PANEL DE SUPERVISIÓN"
+    timeout: 30000
+- assertVisible: "Rondas activas"
+- assertVisible: "Guardias en turno"
+- assertVisible: "Incidencias abiertas"
+- assertVisible: "Rutas cubiertas"
+- swipe:
+    start: 50%, 80%
+    end: 50%, 30%
+    duration: 400
+- assertVisible: "Mi ronda"
+- tapOn: "Abrir mi ronda|Mi ronda"
+- extendedWaitUntil:
+    visible: "Mi ronda"
+    timeout: 15000

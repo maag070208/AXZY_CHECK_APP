@@ -1,0 +1,36 @@
+appId: com.checkapp
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "isabel"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- extendedWaitUntil:
+    visible: "Buenos días, Isabel"
+    timeout: 30000
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "Roles y permisos"
+    timeout: 10000
+- tapOn: "Roles y permisos"
+- extendedWaitUntil:
+    visible: "Roles y permisos"
+    timeout: 15000
+- assertVisible: "Administrador.*"
+- pressKey: Back
+- tapOn: "Ver alertas"
+- extendedWaitUntil:
+    visible: "Notificaciones"
+    timeout: 15000
+- assertVisible: "Incidencias"
+- assertVisible: "Mantenimiento"
+- assertVisible: "Casa Club"
+- pressKey: Back

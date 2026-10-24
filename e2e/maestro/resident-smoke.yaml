@@ -1,0 +1,27 @@
+appId: com.checkapp
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "e2e_resident"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 30000
+- assertVisible: "Mi perfil"
+- assertVisible: "Contactos"
+- assertVisible: "Generar pase"
+- assertVisible: "Mis pases"
+- tapOn: "Mi perfil"
+- extendedWaitUntil:
+    visible: "Mi Perfil"
+    timeout: 20000
+- pressKey: Back

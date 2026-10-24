@@ -1,0 +1,30 @@
+appId: com.checkapp
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "CARMENGAXIOLA"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- extendedWaitUntil:
+    visible: "Sin recorridos asignados"
+    timeout: 30000
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "Mis Asignaciones"
+    timeout: 10000
+- assertVisible: "Casa Club"
+- tapOn:
+    text: "Mantenimiento"
+    index: 1
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Listado de Mantenimiento"
+    timeout: 15000

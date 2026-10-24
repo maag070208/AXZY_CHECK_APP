@@ -205,64 +205,28 @@ export const KardexScreen = () => {
     const scanInfo = getScanTypeInfo(item.scanType);
     const mediaCount = item.media?.length || 0;
     const isValidated = item.assignment?.status === 'REVIEWED';
-
     return (
-      <Card 
-        style={styles.card} 
-        onPress={() => navigation.navigate('KARDEX_DETAIL', { item })}
-        elevation={1}
-      >
-        <View style={styles.cardLayout}>
-            <View style={styles.avatarSection}>
-                <Avatar.Text 
-                    size={56} 
-                    label={item.user?.username?.substring(0, 2).toUpperCase() || 'U'} 
-                    style={styles.avatar} 
-                    labelStyle={{ color: '#64748B', fontWeight: 'bold' }}
-                />
-                <View style={[styles.statusIndicator, { backgroundColor: isValidated ? '#10B981' : '#F59E0B' }]}>
-                    <Icon source={isValidated ? "check" : "clock-outline"} size={10} color="#fff" />
-                </View>
+      <TouchableOpacity style={styles.kRow} activeOpacity={0.75} onPress={() => navigation.navigate('KARDEX_DETAIL', { item })}>
+        <Avatar.Text size={42} label={item.user?.username?.substring(0, 2).toUpperCase() || 'U'} style={styles.kAvatar} labelStyle={{ color: theme.colors.primary, fontWeight: '900' }} />
+        <View style={styles.kCopy}>
+          <View style={styles.kNameLine}>
+            <Text style={styles.kTitle} numberOfLines={1}>{item.location.name}</Text>
+            <View style={[styles.kStatus, { backgroundColor: `${scanInfo.color}14` }]}>
+              <Text style={[styles.kStatusText, { color: scanInfo.color }]}>{scanInfo.label}</Text>
             </View>
-
-            <View style={styles.infoSection}>
-                <View style={styles.nameRow}>
-                    <View style={[styles.scanBadge, { backgroundColor: scanInfo.color + '15' }]}>
-                        <Icon source={scanInfo.icon} size={12} color={scanInfo.color} />
-                        <Text style={[styles.scanBadgeText, { color: scanInfo.color }]}>{scanInfo.label}</Text>
-                    </View>
-                    <View style={styles.idBadge}>
-                        <Text style={styles.idText}>#{item.id}</Text>
-                    </View>
-                </View>
-
-                <Text style={styles.locationTitle} numberOfLines={1}>{item.location.name}</Text>
-                
-                <View style={styles.detailsRow}>
-                    <View style={styles.detailItem}>
-                        <Icon source="account-outline" size={14} color="#64748B" />
-                        <Text style={styles.detailText} numberOfLines={1}>{item.user.name}</Text>
-                    </View>
-                    <View style={[styles.detailItem, styles.ml12]}>
-                        <Icon source="calendar-outline" size={14} color="#64748B" />
-                        <Text style={styles.detailText}>{dayjs(item.timestamp).format('HH:mm')}</Text>
-                    </View>
-                    {mediaCount > 0 && (
-                      <View style={[styles.detailItem, styles.ml12]}>
-                          <Icon source="camera-outline" size={14} color="#3B82F6" />
-                          <Text style={[styles.detailText, { color: '#3B82F6' }]}>{mediaCount}</Text>
-                      </View>
-                    )}
-                </View>
-            </View>
-
-            <IconButton 
-                icon="chevron-right" 
-                iconColor="#CBD5E1" 
-                size={24} 
-            />
+          </View>
+          <View style={styles.kMetaLine}>
+            <Text style={styles.kMeta}>#{item.id}</Text>
+            <Text style={styles.kDot}>·</Text>
+            <Text style={styles.kMeta} numberOfLines={1}>{item.user.name}</Text>
+            <Text style={styles.kDot}>·</Text>
+            <Text style={styles.kMeta}>{dayjs(item.timestamp).format('DD/MM HH:mm')}</Text>
+            {mediaCount > 0 ? <Text style={styles.kMedia}>· {mediaCount} evid.</Text> : null}
+            {!isValidated ? <Text style={styles.kPending}>· Pendiente</Text> : null}
+          </View>
         </View>
-      </Card>
+        <Icon source="chevron-right" size={18} color="#CBD5E1" />
+      </TouchableOpacity>
     );
   };
 
@@ -289,18 +253,18 @@ export const KardexScreen = () => {
       <StatusBar barStyle="dark-content" />
       
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>Kardex</Text>
-            <Text style={styles.headerSubtitle}>{total} reportes registrados</Text>
+        <View style={styles.kSummary}>
+          <View style={styles.kChip}>
+            <Icon source="history" size={14} color={theme.colors.primary} />
+            <Text style={styles.kChipText}>{total} registros</Text>
           </View>
-          <IconButton
-            icon="filter-variant"
-            mode="contained"
-            containerColor={activeFiltersCount > 0 ? theme.colors.primary : '#F1F5F9'}
-            iconColor={activeFiltersCount > 0 ? '#FFFFFF' : '#64748B'}
-            onPress={handleOpenFilters}
-          />
+          <TouchableOpacity style={[styles.kChip, activeFiltersCount > 0 && styles.kChipActive]} onPress={handleOpenFilters}>
+            <Icon source="filter-variant" size={14} color={activeFiltersCount > 0 ? '#FFFFFF' : theme.colors.primary} />
+            <Text style={[styles.kChipText, activeFiltersCount > 0 && styles.kChipTextActive]}>
+              {activeFiltersCount > 0 ? `${activeFiltersCount} filtros` : 'Filtrar'}
+            </Text>
+          </TouchableOpacity>
+          <IconButton icon="refresh" size={18} iconColor={theme.colors.primary} containerColor="#E8F7EF" style={{ margin: 0, marginLeft: 'auto' }} onPress={onRefresh} />
         </View>
         <Searchbar
           placeholder="Buscar ubicaciones..."
@@ -322,6 +286,7 @@ export const KardexScreen = () => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color={theme.colors.primary} /> : null}
+        ItemSeparatorComponent={() => <View style={styles.kSeparator} />}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
         ListEmptyComponent={
           !loading ? (
@@ -415,6 +380,24 @@ export const KardexScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  kSummary: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  kChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  kChipActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  kChipText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
+  kChipTextActive: { color: '#FFFFFF' },
+  kRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 10 },
+  kAvatar: { backgroundColor: '#E8F7EF' },
+  kCopy: { flex: 1, minWidth: 0 },
+  kNameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  kTitle: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  kStatus: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+  kStatusText: { fontSize: 7.5, fontWeight: '900', textTransform: 'uppercase' },
+  kMetaLine: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3, minWidth: 0 },
+  kMeta: { fontSize: 9.5, fontWeight: '600', color: '#94A3B8', flexShrink: 1 },
+  kDot: { fontSize: 10, color: '#CBD5E1' },
+  kMedia: { fontSize: 8.5, fontWeight: '700', color: '#3B82F6' },
+  kPending: { fontSize: 8.5, fontWeight: '700', color: '#B45309' },
+  kSeparator: { height: 1, backgroundColor: '#F1F5F9', marginLeft: 64, marginRight: 12 },
   header: {
     paddingHorizontal: 20,
     paddingTop: 12,

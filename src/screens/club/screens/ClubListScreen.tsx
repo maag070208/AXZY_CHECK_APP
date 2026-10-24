@@ -107,66 +107,30 @@ export const ClubListScreen = () => {
 
     const renderItem = ({ item }: { item: any }) => {
         const catInfo = getCategoryInfo('CASA_CLUB');
-        const date = new Date(item.createdAt);
-        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const timeStr = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const isPending = item.status === 'PENDING' || !item.status;
-
         return (
-            <Card
-                style={[styles.card, isPending && styles.pendingCard]}
-                elevation={1}
-            >
-                <View style={styles.cardLayout}>
-                    <View style={styles.avatarSection}>
-                        <Avatar.Text
-                            size={56}
-                            label={item.guard?.name?.charAt(0) || 'G'}
-                            style={[styles.avatar, { backgroundColor: isPending ? '#ffffff' : '#F1F5F9' }]}
-                            labelStyle={{ color: isPending ? COLORS.primary : '#64748B', fontWeight: 'bold' }}
-                        />
-                        <View style={[styles.statusIndicator, { backgroundColor: isPending ? '#F59E0B' : '#10B981' }]}>
-                            <Icon source={isPending ? "alert-circle-outline" : "check"} size={10} color="#fff" />
+            <View style={styles.cRow}>
+                <Avatar.Text size={42} label={item.guard?.name?.charAt(0) || 'G'} style={styles.cAvatar} labelStyle={{ color: COLORS.primary, fontWeight: '900' }} />
+                <View style={styles.cCopy}>
+                    <View style={styles.cNameLine}>
+                        <Text style={styles.cTitle} numberOfLines={1}>{item.title}</Text>
+                        <View style={[styles.cStatus, { backgroundColor: isPending ? '#FFF7ED' : '#E8F7EF' }]}>
+                            <Text style={[styles.cStatusText, { color: isPending ? '#B45309' : '#065911' }]}>
+                                {isPending ? 'Pendiente' : 'Atendido'}
+                            </Text>
                         </View>
                     </View>
-
-                    <View style={styles.infoSection}>
-                        <View style={styles.nameRow}>
-                            <View style={[styles.categoryBadge, { backgroundColor: catInfo.color + '15' }]}>
-                                <Icon source={catInfo.icon} size={12} color={catInfo.color} />
-                                <Text style={[styles.categoryText, { color: catInfo.color }]}>{catInfo.label}</Text>
-                            </View>
-                            {item.createdOffline && (
-                                <View style={styles.offlineBadge}>
-                                    <Icon source="cloud-off-outline" size={11} color="#B45309" />
-                                    <Text style={styles.offlineBadgeText}>Offline</Text>
-                                </View>
-                            )}
-                            <View style={styles.idBadge}>
-                                <Text style={styles.idText}>{item.id}</Text>
-                            </View>
+                    <View style={styles.cMetaLine}>
+                        <View style={[styles.cCategory, { backgroundColor: `${catInfo.color}15` }]}>
+                            <Text style={[styles.cCategoryText, { color: catInfo.color }]}>Casa Club</Text>
                         </View>
-
-                        <Text style={styles.clubTitle} numberOfLines={1}>{item.title}</Text>
-
-                        <View style={styles.detailsRow}>
-                            <View style={styles.detailItem}>
-                                <Icon source="account-outline" size={14} color="#64748B" />
-                                <Text style={styles.detailText} numberOfLines={1}>{item.guard?.name}</Text>
-                            </View>
-                            <View style={[styles.detailItem, styles.ml12]}>
-                                <Icon source="calendar-outline" size={14} color="#64748B" />
-                                <Text style={styles.detailText}>{timeStr}</Text>
-                            </View>
-                        </View>
+                        <Text style={styles.cMeta} numberOfLines={1}>{item.guard?.name ?? '—'}</Text>
+                        <Text style={styles.cDot}>·</Text>
+                        <Text style={styles.cMeta}>{timeStr}</Text>
                     </View>
-
-                    <IconButton
-                        icon="chevron-right"
-                        iconColor="#CBD5E1"
-                        size={24}
-                    />
                 </View>
-            </Card>
+            </View>
         );
     };
 
@@ -175,11 +139,12 @@ export const ClubListScreen = () => {
             <StatusBar barStyle="dark-content" />
 
             <View style={styles.header}>
-                <View style={styles.headerTop}>
-                    <View>
-                        <Text style={styles.headerTitle}>Casa Club</Text>
-                        <Text style={styles.headerSubtitle}>{total} reportes registrados</Text>
+                <View style={styles.cSummary}>
+                    <View style={styles.cChip}>
+                        <Icon source="home-modern" size={14} color={COLORS.primary} />
+                        <Text style={styles.cChipText}>{total} reportes</Text>
                     </View>
+                    <IconButton icon="refresh" size={18} iconColor={COLORS.primary} containerColor="#E8F7EF" style={{ margin: 0, marginLeft: 'auto' }} onPress={() => fetchClubs(1)} />
                 </View>
             </View>
 
@@ -191,17 +156,30 @@ export const ClubListScreen = () => {
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color={COLORS.primary} /> : null}
+                ItemSeparatorComponent={() => <View style={styles.cSeparator} />}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
                 ListEmptyComponent={
-                    !loading ? (
+                    loading ? (
+                        <View style={styles.cSkeletonList}>
+                            {[0, 1, 2, 3].map(index => (
+                                <View key={index} style={styles.cSkeletonRow}>
+                                    <View style={styles.cSkeletonAvatar} />
+                                    <View style={styles.cSkeletonCopy}>
+                                        <View style={[styles.cSkeletonLine, { width: '55%' }]} />
+                                        <View style={[styles.cSkeletonLine, { width: '35%' }]} />
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    ) : (
                         <View style={styles.emptyContainer}>
-                            <Icon source="home-modern" size={64} color="#E2E8F0" />
+                            <Icon source="home-modern" size={40} color="#94A3B8" />
                             <Text style={styles.emptyText}>No se encontraron reportes</Text>
                             <Button mode="text" onPress={() => fetchClubs(1)} textColor={COLORS.primary}>
                                 Actualizar lista
                             </Button>
                         </View>
-                    ) : null
+                    )
                 }
             />
         </View>
@@ -209,6 +187,27 @@ export const ClubListScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    cSummary: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+    cChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+    cChipText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
+    cRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 10 },
+    cAvatar: { backgroundColor: '#E8F7EF' },
+    cCopy: { flex: 1, minWidth: 0 },
+    cNameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    cTitle: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+    cStatus: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+    cStatusText: { fontSize: 7.5, fontWeight: '900', textTransform: 'uppercase' },
+    cMetaLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+    cCategory: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+    cCategoryText: { fontSize: 7.5, fontWeight: '900' },
+    cMeta: { fontSize: 9.5, fontWeight: '600', color: '#94A3B8' },
+    cDot: { fontSize: 10, color: '#CBD5E1' },
+    cSeparator: { height: 1, backgroundColor: '#F1F5F9', marginLeft: 64, marginRight: 12 },
+    cSkeletonList: { gap: 8, marginTop: 4 },
+    cSkeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 },
+    cSkeletonAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E6EFE9' },
+    cSkeletonCopy: { flex: 1, gap: 6 },
+    cSkeletonLine: { height: 9, borderRadius: 5, backgroundColor: '#EEF3F0' },
     header: {
         paddingHorizontal: 20,
         paddingTop: 8,

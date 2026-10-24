@@ -60,13 +60,13 @@ export const IncidentListScreen = () => {
         ]);
 
         if (guardsRes.success) {
-          setGuards(guardsRes.data.map((g: any) => ({ label: g.value, value: g.id })));
+          setGuards((guardsRes.data ?? []).map((g: any) => ({ label: g.value, value: g.id })));
         }
         if (catRes.success) {
-          setCategories(catRes.data.map((c: any) => ({ label: c.name, value: c.id, color: c.color, icon: c.icon })));
+          setCategories((catRes.data ?? []).map((c: any) => ({ label: c.name, value: c.id, color: c.color, icon: c.icon })));
         }
         if (typeRes.success) {
-          setIncidentTypes(typeRes.data);
+          setIncidentTypes(typeRes.data ?? []);
         }
       } catch (error) {
         console.error('Error fetching catalogs:', error);
@@ -106,8 +106,9 @@ export const IncidentListScreen = () => {
         });
 
         if (res.success && res.data) {
-            const newRows = res.data.rows || [];
-            const totalRows = res.data.total || 0;
+            const data = res.data as any;
+            const newRows = data.rows || [];
+            const totalRows = data.total || 0;
 
             setIncidents(prev => {
                 const combined = pageNum === 1 ? newRows : [...prev, ...newRows];
@@ -181,67 +182,41 @@ export const IncidentListScreen = () => {
 
   const renderItem = ({ item }: { item: any }) => {
     const catInfo = getCategoryInfo(item.categoryId);
-    const date = new Date(item.createdAt);
-    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const isPending = item.status === 'PENDING';
-
     return (
-      <Card 
-        style={[styles.card, isPending && styles.pendingCard]} 
+      <TouchableOpacity
+        style={styles.lRow}
+        activeOpacity={0.75}
         onPress={() => navigation.navigate('INCIDENT_DETAIL', { incident: item })}
-        elevation={1}
       >
-        <View style={styles.cardLayout}>
-            <View style={styles.avatarSection}>
-                <Avatar.Text 
-                    size={56} 
-                    label={item.guard?.name?.charAt(0) || 'G'} 
-                    style={[styles.avatar, { backgroundColor: isPending ? '#ffffffff' : '#F1F5F9' }]} 
-                    labelStyle={{ color: isPending ? '#f05151df' : '#64748B', fontWeight: 'bold' }}
-                />
-                <View style={[styles.statusIndicator, { backgroundColor: isPending ? '#EF4444' : '#10B981' }]}>
-                    <Icon source={isPending ? "clock-outline" : "check"} size={10} color="#fff" />
-                </View>
+        <Avatar.Text
+          size={42}
+          label={item.guard?.name?.charAt(0) || 'G'}
+          style={styles.lAvatar}
+          labelStyle={{ color: '#065911', fontWeight: '900' }}
+        />
+        <View style={styles.lCopy}>
+          <View style={styles.lNameLine}>
+            <Text style={styles.lTitle} numberOfLines={1}>{item.title}</Text>
+            <View style={[styles.lStatus, { backgroundColor: isPending ? '#FEF2F2' : '#E8F7EF' }]}>
+              <Text style={[styles.lStatusText, { color: isPending ? '#B91C1C' : '#065911' }]}>
+                {isPending ? 'Pendiente' : 'Atendida'}
+              </Text>
             </View>
-
-            <View style={styles.infoSection}>
-                <View style={styles.nameRow}>
-                    <View style={[styles.categoryBadge, { backgroundColor: catInfo.color + '15' }]}>
-                        <Icon source={catInfo.icon || 'alert-circle'} size={12} color={catInfo.color} />
-                        <Text style={[styles.categoryText, { color: catInfo.color }]}>{catInfo.label}</Text>
-                    </View>
-                    {item.createdOffline && (
-                        <View style={styles.offlineBadge}>
-                            <Icon source="cloud-off-outline" size={11} color="#B45309" />
-                            <Text style={styles.offlineBadgeText}>Offline</Text>
-                        </View>
-                    )}
-                    <View style={styles.idBadge}>
-                        <Text style={styles.idText}>{item.id}</Text>
-                    </View>
-                </View>
-
-                <Text style={styles.incidentTitle} numberOfLines={1}>{item.title}</Text>
-                
-                <View style={styles.detailsRow}>
-                    <View style={styles.detailItem}>
-                        <Icon source="account-outline" size={14} color="#64748B" />
-                        <Text style={styles.detailText} numberOfLines={1}>{item.guard?.name}</Text>
-                    </View>
-                    <View style={[styles.detailItem, styles.ml12]}>
-                        <Icon source="calendar-outline" size={14} color="#64748B" />
-                        <Text style={styles.detailText}>{timeStr}</Text>
-                    </View>
-                </View>
+          </View>
+          <View style={styles.lMetaLine}>
+            <View style={[styles.lCategory, { backgroundColor: `${catInfo.color}15` }]}>
+              <Text style={[styles.lCategoryText, { color: catInfo.color }]}>{catInfo.label}</Text>
             </View>
-
-            <IconButton 
-                icon="chevron-right" 
-                iconColor="#CBD5E1" 
-                size={24} 
-            />
+            <Text style={styles.lMeta} numberOfLines={1}>{item.guard?.name ?? '—'}</Text>
+            <Text style={styles.lDot}>·</Text>
+            <Text style={styles.lMeta}>{timeStr}</Text>
+            {item.createdOffline ? <Text style={styles.lOffline}>Offline</Text> : null}
+          </View>
         </View>
-      </Card>
+        <Icon source="chevron-right" size={18} color="#CBD5E1" />
+      </TouchableOpacity>
     );
   };
 
@@ -250,17 +225,27 @@ export const IncidentListScreen = () => {
       <StatusBar barStyle="dark-content" />
       
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>Incidencias</Text>
-            <Text style={styles.headerSubtitle}>{total} reportes registrados</Text>
+        <View style={styles.lSummary}>
+          <View style={styles.lChip}>
+            <Icon source="alert-circle-outline" size={14} color={theme.colors.primary} />
+            <Text style={styles.lChipText}>{total} reportes</Text>
           </View>
-          <IconButton
-            icon="filter-variant"
-            mode="contained"
-            containerColor={activeFiltersCount > 0 ? theme.colors.primary : '#F1F5F9'}
-            iconColor={activeFiltersCount > 0 ? '#FFFFFF' : '#64748B'}
+          <TouchableOpacity
+            style={[styles.lChip, activeFiltersCount > 0 && styles.lChipActive]}
             onPress={handleOpenFilters}
+          >
+            <Icon source="filter-variant" size={14} color={activeFiltersCount > 0 ? '#FFFFFF' : theme.colors.primary} />
+            <Text style={[styles.lChipText, activeFiltersCount > 0 && styles.lChipTextActive]}>
+              {activeFiltersCount > 0 ? `${activeFiltersCount} filtros` : 'Filtrar'}
+            </Text>
+          </TouchableOpacity>
+          <IconButton
+            icon="refresh"
+            size={18}
+            iconColor={theme.colors.primary}
+            containerColor="#E8F7EF"
+            style={{ margin: 0, marginLeft: 'auto' }}
+            onPress={() => fetchIncidents(1)}
           />
         </View>
         <Searchbar
@@ -283,17 +268,30 @@ export const IncidentListScreen = () => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color={theme.colors.primary} /> : null}
+        ItemSeparatorComponent={() => <View style={styles.lSeparator} />}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
         ListEmptyComponent={
-          !loading ? (
+          loading ? (
+            <View style={styles.lSkeletonList}>
+              {[0, 1, 2, 3].map(index => (
+                <View key={index} style={styles.lSkeletonRow}>
+                  <View style={styles.lSkeletonAvatar} />
+                  <View style={styles.lSkeletonCopy}>
+                    <View style={[styles.lSkeletonLine, { width: '55%' }]} />
+                    <View style={[styles.lSkeletonLine, { width: '35%' }]} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
             <View style={styles.emptyContainer}>
-              <Icon source="clipboard-text-search-outline" size={64} color="#E2E8F0" />
+              <Icon source="clipboard-text-search-outline" size={40} color="#94A3B8" />
               <Text style={styles.emptyText}>No se encontraron resultados</Text>
               <Button mode="text" onPress={() => fetchIncidents(1)} textColor={theme.colors.primary}>
                 Actualizar lista
               </Button>
             </View>
-          ) : null
+          )
         }
       />
 
@@ -393,6 +391,30 @@ export const IncidentListScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  lSummary: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  lChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  lChipActive: { backgroundColor: '#065911', borderColor: '#065911' },
+  lChipText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
+  lChipTextActive: { color: '#FFFFFF' },
+  lRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 10 },
+  lAvatar: { backgroundColor: '#E8F7EF' },
+  lCopy: { flex: 1, minWidth: 0 },
+  lNameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  lTitle: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  lStatus: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+  lStatusText: { fontSize: 7.5, fontWeight: '900', textTransform: 'uppercase' },
+  lMetaLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4, minWidth: 0 },
+  lCategory: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+  lCategoryText: { fontSize: 7.5, fontWeight: '900' },
+  lMeta: { fontSize: 9.5, fontWeight: '600', color: '#94A3B8', flexShrink: 1 },
+  lDot: { fontSize: 10, color: '#CBD5E1' },
+  lOffline: { fontSize: 8, fontWeight: '800', color: '#B45309' },
+  lSeparator: { height: 1, backgroundColor: '#F1F5F9', marginLeft: 64, marginRight: 12 },
+  lSkeletonList: { gap: 8, marginTop: 4 },
+  lSkeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 },
+  lSkeletonAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E6EFE9' },
+  lSkeletonCopy: { flex: 1, gap: 6 },
+  lSkeletonLine: { height: 9, borderRadius: 5, backgroundColor: '#EEF3F0' },
   header: {
     paddingHorizontal: 20,
     paddingTop: 12,

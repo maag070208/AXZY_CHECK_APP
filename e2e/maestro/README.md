@@ -62,3 +62,21 @@ Requiere Metro en `:8081`, API accesible y el teléfono por USB.
 ```bash
 DEVICE=R58YA0MM1TZ bash e2e/maestro/mixed-suite.sh
 ```
+
+
+## RBAC y roles (2026-10-24)
+
+Flujos nuevos:
+
+- `admin-smoke.yaml` — login ADMIN (`isabel`), home, Roles y permisos y Notificaciones.
+- `shift-smoke.yaml` — login SHIFT (`e2e_shift`), home del jefe, KPIs y pantalla de ronda compartida.
+- `resident-smoke.yaml` — login RESDN (`e2e_resident`), home de autoservicio y Mi perfil.
+- `guard-profile.yaml` — login GUARD (`e2e_guard`), actualización de datos personales y cambio de contraseña (ida y vuelta).
+
+Usuarios de prueba creados en dev:
+
+- `e2e_shift` / `123456` (SHIFT, horario Administración).
+- `e2e_resident` / `123456` (RESDN).
+- `e2e_guard` / `123456` (GUARD, horario Administración).
+
+> El guardia sigue usando `marcoh` / `123456` y sus suites existentes.

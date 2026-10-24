@@ -67,7 +67,10 @@ export const ResidentHomeScreen = () => {
       ]);
       if (residentRes.success) setResident(residentRes.data);
       if (contactsRes.success && contactsRes.data) setContacts(contactsRes.data);
-      if (invitationsRes.success && invitationsRes.data) setInvitations(invitationsRes.data);
+      if (invitationsRes.success) {
+        const rows = (invitationsRes.data as any)?.rows;
+        setInvitations(Array.isArray(rows) ? rows : []);
+      }
     } finally {
       setLoading(false);
     }

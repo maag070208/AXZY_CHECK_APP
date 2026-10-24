@@ -68,7 +68,7 @@ export const MaintenanceListScreen = () => {
       try {
         const guardsRes = await getCatalog('guard');
         if (guardsRes.success) {
-          setGuards(guardsRes.data.map((g: any) => ({ label: g.value, value: g.id })));
+          setGuards((guardsRes.data ?? []).map((g: any) => ({ label: g.value, value: g.id })));
         }
       } catch (error) {
         console.error('Error fetching catalogs:', error);
@@ -107,8 +107,9 @@ export const MaintenanceListScreen = () => {
         });
 
         if (res.success && res.data) {
-            const newRows = res.data.rows || [];
-            const totalRows = res.data.total || 0;
+            const data = res.data as any;
+            const newRows = data.rows || [];
+            const totalRows = data.total || 0;
 
             setMaintenances(prev => {
                 const combined = pageNum === 1 ? newRows : [...prev, ...newRows];
@@ -177,67 +178,36 @@ export const MaintenanceListScreen = () => {
 
   const renderItem = ({ item }: { item: any }) => {
     const catInfo = getCategoryInfo(item.category);
-    const date = new Date(item.createdAt);
-    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const isPending = item.status === 'PENDING' || !item.status;
-
     return (
-      <Card 
-        style={[styles.card, isPending && styles.pendingCard]} 
+      <TouchableOpacity
+        style={styles.mRow}
+        activeOpacity={0.75}
         onPress={() => navigation.navigate('MAINTENANCE_DETAIL', { maintenance: item })}
-        elevation={1}
       >
-        <View style={styles.cardLayout}>
-            <View style={styles.avatarSection}>
-                <Avatar.Text 
-                    size={56} 
-                    label={item.guard?.name?.charAt(0) || 'G'} 
-                    style={[styles.avatar, { backgroundColor: isPending ? '#ffffffff' : '#F1F5F9' }]} 
-                    labelStyle={{ color: isPending ? COLORS.primary : '#64748B', fontWeight: 'bold' }}
-                />
-                <View style={[styles.statusIndicator, { backgroundColor: isPending ? '#F59E0B' : '#10B981' }]}>
-                    <Icon source={isPending ? "alert-circle-outline" : "check"} size={10} color="#fff" />
-                </View>
+        <Avatar.Text size={42} label={item.guard?.name?.charAt(0) || 'G'} style={styles.mAvatar} labelStyle={{ color: COLORS.primary, fontWeight: '900' }} />
+        <View style={styles.mCopy}>
+          <View style={styles.mNameLine}>
+            <Text style={styles.mTitle} numberOfLines={1}>{item.title}</Text>
+            <View style={[styles.mStatus, { backgroundColor: isPending ? '#FFF7ED' : '#E8F7EF' }]}>
+              <Text style={[styles.mStatusText, { color: isPending ? '#B45309' : '#065911' }]}>
+                {isPending ? 'Pendiente' : 'Atendido'}
+              </Text>
             </View>
-            
-            <View style={styles.infoSection}>
-                <View style={styles.nameRow}>
-                    <View style={[styles.categoryBadge, { backgroundColor: catInfo.color + '15' }]}>
-                        <Icon source={catInfo.icon || 'wrench'} size={12} color={catInfo.color} />
-                        <Text style={[styles.categoryText, { color: catInfo.color }]}>{catInfo.label}</Text>
-                    </View>
-                    {item.createdOffline && (
-                        <View style={styles.offlineBadge}>
-                            <Icon source="cloud-off-outline" size={11} color="#B45309" />
-                            <Text style={styles.offlineBadgeText}>Offline</Text>
-                        </View>
-                    )}
-                    <View style={styles.idBadge}>
-                        <Text style={styles.idText}>{item.id}</Text>
-                    </View>
-                </View>
-
-                <Text style={styles.maintenanceTitle} numberOfLines={1}>{item.title}</Text>
-                
-                <View style={styles.detailsRow}>
-                    <View style={styles.detailItem}>
-                        <Icon source="account-outline" size={14} color="#64748B" />
-                        <Text style={styles.detailText} numberOfLines={1}>{item.guard?.name}</Text>
-                    </View>
-                    <View style={[styles.detailItem, styles.ml12]}>
-                        <Icon source="calendar-outline" size={14} color="#64748B" />
-                        <Text style={styles.detailText}>{timeStr}</Text>
-                    </View>
-                </View>
+          </View>
+          <View style={styles.mMetaLine}>
+            <View style={[styles.mCategory, { backgroundColor: `${catInfo.color}15` }]}>
+              <Text style={[styles.mCategoryText, { color: catInfo.color }]}>{catInfo.label}</Text>
             </View>
-
-            <IconButton 
-                icon="chevron-right" 
-                iconColor="#CBD5E1" 
-                size={24} 
-            />
+            <Text style={styles.mMeta} numberOfLines={1}>{item.guard?.name ?? '—'}</Text>
+            <Text style={styles.mDot}>·</Text>
+            <Text style={styles.mMeta}>{timeStr}</Text>
+            {item.createdOffline ? <Text style={styles.mOffline}>Offline</Text> : null}
+          </View>
         </View>
-      </Card>
+        <Icon source="chevron-right" size={18} color="#CBD5E1" />
+      </TouchableOpacity>
     );
   };
 
@@ -246,18 +216,18 @@ export const MaintenanceListScreen = () => {
       <StatusBar barStyle="dark-content" />
       
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>Mantenimientos</Text>
-            <Text style={styles.headerSubtitle}>{total} reportes registrados</Text>
+        <View style={styles.mSummary}>
+          <View style={styles.mChip}>
+            <Icon source="toolbox-outline" size={14} color={COLORS.primary} />
+            <Text style={styles.mChipText}>{total} reportes</Text>
           </View>
-          <IconButton
-            icon="filter-variant"
-            mode="contained"
-            containerColor={activeFiltersCount > 0 ? COLORS.primary : '#F1F5F9'}
-            iconColor={activeFiltersCount > 0 ? '#FFFFFF' : '#64748B'}
-            onPress={handleOpenFilters}
-          />
+          <TouchableOpacity style={[styles.mChip, activeFiltersCount > 0 && styles.mChipActive]} onPress={handleOpenFilters}>
+            <Icon source="filter-variant" size={14} color={activeFiltersCount > 0 ? '#FFFFFF' : COLORS.primary} />
+            <Text style={[styles.mChipText, activeFiltersCount > 0 && styles.mChipTextActive]}>
+              {activeFiltersCount > 0 ? `${activeFiltersCount} filtros` : 'Filtrar'}
+            </Text>
+          </TouchableOpacity>
+          <IconButton icon="refresh" size={18} iconColor={COLORS.primary} containerColor="#E8F7EF" style={{ margin: 0, marginLeft: 'auto' }} onPress={() => fetchMaintenances(1)} />
         </View>
         <Searchbar
           placeholder="Buscar mantenimientos..."
@@ -279,17 +249,30 @@ export const MaintenanceListScreen = () => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color={COLORS.primary} /> : null}
+        ItemSeparatorComponent={() => <View style={styles.mSeparator} />}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
         ListEmptyComponent={
-          !loading ? (
+          loading ? (
+            <View style={styles.mSkeletonList}>
+              {[0, 1, 2, 3].map(index => (
+                <View key={index} style={styles.mSkeletonRow}>
+                  <View style={styles.mSkeletonAvatar} />
+                  <View style={styles.mSkeletonCopy}>
+                    <View style={[styles.mSkeletonLine, { width: '55%' }]} />
+                    <View style={[styles.mSkeletonLine, { width: '35%' }]} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
             <View style={styles.emptyContainer}>
-              <Icon source="toolbox-outline" size={64} color="#E2E8F0" />
+              <Icon source="toolbox-outline" size={40} color="#94A3B8" />
               <Text style={styles.emptyText}>No se encontraron reportes</Text>
               <Button mode="text" onPress={() => fetchMaintenances(1)} textColor={COLORS.primary}>
                 Actualizar lista
               </Button>
             </View>
-          ) : null
+          )
         }
       />
 
@@ -371,6 +354,30 @@ export const MaintenanceListScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  mSummary: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  mChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  mChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  mChipText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
+  mChipTextActive: { color: '#FFFFFF' },
+  mRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 10 },
+  mAvatar: { backgroundColor: '#E8F7EF' },
+  mCopy: { flex: 1, minWidth: 0 },
+  mNameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  mTitle: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  mStatus: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+  mStatusText: { fontSize: 7.5, fontWeight: '900', textTransform: 'uppercase' },
+  mMetaLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4, minWidth: 0 },
+  mCategory: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+  mCategoryText: { fontSize: 7.5, fontWeight: '900' },
+  mMeta: { fontSize: 9.5, fontWeight: '600', color: '#94A3B8', flexShrink: 1 },
+  mDot: { fontSize: 10, color: '#CBD5E1' },
+  mOffline: { fontSize: 8, fontWeight: '800', color: '#B45309' },
+  mSeparator: { height: 1, backgroundColor: '#F1F5F9', marginLeft: 64, marginRight: 12 },
+  mSkeletonList: { gap: 8, marginTop: 4 },
+  mSkeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 },
+  mSkeletonAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E6EFE9' },
+  mSkeletonCopy: { flex: 1, gap: 6 },
+  mSkeletonLine: { height: 9, borderRadius: 5, backgroundColor: '#EEF3F0' },
   header: {
     paddingHorizontal: 20,
     paddingTop: 12,

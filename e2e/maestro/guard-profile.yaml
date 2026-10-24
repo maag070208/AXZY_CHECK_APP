@@ -1,0 +1,62 @@
+appId: com.checkapp
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "e2e_guard"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 30000
+- tapOn: "Abrir perfil"
+- extendedWaitUntil:
+    visible: "Mi perfil"
+    timeout: 15000
+- assertVisible: "Datos personales"
+- tapOn: "Ej. Pérez García"
+- eraseText: 40
+- inputText: "Guardia Test"
+- hideKeyboard
+- tapOn: "Guardar cambios"
+- extendedWaitUntil:
+    visible: "Perfil actualizado correctamente."
+    timeout: 15000
+- tapOn: "Seguridad"
+- extendedWaitUntil:
+    visible: "Cambia tu contraseña de acceso."
+    timeout: 10000
+- tapOn: "••••••••"
+- inputText: "123456"
+- hideKeyboard
+- tapOn: "Mínimo 6 caracteres"
+- inputText: "1234567"
+- hideKeyboard
+- tapOn: "Repite la nueva contraseña"
+- inputText: "1234567"
+- hideKeyboard
+- tapOn: "Actualizar contraseña"
+- extendedWaitUntil:
+    visible: "Contraseña actualizada correctamente."
+    timeout: 15000
+- tapOn: "Seguridad"
+- tapOn: "••••••••"
+- inputText: "1234567"
+- hideKeyboard
+- tapOn: "Mínimo 6 caracteres"
+- inputText: "123456"
+- hideKeyboard
+- tapOn: "Repite la nueva contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn: "Actualizar contraseña"
+- extendedWaitUntil:
+    visible: "Contraseña actualizada correctamente."
+    timeout: 15000

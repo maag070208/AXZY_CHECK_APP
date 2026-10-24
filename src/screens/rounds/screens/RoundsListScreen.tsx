@@ -172,64 +172,26 @@ export const RoundsListScreen = ({ navigation }: any) => {
     const statusInfo = getStatusInfo(item.status);
     const routeTitle = item.recurringConfiguration?.title || 'Recorrido General';
     const guardName = `${item.guard.name} ${item.guard.lastName || ''}`;
-
     return (
-      <Card 
-        style={styles.card} 
-        onPress={() => navigation.navigate('ROUND_DETAIL', { id: item.id })}
-        elevation={1}
-      >
-        <View style={styles.cardLayout}>
-            <View style={styles.avatarSection}>
-                <Avatar.Text 
-                    size={56} 
-                    label={item.guard.name.substring(0, 2).toUpperCase()} 
-                    style={styles.avatar} 
-                    labelStyle={{ color: '#64748B', fontWeight: 'bold' }}
-                />
-                <View style={[styles.statusIndicator, { backgroundColor: statusInfo.color }]} />
+      <TouchableOpacity style={styles.rRow} activeOpacity={0.75} onPress={() => navigation.navigate('ROUND_DETAIL', { id: item.id })}>
+        <Avatar.Text size={42} label={item.guard.name.substring(0, 2).toUpperCase()} style={styles.rAvatar} labelStyle={{ color: '#065911', fontWeight: '900' }} />
+        <View style={styles.rCopy}>
+          <View style={styles.rNameLine}>
+            <Text style={styles.rTitle} numberOfLines={1}>{routeTitle}</Text>
+            <View style={[styles.rStatus, { backgroundColor: `${statusInfo.color}14` }]}>
+              <Text style={[styles.rStatusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
             </View>
-
-            <View style={styles.infoSection}>
-                <View style={styles.cardHeader}>
-                    <Text style={styles.locationName} numberOfLines={1}>
-                        {routeTitle}
-                    </Text>
-                    <View style={styles.badgeContainer}>
-                        <Icon source={statusInfo.icon} size={14} color={statusInfo.color} />
-                        <Text style={[styles.statusLabel, { color: statusInfo.color }]}>
-                            {statusInfo.label}
-                        </Text>
-                    </View>
-                </View>
-
-                <Text style={styles.guardName}>#{item.id} • {guardName}</Text>
-
-                <View style={styles.detailsRow}>
-                    <View style={styles.detailItem}>
-                        <Icon source="clock-start" size={16} color="#94A3B8" />
-                        <Text style={styles.detailText}>
-                            {dayjs(item.startTime).format('HH:mm')}
-                        </Text>
-                    </View>
-                    <View style={styles.detailItem}>
-                        <Icon source="calendar" size={16} color="#94A3B8" />
-                        <Text style={styles.detailText}>
-                            {dayjs(item.startTime).format('DD/MM/YY')}
-                        </Text>
-                    </View>
-                    {item.endTime && (
-                      <View style={styles.detailItem}>
-                          <Icon source="clock-end" size={16} color="#94A3B8" />
-                          <Text style={styles.detailText}>
-                              {dayjs(item.endTime).format('HH:mm')}
-                          </Text>
-                      </View>
-                    )}
-                </View>
-            </View>
+          </View>
+          <View style={styles.rMetaLine}>
+            <Text style={styles.rMeta}>#{item.id}</Text>
+            <Text style={styles.rDot}>·</Text>
+            <Text style={styles.rMeta} numberOfLines={1}>{guardName}</Text>
+            <Text style={styles.rDot}>·</Text>
+            <Text style={styles.rMeta}>{dayjs(item.startTime).format('DD/MM HH:mm')}</Text>
+          </View>
         </View>
-      </Card>
+        <Icon source="chevron-right" size={18} color="#CBD5E1" />
+      </TouchableOpacity>
     );
   };
 
@@ -242,21 +204,16 @@ export const RoundsListScreen = ({ navigation }: any) => {
         {/* Top Context Row */}
 
         {/* Main Title Row */}
-        <View style={styles.headerMainRow}>
-          <View>
-            <Text style={styles.headerTitleLarge}>Recorridos</Text>
-            <Text style={styles.headerSubtitleText}>{total} registros encontrados</Text>
+        <View style={styles.rSummary}>
+          <View style={styles.rChip}>
+            <Icon source="clipboard-text-clock" size={14} color={theme.colors.primary} />
+            <Text style={styles.rChipText}>{total} recorridos</Text>
           </View>
-          <TouchableOpacity 
-              onPress={() => setShowFilters(true)}
-              style={styles.filterButtonCircle}
-          >
-            <Icon source={activeFiltersCount > 0 ? "filter" : "filter-variant"} size={22} color="#1E293B" />
-            {activeFiltersCount > 0 && (
-              <View style={styles.filterBadgeSmall}>
-                  <Text style={styles.filterBadgeTextSmall}>{activeFiltersCount}</Text>
-              </View>
-            )}
+          <TouchableOpacity style={[styles.rChip, activeFiltersCount > 0 && styles.rChipActive]} onPress={() => setShowFilters(true)}>
+            <Icon source="filter-variant" size={14} color={activeFiltersCount > 0 ? '#FFFFFF' : theme.colors.primary} />
+            <Text style={[styles.rChipText, activeFiltersCount > 0 && styles.rChipTextActive]}>
+              {activeFiltersCount > 0 ? `${activeFiltersCount} filtros` : 'Filtrar'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -276,6 +233,7 @@ export const RoundsListScreen = ({ navigation }: any) => {
         data={rounds}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
+        ItemSeparatorComponent={() => <View style={styles.rSeparator} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         onEndReached={handleLoadMore}
@@ -363,6 +321,22 @@ export const RoundsListScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
+  rSummary: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  rChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  rChipActive: { backgroundColor: '#065911', borderColor: '#065911' },
+  rChipText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
+  rChipTextActive: { color: '#FFFFFF' },
+  rRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 10 },
+  rAvatar: { backgroundColor: '#E8F7EF' },
+  rCopy: { flex: 1, minWidth: 0 },
+  rNameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rTitle: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  rStatus: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+  rStatusText: { fontSize: 7.5, fontWeight: '900', textTransform: 'uppercase' },
+  rMetaLine: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3, minWidth: 0 },
+  rMeta: { fontSize: 9.5, fontWeight: '600', color: '#94A3B8', flexShrink: 1 },
+  rDot: { fontSize: 10, color: '#CBD5E1' },
+  rSeparator: { height: 1, backgroundColor: '#F1F5F9', marginLeft: 64, marginRight: 12 },
   header: {
     paddingHorizontal: 20,
     paddingBottom: 20,
