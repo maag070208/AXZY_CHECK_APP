@@ -1,0 +1,19 @@
+appId: com.checkapp
+---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 30000
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: "Escaneo E2E"
+    timeout: 15000
+- tapOn: "Simular QR inválido"
+- extendedWaitUntil:
+    visible: "QR no válido"
+    timeout: 15000
+- tapOn: "Volver a escanear"
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 15000

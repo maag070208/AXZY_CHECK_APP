@@ -233,3 +233,68 @@ No se modifica la validación real de producción: el modo E2E solo reemplaza la
 4. Implementar flujos Maestro P0.
 5. Ejecutar y corregir.
 6. Agregar verificación API.
+
+---
+
+## 10. Estado de ejecución (2026-10-21)
+
+### Unitarias
+
+```text
+Test Suites: 4 passed
+Tests:       14 passed
+```
+
+Archivos:
+
+- `__tests__/offline/roundStatus.test.ts`
+- `__tests__/offline/catalog.test.ts`
+- `__tests__/offline/roundService.test.ts`
+- `__tests__/offline/checkMixed.test.ts`
+
+### E2E ejecutados y pasando
+
+| Flujo | Resultado |
+|---|---|
+| `guard-offline-setup.yaml` | ✅ |
+| `e2e-route-start.yaml` | ✅ ruta de 8 puntos |
+| `scan-without-save.yaml` | ✅ E2E-01 queda `No completada` |
+| `scan-photo-exit.yaml` | ✅ E2E-02 con foto queda `No completada` |
+| `scan-close-app.yaml` | ✅ E2E-03 sobrevive cierre de APP |
+| `scan-save-photo.yaml` | ✅ E2E-04 `Completada` con foto/nota |
+| `scan-invalid-qr.yaml` | ✅ QR inválido no crea check |
+| `offline-scan-draft.yaml` | ✅ E2E-05 borrador offline sobrevive cierre |
+| `offline-scan-save.yaml` | ✅ E2E-06 check offline con foto |
+| `guard-offline-sync.yaml` | ✅ “Todo listo” / “Sin conflictos” |
+| `e2e-route-end.yaml` | ✅ cierre y limpieza de ronda |
+| `mixed-suite.sh` | ✅ 2 fotos, `createdOffline=true` |
+
+### Verificación API del check offline
+
+Kardex E2E-06:
+
+```text
+notes: "Check guardado sin WiFi"
+media: 1
+createdOffline: true
+clientRef: 89816407-...
+```
+
+### Scripts
+
+```bash
+# Semilla de la ruta E2E
+cd API
+npm run e2e:seed
+
+# Suite de escaneo con ruta activa
+cd APP
+DEVICE=R58YA0MM1TZ bash e2e/maestro/offline-scan-suite.sh
+
+# Evidencia mixta
+DEVICE=R58YA0MM1TZ bash e2e/maestro/mixed-suite.sh
+
+# Cerrar ronda E2E
+JAVA_OPTS="-Duser.home=$PWD/.maestro-home" \
+  ~/.maestro/bin/maestro --device R58YA0MM1TZ test e2e/maestro/e2e-route-end.yaml
+```

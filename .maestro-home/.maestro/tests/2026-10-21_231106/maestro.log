@@ -1,0 +1,62 @@
+23:11:06.321 [ INFO] maestro.cli.report.TestDebugReporter.logSystemInfo: Debug output path: /Users/axzy/DEV/CHECK/BARCELONA/APP/.maestro-home/.maestro/tests/2026-10-21_231106
+23:11:06.323 [ INFO] MAESTRO.logSystemInfo: ---- System Info ----
+23:11:06.324 [ INFO] MAESTRO.logSystemInfo: Maestro Version: 2.5.1
+23:11:06.325 [ INFO] MAESTRO.logSystemInfo: CI: Undefined
+23:11:06.325 [ INFO] MAESTRO.logSystemInfo: OS Name: Mac OS X
+23:11:06.325 [ INFO] MAESTRO.logSystemInfo: OS Version: 26.6.2
+23:11:06.325 [ INFO] MAESTRO.logSystemInfo: Architecture: aarch64
+23:11:06.327 [ INFO] MAESTRO.logSystemInfo: Java Version: 17
+23:11:06.481 [ INFO] MAESTRO.logSystemInfo: Xcode Version: 27.0
+23:11:06.487 [ INFO] MAESTRO.logSystemInfo: Flutter Version: Undefined
+23:11:06.491 [ INFO] MAESTRO.logSystemInfo: Flutter Channel: Undefined
+23:11:06.491 [ INFO] MAESTRO.logSystemInfo: ---------------------
+23:11:06.615 [DEBUG] io.micrometer.common.util.internal.logging.InternalLoggerFactory.newDefaultFactory: Using SLF4J as the default logging framework
+23:11:08.808 [ INFO] maestro.cli.command.TestCommand.runShardSuite: [shard 1] Selected device R58YA0MM1TZ using port 7001 with execution plan ExecutionPlan(flowsToRun=[/Users/axzy/DEV/CHECK/BARCELONA/APP/e2e/maestro/scan-photo-exit.yaml], sequence=FlowSequence(flows=[], continueOnFailure=true), workspaceConfig=WorkspaceConfig(flows=null, includeTags=null, excludeTags=null, executionOrder=null, baselineBranch=null, notifications=null, disableRetries=false, platform=PlatformConfiguration(android=AndroidConfiguration(disableAnimations=false), ios=IOSConfiguration(disableAnimations=false, snapshotKeyHonorModalViews=null)), testOutputDir=null))
+23:11:15.096 [ INFO] maestro.cli.runner.TestRunner.runSingle$lambda$0: Running flow scan-photo-exit.yaml...
+23:11:15.121 [ INFO] maestro.Maestro.cachedDeviceInfo_delegate$lambda$0: Getting device info
+23:11:15.291 [ INFO] maestro.Maestro.cachedDeviceInfo_delegate$lambda$0: Got device info: DeviceInfo(platform=ANDROID, widthPixels=1080, heightPixels=2340, widthGrid=1080, heightGrid=2340)
+23:11:15.351 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Define variables RUNNING
+23:11:15.356 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Define variables metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(defineVariablesCommand=DefineVariablesCommand(env={MAESTRO_FILENAME=scan-photo-exit, MAESTRO_DEVICE_UDID=R58YA0MM1TZ, MAESTRO_SHARD_ID=1, MAESTRO_SHARD_INDEX=0}, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+23:11:15.357 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Define variables COMPLETED
+23:11:15.357 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Apply configuration RUNNING
+23:11:15.361 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Apply configuration metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(applyConfigurationCommand=ApplyConfigurationCommand(config=MaestroConfig(appId=com.checkapp, name=null, tags=[], ext={}, onFlowStart=null, onFlowComplete=null, properties={}), label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+23:11:15.362 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Apply configuration COMPLETED
+23:11:15.362 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Stop com.checkapp RUNNING
+23:11:15.363 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Stop com.checkapp metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(stopAppCommand=StopAppCommand(appId=com.checkapp, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+23:11:15.363 [ INFO] maestro.Maestro.stopApp$lambda$3: Stopping app com.checkapp
+23:11:15.499 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Stop com.checkapp COMPLETED
+23:11:15.500 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Launch app "com.checkapp" RUNNING
+23:11:15.506 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Launch app "com.checkapp" metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(launchAppCommand=LaunchAppCommand(appId=com.checkapp, clearState=null, clearKeychain=null, stopApp=null, permissions=null, launchArguments=null, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+23:11:19.178 [ INFO] maestro.Maestro.launchApp$lambda$2: Launching app com.checkapp
+23:11:19.178 [ INFO] maestro.Maestro.launchApp$lambda$2: Stopping com.checkapp app during launch
+23:11:19.423 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Launch app "com.checkapp" COMPLETED
+23:11:19.424 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Assert that "E2E: simular escaneo" is visible RUNNING
+23:11:19.433 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Assert that "E2E: simular escaneo" is visible metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(assertConditionCommand=AssertConditionCommand(condition=Condition(platform=null, visible=ElementSelector(textRegex=E2E: simular escaneo, idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=false, selected=null, checked=null, focused=null, childOf=null, css=null), notVisible=null, scriptCondition=null, label=null), timeout=30000, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+23:11:34.487 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Assert that "E2E: simular escaneo" is visible COMPLETED
+23:11:34.494 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Tap on "E2E: simular escaneo" RUNNING
+23:11:34.525 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Tap on "E2E: simular escaneo" metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(tapOnElementCommand=TapOnElementCommand(selector=ElementSelector(textRegex=E2E: simular escaneo, idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=false, selected=null, checked=null, focused=null, childOf=null, css=null), retryIfNoChange=false, waitUntilVisible=false, longPress=false, repeat=null, waitToSettleTimeoutMs=null, relativePoint=null, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+23:11:35.336 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={text=E2E: simular escaneo, accessibilityText=, hintText=, ignoreBoundsFiltering=false, resource-id=, clickable=false, bounds=[431,1217][711,1256], enabled=true, focused=false, checked=false, scrollable=false, selected=false, class=android.widget.TextView, important-for-accessibility=true, error=}, children=[], clickable=false, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=431, y=1217, width=280, height=39))
+23:11:37.292 [ INFO] maestro.Maestro.tap-HgV9Ck0: Refreshed element
+23:11:37.296 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Tapping at (571, 1236) using hierarchy based logic for wait
+23:11:40.520 [ INFO] maestro.Maestro.hierarchyBasedTap-ogj28Uc: Something has changed in the UI judging by view hierarchy. Proceed.
+23:11:40.521 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Tap on "E2E: simular escaneo" COMPLETED
+23:11:40.522 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Assert that "Escaneo E2E" is visible RUNNING
+23:11:40.523 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Assert that "Escaneo E2E" is visible metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(assertConditionCommand=AssertConditionCommand(condition=Condition(platform=null, visible=ElementSelector(textRegex=Escaneo E2E, idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=false, selected=null, checked=null, focused=null, childOf=null, css=null), notVisible=null, scriptCondition=null, label=null), timeout=15000, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+23:11:41.498 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Assert that "Escaneo E2E" is visible COMPLETED
+23:11:41.500 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Tap on "E2E-02" RUNNING
+23:11:41.502 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Tap on "E2E-02" metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(tapOnElementCommand=TapOnElementCommand(selector=ElementSelector(textRegex=E2E-02, idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=false, selected=null, checked=null, focused=null, childOf=null, css=null), retryIfNoChange=false, waitUntilVisible=false, longPress=false, repeat=null, waitToSettleTimeoutMs=null, relativePoint=null, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+23:11:58.945 [ERROR] maestro.orchestra.Orchestra.executeCommands: [Command execution] CommandFailed: Element not found: Text matching regex: E2E-02
+23:11:58.952 [ INFO] maestro.Maestro.takeScreenshot: Taking screenshot
+23:11:58.956 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+23:11:59.464 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$4: Tap on "E2E-02" FAILED
+23:11:59.877 [ INFO] maestro.cli.report.TestDebugReporter.deleteOldFiles: Performing purge of logs older than 14 days from /Users/axzy/DEV/CHECK/BARCELONA/APP/.maestro-home/.maestro/tests
+23:12:00.023 [ERROR] maestro.cli.session.MaestroSessionManager.newSession$lambda$0: Failed to record heartbeat
+java.lang.InterruptedException: sleep interrupted
+	at java.base/java.lang.Thread.sleep(Native Method)
+	at maestro.cli.session.MaestroSessionManager.newSession$lambda$0(MaestroSessionManager.kt:95)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)

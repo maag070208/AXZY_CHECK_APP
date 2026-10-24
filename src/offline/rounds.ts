@@ -185,26 +185,29 @@ export const queueLocalCheck = async (
   }
 
   const checkClientId = input.existingClientId ?? clientId;
+  const isCompleted = !!input.notes?.trim() && prepared.length > 0;
+  const checkStatus = isCompleted ? 'COMPLETED' : 'NOT_COMPLETED';
   try {
     await db.transaction(async tx => {
       if (input.existingClientId) {
         await tx.execute(
           `UPDATE local_checks
-           SET status = 'COMPLETED', notes = ?, tasks_json = ?, completed_at = ?, sync_state = 'QUEUED'
+           SET status = ?, notes = ?, tasks_json = ?, completed_at = ?, sync_state = 'QUEUED'
            WHERE client_id = ?`,
-          [input.notes, JSON.stringify(input.tasks ?? []), now, input.existingClientId],
+          [checkStatus, input.notes, JSON.stringify(input.tasks ?? []), now, input.existingClientId],
         );
       } else {
         await tx.execute(
           `INSERT INTO local_checks
             (client_id, server_id, round_client_id, location_id, location_name, status, notes, tasks_json, scanned_at, completed_at, sync_state)
-           VALUES (?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?, 'QUEUED')`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'QUEUED')`,
           [
             clientId,
             input.serverId ?? null,
             input.roundClientId ?? null,
             input.locationId,
             input.locationName ?? null,
+            checkStatus,
             input.notes,
             JSON.stringify(input.tasks ?? []),
             now,

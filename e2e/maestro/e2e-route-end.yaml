@@ -1,0 +1,21 @@
+appId: com.checkapp
+---
+# Cierra la ronda E2E para dejar el fixture limpio.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 30000
+- tapOn: "Terminar ronda"
+- extendedWaitUntil:
+    visible: "¿Finalizar Ronda?"
+    timeout: 15000
+- tapOn:
+    text: "^Finalizar$"
+- extendedWaitUntil:
+    visible: "¡Ronda completada!"
+    timeout: 30000
+- tapOn: "Entendido"
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 20000

@@ -955,7 +955,9 @@ export const GuardDashboard = () => {
                 }}
               >
                 <View style={styles.modalPointDot} />
-                <Text style={styles.modalPointText}>{item.location?.name}</Text>
+                <Text style={styles.modalPointText}>
+                  {item.location?.name} · {item.status === 'COMPLETED' ? 'Completada' : item.status === 'NOT_COMPLETED' ? 'No completada' : 'Pendiente'}
+                </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>

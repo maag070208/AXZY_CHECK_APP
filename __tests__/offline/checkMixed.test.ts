@@ -67,6 +67,22 @@ describe('check con evidencia mixta', () => {
     expect(checkCall[1].payload.media).toBeUndefined();
   });
 
+  it('sin evidencia queda NOT_COMPLETED, no COMPLETED', async () => {
+    await queueLocalCheck(33, {
+      roundClientId: 'round-1',
+      locationId: 61,
+      notes: 'Sin foto',
+      tasks: [],
+      media: [],
+    });
+
+    const insert = mockExecute.mock.calls.find((call: any) =>
+      String(call[0]).includes('INSERT INTO local_checks'),
+    );
+    expect(insert).toBeTruthy();
+    expect(insert[1]).toContain('NOT_COMPLETED');
+  });
+
   it('cuando no hay serverId crea un CHECK_CREATE', async () => {
     await queueLocalCheck(33, {
       roundClientId: 'round-1',

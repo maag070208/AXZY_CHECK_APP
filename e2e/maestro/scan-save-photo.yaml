@@ -10,11 +10,16 @@ appId: com.checkapp
 - extendedWaitUntil:
     visible: "Escaneo E2E"
     timeout: 15000
-- tapOn: "E2E-04"
+- tapOn:
+    text: ".*E2E-04.*"
 - extendedWaitUntil:
     visible: "E2E-04"
     timeout: 15000
-- tapOn: "Tomar foto"
+- swipe:
+    start: 50%, 80%
+    end: 50%, 55%
+    duration: 400
+- tapOn: "Añadir"
 - extendedWaitUntil:
     visible: "CÁMARA LISTA"
     timeout: 20000
@@ -33,12 +38,17 @@ appId: com.checkapp
 - inputText: "Punto verificado en E2E"
 - hideKeyboard
 - tapOn: "Guardar reporte"
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Guardar reporte"
+    commands:
+      - tapOn: "Guardar reporte"
 - extendedWaitUntil:
     visible: "Ronda en curso"
     timeout: 30000
-- scrollUntilVisible:
-    element:
-      text: "E2E RONDA 8 PUNTOS"
-    direction: DOWN
-    timeout: 20000
-- assertVisible: "Completada"
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: ".*E2E-04.*Completada.*"
+    timeout: 15000
+- pressKey: Back

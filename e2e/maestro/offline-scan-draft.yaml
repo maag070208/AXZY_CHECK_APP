@@ -1,0 +1,41 @@
+appId: com.checkapp
+---
+# Ronda activa, red apagada: escanear E2E-05, salir, cerrar y reabrir la APP.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 30000
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: "Escaneo E2E"
+    timeout: 15000
+- tapOn:
+    text: ".*E2E-05.*"
+- extendedWaitUntil:
+    visible: "E2E-05"
+    timeout: 15000
+- pressKey: Back
+- extendedWaitUntil:
+    visible: "¿Salir del reporte?"
+    timeout: 15000
+- tapOn:
+    text: "^Salir$"
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 20000
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: ".*E2E-05.*No completada.*"
+    timeout: 15000
+- pressKey: Back
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 30000
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: ".*E2E-05.*No completada.*"
+    timeout: 15000
+- pressKey: Back

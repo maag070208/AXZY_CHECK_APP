@@ -1,0 +1,44 @@
+appId: com.checkapp
+---
+# Sin red: escanear E2E-06 y guardar el check.
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: "Escaneo E2E"
+    timeout: 15000
+- tapOn:
+    text: ".*E2E-06.*"
+- extendedWaitUntil:
+    visible: "E2E-06"
+    timeout: 15000
+- swipe:
+    start: 50%, 80%
+    end: 50%, 55%
+    duration: 400
+- tapOn: "Añadir"
+- extendedWaitUntil:
+    visible: "CÁMARA LISTA"
+    timeout: 20000
+- tapOn: "Tomar foto"
+- extendedWaitUntil:
+    notVisible: "CÁMARA LISTA"
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible: "Subiendo evidencias..."
+    timeout: 60000
+- swipe:
+    start: 50%, 30%
+    end: 50%, 75%
+    duration: 400
+- tapOn: "Escribe los detalles de la revisión..."
+- inputText: "Check guardado sin WiFi"
+- hideKeyboard
+- tapOn: "Guardar reporte"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 30000
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: ".*E2E-06.*Completada.*"
+    timeout: 15000
+- pressKey: Back
