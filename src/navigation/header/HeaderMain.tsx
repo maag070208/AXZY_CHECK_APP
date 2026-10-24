@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../core/store/redux.config';
 import { UserRole } from '../../core/types/IUser';
-import { getPendingIncidentsCount } from '../../screens/assignments/service/incident.service';
+import { getLiveDashboard } from '../../screens/admin/service/dashboard.service';
 import { SyncHeaderButton } from './SyncHeaderButton';
 
 /**
@@ -19,22 +19,32 @@ export const HeaderMain = ({ navigation }: any) => {
   const [alertCount, setAlertCount] = useState(0);
 
   const canChat = role !== UserRole.RESDN;
-  const canManageIncidents = role === UserRole.ADMIN || role === UserRole.SHIFT;
+  // Alertas del dashboard operativo: solo administración y jefe de guardias.
+  const canSeeAlerts = role === UserRole.ADMIN || role === UserRole.SHIFT;
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      getPendingIncidentsCount()
+
+      if (!canSeeAlerts) {
+        setAlertCount(0);
+        return () => {
+          active = false;
+        };
+      }
+
+      getLiveDashboard()
         .then((res: any) => {
           if (active && res?.success && res?.data) {
-            setAlertCount(Number((res.data as any).count) || 0);
+            setAlertCount(res.data.alerts?.length ?? 0);
           }
         })
         .catch(() => {});
+
       return () => {
         active = false;
       };
-    }, []),
+    }, [canSeeAlerts]),
   );
 
   const name = (user.fullName || user.username || 'Usuario').trim();
@@ -47,13 +57,8 @@ export const HeaderMain = ({ navigation }: any) => {
   const goChat = () =>
     navigation.getParent()?.navigate?.('CHAT_STACK', { screen: 'CHAT_MAIN' });
   const goAlerts = () => {
-    if (canManageIncidents) {
-      navigation.getParent()?.navigate?.('INCIDENTS_STACK', { screen: 'INCIDENT_LIST' });
-    } else {
-      navigation.getParent()?.navigate?.('ASSIGNMENTS_STACK', {
-        screen: 'MY_ASSIGNMENTS_MAIN',
-      });
-    }
+    // La campana solo se renderiza para ADMIN/SHIFT; ambos pueden ver incidencias.
+    navigation.getParent()?.navigate?.('INCIDENTS_STACK', { screen: 'INCIDENT_LIST' });
   };
 
   return (
@@ -85,20 +90,22 @@ export const HeaderMain = ({ navigation }: any) => {
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={goAlerts}
-          accessibilityRole="button"
-          accessibilityLabel="Ver alertas"
-          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-        >
-          <Icon source="bell-outline" size={22} color="#475569" />
-          {alertCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{alertCount > 9 ? '9+' : alertCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        {canSeeAlerts && (
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={goAlerts}
+            accessibilityRole="button"
+            accessibilityLabel="Ver alertas"
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Icon source="bell-outline" size={22} color="#475569" />
+            {alertCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{alertCount > 9 ? '9+' : alertCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={styles.avatar}
@@ -127,6 +134,7 @@ const styles = StyleSheet.create({
     height: 44,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   menuBtn: {
     width: 38,
@@ -173,7 +181,6 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    marginLeft: 2,
     backgroundColor: '#E8F7EF',
     borderWidth: 1,
     borderColor: '#C7F0DF',

@@ -904,7 +904,10 @@ export const GuardDashboard = () => {
                         style={styles.modernModalOption} 
                         onPress={() => {
                             setRouteSelectionVisible(false);
-                            setStartModalConfig(item);
+                            // Espera a que cierre el modal de selección antes de abrir
+                            // el de confirmación: dos Modals nativos simultáneos en
+                            // Android pueden quedar invisibles.
+                            setTimeout(() => setStartModalConfig(item), 300);
                         }}
                     >
                         <View style={styles.optionIconBox}>

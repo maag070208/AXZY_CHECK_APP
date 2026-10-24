@@ -30,10 +30,7 @@ import { uploadFile } from '../../../shared/service/upload.service';
 import { CameraModal } from '../components/CameraModal';
 import { registerCheck, updateCheck } from '../service/check.service';
 import Geolocation from '@react-native-community/geolocation';
-import {
-  getAllAssignments,
-  updateAssignmentStatus,
-} from '../../assignments/service/assignment.service';
+import { getAllAssignments, getMyAssignments } from '../../assignments/service/assignment.service';
 import { TaskChecklist } from '../components/TaskChecklist';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -79,13 +76,19 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   }, []);
 
   const loadAssignmentTasks = async () => {
+    // El guardia no puede leer /assignments (permiso assignments.manage):
+    // sus tareas viven en /assignments/me.
     try {
-      const res = await getAllAssignments({ id: assignmentId });
-      if (res.success && res.data && res.data.length > 0) {
-        setTasks(res.data[0].tasks || []);
+      const canManage = user.role === 'ADMIN' || user.role === 'SHIFT';
+      const res = canManage
+        ? await getAllAssignments({ id: assignmentId })
+        : await getMyAssignments(String(user.id));
+      if (res.success && Array.isArray(res.data)) {
+        const assignment = res.data.find(a => Number(a.id) === Number(assignmentId));
+        setTasks(assignment?.tasks || []);
       }
-    } catch (e) {
-      console.error('Error loading tasks', e);
+    } catch {
+      // Sin red o sin asignación: el reporte puede continuar sin checklist.
     }
   };
 
@@ -185,7 +188,6 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       // NOTE: check.service returns { success: true, data: response.data }. 
       // If response.data is the entity, then res.data.id is correct.
       if (res.success && res.data) {
-        console.log("Kardex Created:", res.data);
         setCurrentKardexId(res.data.id);
       } else {
         Alert.alert(
@@ -459,32 +461,20 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       // Since recurring tasks don't have a DB table for completion, we save them as text in notes.
       let finalNotes = notes;
       
-      console.log('Validating recurring tasks save:', { assignmentId, tasksLen: tasks.length });
-
       if (!assignmentId && tasks.length > 0) {
           const checklist = tasks.map(t => `[${t.completed ? 'x' : ' '}] ${t.description}`).join('\n');
           finalNotes = `${finalNotes ? finalNotes + '\n\n' : ''}--- LISTA DE VERIFICACIÓN ---\n${checklist}`;
-          console.log('Generated Final Notes with Checklist:', finalNotes);
       }
 
       // Final update with notes
-      console.log('Sending updateCheck with:', { currentKardexId, finalNotes });
       const res = await updateCheck(
         currentKardexId,
         finalNotes || 'Reporte completado',
       );
 
       if (res.success) {
-        // IF ASSIGNMENT, UPDATE STATUS TO UNDER_REVIEW
-        if (assignmentId) {
-          try {
-            await updateAssignmentStatus(assignmentId, 'UNDER_REVIEW' as any); // TODO: Import Enum
-          } catch (assignError) {
-            console.error('Error updating assignment status', assignError);
-            // Continue to exit, but maybe warn? For now assume it works or is secondary.
-          }
-        }
-
+        // El cambio de estatus de la asignación es de administración
+        // (assignments.manage); el guardia solo registra el kardex.
         dispatch(showToast({ message: 'Reporte completado y guardado.', type: 'success' }));
         
         // Reset navigation to prevent going back to this report

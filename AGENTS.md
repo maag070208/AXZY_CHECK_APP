@@ -31,3 +31,11 @@ Si agregas o cambias un token, componente o patrón visual:
 3. Si el patrón se repite, créalo en `src/shared/components` y úsalo.
 
 Si no actualizas `DESIGN.md`, el cambio de UI se considera incompleto.
+
+## Memoria (Engram)
+
+- Proyecto Engram exclusivo de la APP: **`checkapp_app`**.
+- Config del repo: `APP/.engram/config.json` (`{"project_name": "checkapp_app"}`).
+- Guarda aquí decisiones, bugs y patrones de la APP.
+- No uses el proyecto `checkapp`: contiene memorias KMP obsoletas. La APP actual es React Native 0.82.
+- Si el servidor MCP arranca fuera de `APP/`, pásale `--project checkapp_app` (o `ENGRAM_PROJECT=checkapp_app`).

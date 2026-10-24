@@ -6,12 +6,13 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { IconButton, Surface, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, IconButton, Surface, Text, TextInput } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootState } from '../../../core/store/redux.config';
 import { getMessages, getRealtimeToken, IChatMessage, sendMessage } from '../service/chat.service';
+import { AppButton } from '../../../shared/components/AppButton';
 
 const POLL_INTERVAL_MS = 10000;
 const ABLY_CHAT_CHANNEL = 'chat:team';
@@ -27,18 +28,25 @@ export const ChatScreen = () => {
   const [messages, setMessages] = useState<IChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const listRef = useRef<FlatList>(null);
   const ablyRef = useRef<any>(null);
 
   const loadMessages = useCallback(async () => {
     try {
       const res = await getMessages();
-      if (res.success && res.data) {
+      if (res.success && Array.isArray(res.data)) {
         // API returns newest-first; FlatList is inverted, so keep newest-first.
         setMessages(res.data);
+        setError(false);
+      } else {
+        setError(true);
       }
-    } catch (e) {
-      console.warn('[Chat] Error cargando mensajes', e);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -148,7 +156,28 @@ export const ChatScreen = () => {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>Todavía no hay mensajes.</Text>
+            <View style={styles.emptyWrap}>
+              {loading ? (
+                <ActivityIndicator size="small" color="#065911" />
+              ) : error ? (
+                <>
+                  <Text style={styles.emptyText}>No se pudo cargar el chat.</Text>
+                  <AppButton
+                    label="Reintentar"
+                    icon="refresh"
+                    size="sm"
+                    variant="outline"
+                    style={styles.unflip}
+                    onPress={() => {
+                      setLoading(true);
+                      void loadMessages();
+                    }}
+                  />
+                </>
+              ) : (
+                <Text style={styles.emptyText}>Todavía no hay mensajes.</Text>
+              )}
+            </View>
           }
         />
 
@@ -181,12 +210,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F6FBF4' },
   flex: { flex: 1 },
   listContent: { padding: 16, flexGrow: 1 },
-  emptyText: {
-    textAlign: 'center',
-    color: '#9E9E9E',
+  emptyWrap: {
+    alignItems: 'center',
+    gap: 10,
     marginTop: 40,
     transform: [{ scaleY: -1 }],
   },
+  emptyText: {
+    textAlign: 'center',
+    color: '#9E9E9E',
+  },
+  unflip: { transform: [{ scaleY: -1 }] },
   row: { marginVertical: 4, flexDirection: 'row' },
   rowOwn: { justifyContent: 'flex-end' },
   rowOther: { justifyContent: 'flex-start' },

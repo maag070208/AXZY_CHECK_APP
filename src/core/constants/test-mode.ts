@@ -1,2 +1,3 @@
 /** Solo debug. En release el escaneo E2E no existe. */
-export const E2E_MODE = __DEV__;
+// Modo normal: sin botón de escaneo simulado. Pon true solo para correr Maestro.
+export const E2E_MODE = false;

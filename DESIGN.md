@@ -1,7 +1,7 @@
 # CheckApp APP — Design System
 
 > Fuente de verdad del diseño de la aplicación móvil (React Native + React Native Paper).
-> Última actualización: **2026-10-21 · v1.0**
+> Última actualización: **2026-10-23 · v2.30**
 >
 > Antes de modificar cualquier pantalla, lee este documento. Si introduces un patrón nuevo,
 > actualízalo aquí en el mismo cambio (ver “Cómo mantener este documento”).
@@ -238,6 +238,7 @@ Ruta: `src/shared/components/AppButton.tsx`.
 - Card “Antes de guardar” en mint con recomendación breve.
 - Observaciones en card blanca (radio 16, borde `line`, mínimo 124).
 - Video compacto (72) y galería 3 columnas con tarjeta “Añadir” dashed mint.
+- Checklist de tareas (asignaciones): label 13/900, contador N/M, card blanca, checkbox 22 con check verde y chip "Foto requerida".
 - Footer fijo blanco con `AppButton` `md` (alto 52) y safe area; el contenido hace scroll por encima.
 - **Público mayor**: en este reporte los labels de sección suben a 13/900 oscuro (no 10/900),
   textos 12–15 y el estado del botón explica qué falta (“Preparando reporte…”, “Faltan X fotos”).
@@ -259,6 +260,12 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 - Cards para Cámara, Micrófono, Ubicación y Notificaciones con explicación y estado.
 - Sin todos concedidos no hay “Continuar”; se ofrece “Permitir todos” y “Abrir ajustes”.
 - Se revalida al volver del sistema (AppState) y respeta safe area.
+
+### 6.8.3 Mis asignaciones
+- Header plano de 56: flecha atrás 36 en caja mint, título 18/900 y refrescar a la derecha.
+- Card por asignación: icono 38 tintado por estado, nombre 14/800, meta 11/600, chip 999 con color semántico, progreso de tareas y CTA “Escanear punto”.
+- Estados: skeleton de 3 cards al cargar, empty “¡Todo listo!” y error con “Reintentar”.
+- Pull-to-refresh conserva la lista; el refrescar del header también recarga.
 
 ### 6.9 Secciones
 - Header de sección: label 10/900 `soft` mayúsculas + `letterSpacing 1.1`; a la derecha un aside 10/700
@@ -362,3 +369,7 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 | 2026-10-21 | 2.24 | Observaciones con padding y dictado por voz (módulo nativo Android SpeechRecognizer). |
 | 2026-10-21 | 2.25 | Pantalla de permisos obligatorios post-login con bloqueo hasta conceder todo. |
 | 2026-10-21 | 2.26 | Aviso de sin conexión en header para GUARD/MAINT; sin pantalla bloqueante. |
+| 2026-10-23 | 2.27 | Reporte técnico: checklist de tareas con el diseño estándar (label 13/900, contador N/M, card blanca, checkbox verde y chip “Foto requerida”) y carga vía `/assignments/me` para guardias. |
+| 2026-10-23 | 2.28 | Mis asignaciones: header plano con flecha atrás y refrescar, cards con estado/progreso/CTA, skeleton, empty y error. |
+| 2026-10-23 | 2.29 | Header con separación 10 entre acciones; chat con estados de carga/error/reintento sobre `/chat/messages`. |
+| 2026-10-23 | 2.30 | Campana de alertas solo para ADMIN y SHIFT; el badge cuenta las alertas de `/dashboard/live`. GUARD/MAINT ya no ven la campana. |

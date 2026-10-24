@@ -1,0 +1,14 @@
+appId: com.checkapp
+---
+# Mis Asignaciones: navegación desde el drawer, estado de la lista y refresco
+- runFlow: login.yaml
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "Mis Asignaciones"
+    timeout: 10000
+- tapOn: "Mis Asignaciones"
+- extendedWaitUntil:
+    visible: "Asignaciones"
+    timeout: 15000
+- assertVisible: "Toca una asignación para escanear el punto.|No tienes asignaciones pendientes por ahora."
+- pressKey: Back

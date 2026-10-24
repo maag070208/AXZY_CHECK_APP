@@ -66,7 +66,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    marginRight: 2,
   },
   label: { fontSize: 8, fontWeight: '800', color: '#065911', marginTop: -1 },
   labelOffline: { color: '#B45309' },

@@ -3,17 +3,17 @@ import { AssignmentStatus } from "../../screens/assignments/service/assignment.t
 export const getStatusColor = (status: AssignmentStatus): string => {
     switch (status) {
         case AssignmentStatus.PENDING:
-            return '#9E9E9E'; // Gray
+            return '#F59E0B'; // Pendiente
         case AssignmentStatus.CHECKING:
-            return '#2196F3'; // Blue
+            return '#0EA5E9'; // En verificación
         case AssignmentStatus.UNDER_REVIEW:
-            return '#FF9800'; // Orange
+            return '#8B5CF6'; // En revisión
         case AssignmentStatus.REVIEWED:
-            return '#4CAF50'; // Green
+            return '#12A36F'; // Completada
         case AssignmentStatus.ANOMALY:
-            return '#F44336'; // Red
+            return '#E53935'; // Anomalía
         default:
-            return '#9E9E9E';
+            return '#94A3B8';
     }
 };
 

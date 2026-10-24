@@ -5,7 +5,7 @@ appId: com.checkapp
 - extendedWaitUntil:
     visible: "Selecciona una Ruta"
     timeout: 15000
-- tapOn: "E2E RONDA 8 PUNTOS"
+- tapOn: "8 ubicaciones registradas"
 - extendedWaitUntil:
     visible: "Iniciar Recorrido"
     timeout: 15000

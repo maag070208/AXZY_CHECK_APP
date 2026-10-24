@@ -2,6 +2,11 @@ appId: com.checkapp
 ---
 # Ronda: solo iniciar y terminar (sin escanear puntos)
 - tapOn: "Iniciar ronda"
+- runFlow:
+    when:
+      visible: "Selecciona una Ruta"
+    commands:
+      - tapOn: "8 ubicaciones registradas"
 - extendedWaitUntil:
     visible: "Iniciar Recorrido"
     timeout: 15000
