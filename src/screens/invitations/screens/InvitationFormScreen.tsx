@@ -4,7 +4,8 @@ import dayjs from 'dayjs';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { HelperText, Icon, Text, TextInput } from 'react-native-paper';
+import { FlatList } from 'react-native';
+import { Button, HelperText, Icon, Modal, Portal, Text, TextInput } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from '../../../core/store/hooks';
@@ -14,7 +15,7 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { getCatalog } from '../../../shared/service/catalog.service';
 import { tokens } from '../../../shared/theme/tokens';
 import { nameError, textError } from '../../../shared/validation/fields';
-import { getResidentById } from '../../residents/service/resident.service';
+import { getResidentById, getResidentContacts, ResidentContact } from '../../residents/service/resident.service';
 import { createInvitation } from '../service/invitation.service';
 
 /** Sección numerada, igual que en el reporte del guardia: "1. INVITADO" + pista a la derecha. */
@@ -56,6 +57,10 @@ export const InvitationFormScreen = () => {
     const [fetchingTypes, setFetchingTypes] = useState(true);
     const [currentPropertyId, setCurrentPropertyId] = useState<number | null>(propertyId);
     const [currentResidentId, setCurrentResidentId] = useState<number | null>(residentId);
+
+    // Agenda del residente: se puede elegir al invitado de aquí o escribir cualquier nombre.
+    const [contacts, setContacts] = useState<ResidentContact[]>([]);
+    const [pickerOpen, setPickerOpen] = useState(false);
 
     // DateTime Picker State
     const [showPicker, setShowPicker] = useState<'from' | 'until' | null>(null);
@@ -99,6 +104,13 @@ export const InvitationFormScreen = () => {
         resolveProperty();
         loadInvitationTypes();
     }, [user.id, user.role]);
+
+    useEffect(() => {
+        if (!currentResidentId) return;
+        getResidentContacts(currentResidentId)
+            .then((res) => { if (res.success && res.data) setContacts(res.data); })
+            .catch(() => setContacts([]));
+    }, [currentResidentId]);
 
     // Mismas reglas que el API (invitation.schemas.ts): nombre 2-120 letras, notas 2-2000.
     const guestNameMsg = nameError(name, { required: true, max: 120 });
@@ -221,6 +233,25 @@ export const InvitationFormScreen = () => {
                     <HelperText type={guestNameMsg && name.length > 0 ? 'error' : 'info'} visible>
                         {guestNameMsg && name.length > 0 ? guestNameMsg : 'De 2 a 120 caracteres.'}
                     </HelperText>
+
+                    <TouchableOpacity
+                        style={styles.agendaRow}
+                        accessibilityRole="button"
+                        accessibilityLabel="Elegir invitado de mi agenda"
+                        onPress={() => setPickerOpen(true)}
+                        disabled={contacts.length === 0}
+                    >
+                        <View style={styles.agendaIcon}>
+                            <Icon source="book-account-outline" size={18} color={tokens.color.primary} />
+                        </View>
+                        <View style={styles.agendaText}>
+                            <Text style={styles.agendaTitle}>Elegir de mi agenda</Text>
+                            <Text style={styles.agendaSub}>
+                                {contacts.length > 0 ? `${contacts.length} contactos guardados` : 'Tu agenda está vacía'}
+                            </Text>
+                        </View>
+                        <Icon source="chevron-right" size={20} color={tokens.color.textHint} />
+                    </TouchableOpacity>
                 </View>
 
                 <SectionLabel index={2} text="TIPO DE ACCESO" />
@@ -327,6 +358,37 @@ export const InvitationFormScreen = () => {
                 />
             </View>
 
+            <Portal>
+                <Modal visible={pickerOpen} onDismiss={() => setPickerOpen(false)} contentContainerStyle={styles.sheet}>
+                    <Text style={styles.sheetTitle}>Elige un contacto</Text>
+                    <Text style={styles.sheetSub}>Se usará su nombre como invitado.</Text>
+                    <FlatList
+                        data={contacts}
+                        keyExtractor={(item) => String(item.id)}
+                        style={styles.sheetList}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity
+                                style={styles.contactRow}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Usar a ${item.name}`}
+                                onPress={() => { setName(item.name); setPickerOpen(false); }}
+                            >
+                                <View style={styles.contactAvatar}>
+                                    <Text style={styles.contactInitial}>{item.name.charAt(0).toUpperCase()}</Text>
+                                </View>
+                                <View style={styles.dateInfo}>
+                                    <Text style={styles.contactName}>{item.name}</Text>
+                                    {item.relationship ? <Text style={styles.contactSub}>{item.relationship}</Text> : null}
+                                </View>
+                            </TouchableOpacity>
+                        )}
+                    />
+                    <Button mode="text" onPress={() => setPickerOpen(false)} textColor={tokens.color.textMuted}>
+                        Cerrar
+                    </Button>
+                </Modal>
+            </Portal>
+
             {showPicker && (
                 <DateTimePicker
                     value={showPicker === 'from' ? validFrom : validUntil}
@@ -400,6 +462,37 @@ const styles = StyleSheet.create({
     divider: { height: 1, backgroundColor: tokens.color.border, marginVertical: 6 },
     infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, paddingHorizontal: 4 },
     infoText: { flex: 1, fontSize: 12, color: tokens.color.textMuted, lineHeight: 17 },
+    agendaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        borderRadius: tokens.radius.tile,
+        borderWidth: 1,
+        borderColor: tokens.color.border,
+        backgroundColor: tokens.color.screen,
+    },
+    agendaIcon: { width: 36, height: 36, borderRadius: tokens.radius.icon, backgroundColor: tokens.color.primarySoft, alignItems: 'center', justifyContent: 'center' },
+    agendaText: { flex: 1 },
+    agendaTitle: { fontSize: 13, fontWeight: '800', color: tokens.color.textStrong },
+    agendaSub: { fontSize: 11, color: tokens.color.textMuted, marginTop: 2 },
+    sheet: {
+        backgroundColor: tokens.color.card,
+        borderRadius: 24,
+        padding: 20,
+        margin: 20,
+        maxHeight: '70%',
+    },
+    sheetTitle: { fontSize: 18, fontWeight: '900', color: tokens.color.textStrong },
+    sheetSub: { fontSize: 13, color: tokens.color.textMuted, marginTop: 4, marginBottom: 12 },
+    sheetList: { maxHeight: 320 },
+    contactRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+    contactAvatar: { width: 40, height: 40, borderRadius: 12, backgroundColor: tokens.color.primarySoft, alignItems: 'center', justifyContent: 'center' },
+    contactInitial: { fontSize: 16, fontWeight: '900', color: tokens.color.primary },
+    contactName: { fontSize: 15, fontWeight: '700', color: tokens.color.textStrong },
+    contactSub: { fontSize: 12, color: tokens.color.textMuted, marginTop: 2 },
     footer: {
         backgroundColor: tokens.color.card,
         paddingHorizontal: 16,

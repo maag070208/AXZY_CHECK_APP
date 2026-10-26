@@ -14,7 +14,7 @@ export interface ComplaintListItem {
 }
 
 export interface ComplaintPhoto {
-  type: 'IMAGE';
+  type: 'IMAGE' | 'VIDEO';
   url: string;
   key: string;
   size: number;
@@ -53,6 +53,7 @@ export const COMPLAINT_STATUS_LABELS: Record<ComplaintStatus, string> = {
 };
 
 export const MAX_COMPLAINT_PHOTOS = 3;
+export const MAX_COMPLAINT_VIDEO_SECONDS = 30;
 
 const errorOf = (messages: string[] | null | undefined, fallback: string) => new Error(messages?.[0] ?? fallback);
 

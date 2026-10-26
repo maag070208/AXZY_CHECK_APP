@@ -98,7 +98,7 @@ export const ResidentHomeScreen = () => {
       detail: 'Tus datos',
       permission: P.RESIDENT_SELF,
       icon: 'account-circle-outline',
-      onPress: () => go('RESIDENTS_STACK', 'RESIDENT_PROFILE'),
+      onPress: () => navigation.navigate('PROFILE_SCREEN'),
     },
     {
       label: 'Contactos',

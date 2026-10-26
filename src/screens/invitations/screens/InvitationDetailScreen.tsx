@@ -1,14 +1,35 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import React, { useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View, TouchableOpacity } from 'react-native';
-import { ActivityIndicator, Avatar, Text } from 'react-native-paper';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, Icon, Text } from 'react-native-paper';
 import QRCode from 'react-native-qrcode-svg';
 import Share from 'react-native-share';
 import ViewShot from 'react-native-view-shot';
-import { InvitationTicket } from '../components/InvitationTicket';
 import { useDispatch } from 'react-redux';
+import { InvitationTicket } from '../components/InvitationTicket';
+import { AppButton } from '../../../shared/components/AppButton';
 import { showToast } from '../../../core/store/slices/toast.slice';
+import { tokens } from '../../../shared/theme/tokens';
+
+/** Sección numerada, igual que en el reporte del guardia: "1. CÓDIGO DE ACCESO". */
+const SectionLabel = ({ index, text }: { index: number; text: string }) => (
+    <Text style={styles.sectionLabel}>{`${index}. ${text}`}</Text>
+);
+
+/** Fila de dato: ícono en cuadro suave, etiqueta en mayúsculas y valor. */
+const InfoRow = ({ icon, label, children, danger }: { icon: string; label: string; children: React.ReactNode; danger?: boolean }) => (
+    <View style={styles.infoRow}>
+        <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>
+            <Icon source={icon as any} size={18} color={danger ? tokens.color.danger : tokens.color.primary} />
+        </View>
+        <View style={styles.rowText}>
+            <Text style={styles.rowLabel}>{label}</Text>
+            {children}
+        </View>
+    </View>
+);
 
 export const InvitationDetailScreen = () => {
     const route = useRoute<any>();
@@ -17,11 +38,13 @@ export const InvitationDetailScreen = () => {
     const viewShotRef = useRef<any>(null);
     const [sharing, setSharing] = useState(false);
     const dispatch = useDispatch();
+    const insets = useSafeAreaInsets();
+
     const handleShare = async () => {
         if (invitation.status === 'EXITED') {
-            dispatch(showToast({ 
-                message: 'No se puede compartir un pase que ya registró su salida', 
-                type: 'info' 
+            dispatch(showToast({
+                message: 'No se puede compartir un pase que ya registró su salida',
+                type: 'info'
             }));
             return;
         }
@@ -31,7 +54,7 @@ export const InvitationDetailScreen = () => {
             setTimeout(async () => {
                 try {
                     const uri = await viewShotRef.current.capture();
-                    
+
                     const shareOptions = {
                         title: 'Pase de Acceso',
                         message: `Hola ${invitation.guestName}, aquí tienes tu pase de acceso para ${invitation.property?.identifier}.`,
@@ -53,447 +76,187 @@ export const InvitationDetailScreen = () => {
     };
 
     const getStatusLabel = (status: string) => {
-        switch(status) {
-            case 'PENDING': return { label: 'Pendiente', color: '#f59e0b' };
-            case 'ENTERED': return { label: 'Dentro', color: '#1f8a3a' };
-            case 'EXITED': return { label: 'Salida registrada', color: '#94a3b8' };
-            default: return { label: status, color: '#64748b' };
+        switch (status) {
+            case 'PENDING': return { label: 'Pendiente', color: tokens.color.warning, bg: tokens.color.warningSoft };
+            case 'ENTERED': return { label: 'Dentro', color: tokens.color.primary, bg: tokens.color.primarySoft };
+            case 'EXITED': return { label: 'Salida registrada', color: tokens.color.textMuted, bg: tokens.color.screen };
+            default: return { label: status, color: tokens.color.textMuted, bg: tokens.color.screen };
         }
     };
 
     const statusConfig = getStatusLabel(invitation.status);
+    const typeIcon = invitation.type?.name?.includes('PROV') ? 'truck-delivery-outline'
+        : invitation.type?.name?.includes('SERV') ? 'tools' : 'account-outline';
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#f5f7fa' }}>
-            {/* Hidden Ticket for Capture */}
+        <View style={styles.screen}>
+            {/* Ticket oculto para la captura que se comparte */}
             <View style={styles.hiddenTicket}>
                 <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.9 }}>
                     <InvitationTicket invitation={invitation} />
                 </ViewShot>
             </View>
 
-            <ScrollView 
-                style={styles.container} 
-                contentContainerStyle={{ paddingBottom: 32 }}
+            <ScrollView
+                contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
                 showsVerticalScrollIndicator={false}
             >
-                {/* QR Card */}
-                <View style={styles.qrCard}>
-                    <TouchableOpacity 
-                        style={styles.floatingShareButton}
+                <SectionLabel index={1} text="CÓDIGO DE ACCESO" />
+                <View style={styles.card}>
+                    <View style={styles.qrWrap}>
+                        <QRCode value={invitation.code} size={170} color={tokens.color.text} backgroundColor={tokens.color.card} />
+                    </View>
+                    <Text style={styles.code}>{invitation.code}</Text>
+                    <Text style={styles.hint}>Escanea este código en la caseta de vigilancia.</Text>
+                    <AppButton
+                        label="Compartir pase"
+                        icon="share-variant"
                         onPress={handleShare}
                         disabled={sharing}
-                    >
-                        {sharing ? (
-                            <ActivityIndicator size={18} color="#1f8a3a" />
-                        ) : (
-                            <Avatar.Icon size={32} icon="share-variant-outline" color="#1f8a3a" style={{ backgroundColor: 'transparent' }} />
-                        )}
-                    </TouchableOpacity>
-
-                    <View style={styles.qrContainer}>
-                        <QRCode
-                            value={invitation.code}
-                            size={160}
-                            color="#1e293b"
-                            backgroundColor="#ffffff"
-                        />
-                    </View>
-                    <Text style={styles.qrCode}>{invitation.code}</Text>
-                    <Text style={styles.qrNote}>Escanea este código en la caseta de vigilancia</Text>
+                        loading={sharing}
+                    />
                 </View>
 
-                {/* Guest Info */}
-                <View style={styles.guestCard}>
+                <SectionLabel index={2} text="INVITADO" />
+                <View style={styles.card}>
                     <Text style={styles.guestName}>{invitation.guestName}</Text>
-                    <View style={styles.typeBadge}>
-                        <Avatar.Icon 
-                            size={16} 
-                            icon={invitation.type?.name?.includes('PROV') ? 'moped' : (invitation.type?.name?.includes('SERV') ? 'tools' : 'account')} 
-                            style={styles.typeIcon} 
-                            color="#1f8a3a" 
-                        />
-                        <Text style={styles.typeText}>
-                            {invitation.type?.value || 'Invitado Particular'}
-                        </Text>
+                    <View style={styles.typeChip}>
+                        <Icon source={typeIcon as any} size={14} color={tokens.color.primary} />
+                        <Text style={styles.typeText}>{invitation.type?.value || 'Invitado particular'}</Text>
                     </View>
                 </View>
 
-                {/* Status Card */}
-                <View style={styles.infoCard}>
-                    <View style={styles.infoRow}>
-                        <View style={styles.infoIconContainer}>
-                            <Avatar.Icon size={32} icon="shield-check-outline" style={styles.infoIcon} color="#1f8a3a" />
+                <SectionLabel index={3} text="DETALLES" />
+                <View style={styles.card}>
+                    <InfoRow icon="shield-check-outline" label="ESTADO DEL PASE">
+                        <View style={[styles.statusChip, { backgroundColor: statusConfig.bg }]}>
+                            <View style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
+                            <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
                         </View>
-                        <View style={styles.infoContent}>
-                            <Text style={styles.infoLabel}>Estado del pase</Text>
-                            <View style={[styles.statusBadge, { backgroundColor: `${statusConfig.color}10` }]}>
-                                <View style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
-                                <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
-                            </View>
-                        </View>
-                    </View>
+                    </InfoRow>
 
                     <View style={styles.divider} />
 
-                    <View style={styles.infoRow}>
-                        <View style={styles.infoIconContainer}>
-                            <Avatar.Icon size={32} icon="home-outline" style={styles.infoIcon} color="#64748b" />
-                        </View>
-                        <View style={styles.infoContent}>
-                            <Text style={styles.infoLabel}>Destino</Text>
-                            <Text style={styles.infoValue}>{invitation.property?.identifier} - {invitation.property?.name}</Text>
-                        </View>
-                    </View>
+                    <InfoRow icon="home-outline" label="DESTINO">
+                        <Text style={styles.rowValue}>{invitation.property?.identifier} · {invitation.property?.name}</Text>
+                    </InfoRow>
 
                     <View style={styles.divider} />
 
-                    <View style={styles.infoRow}>
-                        <View style={styles.infoIconContainer}>
-                            <Avatar.Icon size={32} icon="calendar-range" style={styles.infoIcon} color="#64748b" />
-                        </View>
-                        <View style={styles.infoContent}>
-                            <Text style={styles.infoLabel}>Vigencia</Text>
-                            <Text style={styles.infoValue}>
-                                {dayjs(invitation.validFrom).format('DD/MM/YYYY')} — {dayjs(invitation.validUntil).format('DD/MM/YYYY')}
-                            </Text>
-                        </View>
-                    </View>
+                    <InfoRow icon="calendar-range" label="VIGENCIA">
+                        <Text style={styles.rowValue}>
+                            {dayjs(invitation.validFrom).format('DD/MM/YYYY')} — {dayjs(invitation.validUntil).format('DD/MM/YYYY')}
+                        </Text>
+                    </InfoRow>
 
-                    {invitation.notes && (
+                    {invitation.notes ? (
                         <>
                             <View style={styles.divider} />
-                            <View style={styles.infoRow}>
-                                <View style={styles.infoIconContainer}>
-                                    <Avatar.Icon size={32} icon="note-text-outline" style={styles.infoIcon} color="#64748b" />
-                                </View>
-                                <View style={styles.infoContent}>
-                                    <Text style={styles.infoLabel}>Notas</Text>
-                                    <Text style={styles.infoValue}>{invitation.notes}</Text>
-                                </View>
-                            </View>
+                            <InfoRow icon="note-text-outline" label="NOTAS">
+                                <Text style={styles.rowValue}>{invitation.notes}</Text>
+                            </InfoRow>
                         </>
-                    )}
+                    ) : null}
 
                     <View style={styles.divider} />
 
-                    <View style={styles.infoRow}>
-                        <View style={styles.infoIconContainer}>
-                            <Avatar.Icon size={32} icon="account-check-outline" style={styles.infoIcon} color="#64748b" />
-                        </View>
-                        <View style={styles.infoContent}>
-                            <Text style={styles.infoLabel}>Autorizado por</Text>
-                            <Text style={styles.infoValue}>{invitation.createdBy?.name} {invitation.createdBy?.lastName}</Text>
-                        </View>
-                    </View>
+                    <InfoRow icon="account-check-outline" label="AUTORIZADO POR">
+                        <Text style={styles.rowValue}>{invitation.createdBy?.name} {invitation.createdBy?.lastName}</Text>
+                    </InfoRow>
                 </View>
 
-                {/* Timeline Card */}
                 {(invitation.entryTime || invitation.exitTime) && (
-                    <View style={styles.timelineCard}>
-                        <Text style={styles.timelineTitle}>Historial de Movimientos</Text>
-                        
-                        <View style={styles.timelineContainer}>
+                    <>
+                        <SectionLabel index={4} text="MOVIMIENTOS" />
+                        <View style={styles.card}>
                             {invitation.entryTime && (
-                                <View style={styles.timelineItem}>
-                                    <View style={styles.timelineLineContainer}>
-                                        <View style={[styles.timelineDot, { backgroundColor: '#1f8a3a' }]}>
-                                            <Avatar.Icon size={14} icon="login" color="#fff" style={{ backgroundColor: 'transparent' }} />
-                                        </View>
-                                        {invitation.exitTime && <View style={styles.timelineLine} />}
-                                    </View>
-                                    <View style={styles.timelineContent}>
-                                        <Text style={styles.timelineLabel}>Ingreso Registrado</Text>
-                                        <Text style={styles.timelineTime}>{dayjs(invitation.entryTime).format('DD/MM/YYYY — HH:mm:ss')}</Text>
-                                        <Text style={styles.timelineNote}>Persona ingresó a las instalaciones</Text>
-                                    </View>
-                                </View>
+                                <InfoRow icon="login" label="INGRESO REGISTRADO">
+                                    <Text style={styles.rowValue}>{dayjs(invitation.entryTime).format('DD/MM/YYYY · HH:mm:ss')}</Text>
+                                    <Text style={styles.rowNote}>La persona ingresó a las instalaciones.</Text>
+                                </InfoRow>
                             )}
-
+                            {invitation.entryTime && invitation.exitTime && <View style={styles.divider} />}
                             {invitation.exitTime && (
-                                <View style={styles.timelineItem}>
-                                    <View style={styles.timelineLineContainer}>
-                                        <View style={[styles.timelineDot, { backgroundColor: '#64748b' }]}>
-                                            <Avatar.Icon size={14} icon="logout" color="#fff" style={{ backgroundColor: 'transparent' }} />
-                                        </View>
-                                    </View>
-                                    <View style={styles.timelineContent}>
-                                        <Text style={styles.timelineLabel}>Salida Registrada</Text>
-                                        <Text style={styles.timelineTime}>{dayjs(invitation.exitTime).format('DD/MM/YYYY — HH:mm:ss')}</Text>
-                                        <Text style={styles.timelineNote}>Persona salió de las instalaciones</Text>
-                                    </View>
-                                </View>
+                                <InfoRow icon="logout" label="SALIDA REGISTRADA">
+                                    <Text style={styles.rowValue}>{dayjs(invitation.exitTime).format('DD/MM/YYYY · HH:mm:ss')}</Text>
+                                    <Text style={styles.rowNote}>La persona salió de las instalaciones.</Text>
+                                </InfoRow>
                             )}
                         </View>
-                    </View>
+                    </>
                 )}
-
-                {/* Removed bottom Share Button as it's now at the top */}
             </ScrollView>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f5f7fa',
+    screen: { flex: 1, backgroundColor: tokens.color.screen },
+    content: { padding: 16, paddingBottom: 32 },
+    hiddenTicket: { position: 'absolute', top: -2000, left: 0 },
+    sectionLabel: { ...tokens.font.label, marginTop: 16, marginBottom: 10 },
+    card: {
+        backgroundColor: tokens.color.card,
+        borderRadius: tokens.radius.card,
+        borderWidth: 1,
+        borderColor: tokens.color.border,
+        padding: 14,
+        gap: 10,
     },
-    hiddenTicket: {
-        position: 'absolute',
-        top: -2000,
-        left: 0,
-    },
-    qrCard: {
-        backgroundColor: '#ffffff',
-        marginHorizontal: 16,
-        marginTop: 20,
-        marginBottom: 12,
-        paddingVertical: 24,
-        paddingHorizontal: 20,
-        borderRadius: 24,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        elevation: 2,
-    },
-    qrContainer: {
+    qrWrap: {
+        alignSelf: 'center',
         padding: 12,
-        backgroundColor: '#ffffff',
-        borderRadius: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 2,
+        borderRadius: tokens.radius.card,
+        borderWidth: 1,
+        borderColor: tokens.color.border,
+        backgroundColor: tokens.color.card,
     },
-    qrCode: {
-        fontSize: 14,
-        fontWeight: '600',
+    code: {
+        textAlign: 'center',
+        fontSize: 15,
+        fontWeight: '800',
         fontFamily: 'monospace',
-        letterSpacing: 1,
-        color: '#1e293b',
-        marginTop: 16,
-        marginBottom: 8,
+        letterSpacing: 1.5,
+        color: tokens.color.textStrong,
     },
-    qrNote: {
-        fontSize: 12,
-        color: '#94a3b8',
-        textAlign: 'center',
-    },
-    guestCard: {
-        backgroundColor: '#ffffff',
-        marginHorizontal: 16,
-        marginBottom: 12,
-        paddingVertical: 20,
-        paddingHorizontal: 20,
-        borderRadius: 24,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        elevation: 2,
-    },
-    guestName: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#0f172a',
-        textAlign: 'center',
-        marginBottom: 8,
-    },
-    typeBadge: {
+    hint: { ...tokens.font.hint, textAlign: 'center', marginBottom: 4 },
+    guestName: { fontSize: 20, fontWeight: '900', color: tokens.color.textStrong, textAlign: 'center' },
+    typeChip: {
+        alignSelf: 'center',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        backgroundColor: '#f0fdf4',
+        backgroundColor: tokens.color.primarySoft,
+        borderRadius: tokens.radius.pill,
         paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
+        paddingVertical: 5,
     },
-    typeIcon: {
-        backgroundColor: 'transparent',
-        margin: 0,
-    },
-    typeText: {
-        fontSize: 13,
-        color: '#1f8a3a',
-        fontWeight: '500',
-    },
-    infoCard: {
-        backgroundColor: '#ffffff',
-        marginHorizontal: 16,
-        marginBottom: 16,
-        borderRadius: 24,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        elevation: 2,
-    },
-    infoRow: {
-        flexDirection: 'row',
+    typeText: { fontSize: 12, fontWeight: '700', color: tokens.color.primary },
+    infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    rowIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: tokens.radius.icon,
+        backgroundColor: tokens.color.primarySoft,
         alignItems: 'center',
-        padding: 16,
-    },
-    infoIconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#f8fafc',
         justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 14,
     },
-    infoIcon: {
-        backgroundColor: 'transparent',
-        margin: 0,
-    },
-    infoContent: {
-        flex: 1,
-    },
-    infoLabel: {
-        fontSize: 12,
-        color: '#94a3b8',
-        marginBottom: 4,
-        letterSpacing: 0.3,
-        textTransform: 'uppercase',
-    },
-    infoValue: {
-        fontSize: 15,
-        color: '#1e293b',
-        fontWeight: '500',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#f1f5f9',
-        marginLeft: 70,
-    },
-    statusBadge: {
+    rowIconDanger: { backgroundColor: tokens.color.dangerSoft },
+    rowText: { flex: 1 },
+    rowLabel: { fontSize: 11, fontWeight: '700', color: tokens.color.textMuted, letterSpacing: 0.3 },
+    rowValue: { fontSize: 14, fontWeight: '700', color: tokens.color.textStrong, marginTop: 2 },
+    rowNote: { fontSize: 12, color: tokens.color.textMuted, marginTop: 2 },
+    statusChip: {
+        alignSelf: 'flex-start',
         flexDirection: 'row',
         alignItems: 'center',
-        alignSelf: 'flex-start',
+        gap: 6,
+        borderRadius: tokens.radius.pill,
         paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 20,
         marginTop: 4,
-        gap: 6,
     },
-    statusDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-    },
-    statusText: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    floatingShareButton: {
-        position: 'absolute',
-        top: 16,
-        right: 16,
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#f1f5f9',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10,
-    },
-    actions: {
-        paddingHorizontal: 16,
-        marginBottom: 20,
-    },
-    shareButton: {
-        backgroundColor: '#1f8a3a',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        borderRadius: 16,
-        gap: 10,
-        shadowColor: '#1f8a3a',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    shareIcon: {
-        backgroundColor: 'transparent',
-        margin: 0,
-    },
-    shareButtonText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    timelineCard: {
-        backgroundColor: '#ffffff',
-        marginHorizontal: 16,
-        marginBottom: 26,
-        borderRadius: 24,
-        padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        elevation: 2,
-    },
-    timelineTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#0f172a',
-        marginBottom: 20,
-        letterSpacing: 0.5,
-    },
-    timelineContainer: {
-        paddingLeft: 4,
-    },
-    timelineItem: {
-        flexDirection: 'row',
-        minHeight: 70,
-    },
-    timelineLineContainer: {
-        width: 30,
-        alignItems: 'center',
-    },
-    timelineDot: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 2,
-    },
-    timelineLine: {
-        flex: 1,
-        width: 2,
-        backgroundColor: '#f1f5f9',
-        marginVertical: 4,
-    },
-    timelineContent: {
-        flex: 1,
-        paddingLeft: 12,
-        paddingBottom: 20,
-    },
-    timelineLabel: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#1e293b',
-        marginBottom: 2,
-    },
-    timelineTime: {
-        fontSize: 12,
-        color: '#1f8a3a',
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    timelineNote: {
-        fontSize: 12,
-        color: '#94a3b8',
-        lineHeight: 16,
-    },
+    statusDot: { width: 7, height: 7, borderRadius: 4 },
+    statusText: { fontSize: 12, fontWeight: '800' },
+    divider: { height: 1, backgroundColor: tokens.color.border },
 });

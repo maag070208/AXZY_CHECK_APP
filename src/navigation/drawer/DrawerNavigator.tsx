@@ -112,9 +112,17 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="PROFILE_SCREEN"
         component={ProfileScreen}
-        options={{
+        options={({ navigation }) => ({
           drawerItemStyle: { display: 'none' },
-        }}
+          headerShown: true,
+          header: () => (
+            <HeaderBack
+              navigation={navigation}
+              title="Mi perfil"
+              back={true}
+            />
+          ),
+        })}
       />
 
       <Drawer.Screen

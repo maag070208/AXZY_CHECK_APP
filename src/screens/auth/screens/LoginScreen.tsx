@@ -26,8 +26,9 @@ import { APP_ICON_SVG } from '../../../shared/assets/appIcon';
 import { showLoader } from '../../../core/store/slices/loader.slice';
 import LoaderComponent from '../../../shared/components/LoaderComponent';
 import EnvironmentBadge from '../../../shared/components/EnvironmentBadge';
+import { tokens } from '../../../shared/theme/tokens';
 
-const BRAND = '#12A36F';
+const BRAND = tokens.color.primary;
 
 // Animación de layout al abrir/cerrar el teclado (Android la requiere explícita).
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -177,7 +178,7 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: tokens.color.card,
   },
   keyboardView: {
     flex: 1,
@@ -220,10 +221,10 @@ const styles = StyleSheet.create({
     width: 104,
     height: 104,
     borderRadius: 30,
-    backgroundColor: '#ffffff',
+    backgroundColor: tokens.color.card,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#064E3B',
+    shadowColor: tokens.color.primary,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.22,
     shadowRadius: 18,
@@ -237,7 +238,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     fontSize: 30,
     fontWeight: '800',
-    color: '#ffffff',
+    color: tokens.color.card,
     letterSpacing: -0.6,
     textAlign: 'center',
   },
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
   sheet: {
     marginTop: -36,
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: tokens.color.card,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 24,
@@ -264,13 +265,13 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#0F172A',
+    color: tokens.color.textStrong,
     letterSpacing: -0.4,
   },
   sheetSubtitle: {
     marginTop: 6,
     fontSize: 13,
-    color: '#64748B',
+    color: tokens.color.textMuted,
   },
   form: {
     marginTop: 24,

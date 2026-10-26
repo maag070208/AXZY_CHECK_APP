@@ -10,6 +10,7 @@ import {
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { Icon } from 'react-native-paper';
+import { tokens } from '../../../shared/theme/tokens';
 
 export interface LoginFormComponentValues {
   username: string;
@@ -68,7 +69,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
             <Icon
               source="account-outline"
               size={20}
-              color={focusedField === 'username' ? '#12A36F' : '#94A3B8'}
+              color={focusedField === 'username' ? tokens.color.primary : tokens.color.textHint}
             />
             <TextInput
               style={styles.input}
@@ -84,7 +85,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
               returnKeyType="next"
               placeholder="Usuario"
               accessibilityLabel="Usuario"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={tokens.color.textHint}
             />
           </View>
           {submitCount > 0 && errors.username ? (
@@ -103,7 +104,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
             <Icon
               source="lock-outline"
               size={20}
-              color={focusedField === 'password' ? '#12A36F' : '#94A3B8'}
+              color={focusedField === 'password' ? tokens.color.primary : tokens.color.textHint}
             />
             <TextInput
               style={styles.input}
@@ -121,7 +122,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
               onSubmitEditing={() => handleSubmit()}
               placeholder="Contraseña"
               accessibilityLabel="Contraseña"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={tokens.color.textHint}
             />
             <TouchableOpacity
               accessibilityRole="button"
@@ -135,7 +136,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
               <Icon
                 source={showPassword ? 'eye-off-outline' : 'eye-outline'}
                 size={20}
-                color="#94A3B8"
+                color={tokens.color.textHint}
               />
             </TouchableOpacity>
           </View>
@@ -156,7 +157,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
             activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color={tokens.color.card} />
             ) : (
               <Text style={styles.buttonText}>Iniciar sesión</Text>
             )}
@@ -174,9 +175,9 @@ const styles = StyleSheet.create({
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: tokens.color.screen,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: tokens.color.border,
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 56,
@@ -188,18 +189,18 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   fieldFocused: {
-    borderColor: '#12A36F',
-    backgroundColor: '#F1FBF7',
+    borderColor: tokens.color.primary,
+    backgroundColor: tokens.color.primarySoft,
   },
   fieldError: {
-    borderColor: '#EF4444',
-    backgroundColor: '#FEF2F2',
+    borderColor: tokens.color.danger,
+    backgroundColor: tokens.color.dangerSoft,
   },
   input: {
     flex: 1,
     marginLeft: 12,
     fontSize: 15,
-    color: '#0F172A',
+    color: tokens.color.textStrong,
     height: '100%',
   },
   eyeIcon: {
@@ -211,16 +212,16 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontSize: 12,
     fontWeight: '600',
-    color: '#EF4444',
+    color: tokens.color.danger,
   },
   button: {
     marginTop: 24,
     height: 54,
     borderRadius: 16,
-    backgroundColor: '#12A36F',
+    backgroundColor: tokens.color.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#065F46',
+    shadowColor: tokens.color.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 14,
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   buttonText: {
-    color: '#ffffff',
+    color: tokens.color.card,
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.2,

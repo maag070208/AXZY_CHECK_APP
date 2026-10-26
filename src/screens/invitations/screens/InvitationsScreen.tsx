@@ -12,6 +12,7 @@ import { getPaginatedInvitations, Invitation } from '../service/invitation.servi
 import { RootState } from '../../../core/store/redux.config';
 import { useSelector } from 'react-redux';
 import { tokens } from '../../../shared/theme/tokens';
+import { ListAvatar, ListRowCard, ListSearch, ListSectionHeader, StatusChip } from '../../../shared/components/ListComponents';
 
 export const InvitationsScreen = () => {
     const insets = useSafeAreaInsets();
@@ -138,10 +139,10 @@ export const InvitationsScreen = () => {
 
     const getStatusConfig = (status: string) => {
         switch(status) {
-            case 'PENDING': return { label: 'En Espera', color: '#F59E0B', bg: '#FEF3C7', icon: 'clock-outline' };
-            case 'ENTERED': return { label: 'Dentro', color: '#10B981', bg: '#ECFDF5', icon: 'check-circle-outline' };
-            case 'EXITED': return { label: 'Salió', color: tokens.color.textMuted, bg: '#F1F5F9', icon: 'exit-run' };
-            case 'EXPIRED': return { label: 'Vencido', color: tokens.color.danger, bg: '#FEE2E2', icon: 'calendar-remove' };
+            case 'PENDING': return { label: 'En Espera', color: tokens.color.warning, bg: tokens.color.warningSoft, icon: 'clock-outline' };
+            case 'ENTERED': return { label: 'Dentro', color: tokens.color.primary, bg: tokens.color.primarySoft, icon: 'check-circle-outline' };
+            case 'EXITED': return { label: 'Salió', color: tokens.color.textMuted, bg: tokens.color.screen, icon: 'exit-run' };
+            case 'EXPIRED': return { label: 'Vencido', color: tokens.color.danger, bg: tokens.color.dangerSoft, icon: 'calendar-remove' };
             default: return { label: status, color: tokens.color.textMuted, bg: tokens.color.screen, icon: 'help-circle-outline' };
         }
     };
@@ -150,46 +151,18 @@ export const InvitationsScreen = () => {
         const config = getStatusConfig(item.status);
         const isProvider = item.type === 'PROVIDER';
         return (
-            <TouchableOpacity
-                style={styles.iRow}
-                activeOpacity={0.75}
+            <ListRowCard
+                avatar={<ListAvatar icon={isProvider ? 'moped' : 'account-circle'} />}
+                title={item.guestName}
+                subtitle={`${isProvider ? 'Proveedor · ' : ''}${item.property?.identifier ?? 'N/A'} · ${item.code}`}
+                meta={
+                    <Text style={styles.iMeta} numberOfLines={1}>
+                        {dayjs(item.validFrom).format('DD MMM HH:mm')} → {dayjs(item.validUntil).format('DD MMM HH:mm')}
+                    </Text>
+                }
+                badge={<StatusChip label={config.label} color={config.color} background={config.bg} />}
                 onPress={() => navigation.navigate('INVITATION_DETAIL', { invitation: item })}
-            >
-                <Avatar.Icon
-                    size={40}
-                    icon={isProvider ? 'moped' : 'account-circle'}
-                    style={[styles.iAvatar, { backgroundColor: isProvider ? '#EFF6FF' : tokens.color.primarySoft }]}
-                    color={isProvider ? '#3B82F6' : tokens.color.primary}
-                />
-                <View style={styles.iCopy}>
-                    <View style={styles.iNameLine}>
-                        <Text style={styles.iName} numberOfLines={1}>{item.guestName}</Text>
-                        {isProvider ? (
-                            <View style={styles.iProvider}>
-                                <Text style={styles.iProviderText}>PROVEEDOR</Text>
-                            </View>
-                        ) : null}
-                    </View>
-                    <View style={styles.iMetaLine}>
-                        <Text style={styles.iMeta} numberOfLines={1}>
-                            {item.property?.identifier ?? 'N/A'} · {item.code}
-                        </Text>
-                    </View>
-                    <View style={styles.iMetaLine}>
-                        <Icon source="calendar-clock" size={10} color="#94A3B8" />
-                        <Text style={styles.iMeta} numberOfLines={1}>
-                            {dayjs(item.validFrom).format('DD MMM HH:mm')} → {dayjs(item.validUntil).format('DD MMM HH:mm')}
-                        </Text>
-                    </View>
-                </View>
-                <View style={styles.iStatusCol}>
-                    <View style={[styles.iStatus, { backgroundColor: config.bg }]}>
-                        <View style={[styles.iDot, { backgroundColor: config.color }]} />
-                        <Text style={[styles.iStatusText, { color: config.color }]}>{config.label}</Text>
-                    </View>
-                    <Icon source="chevron-right" size={18} color="#CBD5E1" />
-                </View>
-            </TouchableOpacity>
+            />
         );
     };
 
@@ -198,31 +171,25 @@ export const InvitationsScreen = () => {
             <View style={styles.header}>
                 <View style={styles.compactSummary}>
                     <View style={styles.compactChip}>
-                        <Icon source="ticket-confirmation-outline" size={14} color="#065911" />
+                        <Icon source="ticket-confirmation-outline" size={14} color={tokens.color.primary} />
                         <Text style={styles.compactText}>{total} pases</Text>
                     </View>
                     <IconButton
                         icon="refresh"
                         size={18}
-                        iconColor="#065911"
-                        containerColor="#E8F7EF"
+                        iconColor={tokens.color.primary}
+                        containerColor={tokens.color.primarySoft}
                         style={{ margin: 0, marginLeft: 'auto' }}
                         onPress={() => fetchInvitationsFromServer(1)}
                     />
                 </View>
 
                 <View style={styles.searchContainer}>
-                    <Searchbar
+                    <ListSearch
                         placeholder="Buscar por código o nombre..."
-                        onChangeText={setSearch}
                         value={search}
-                        style={styles.searchBar}
-                        inputStyle={styles.searchInput}
-                        iconColor="#065911"
-                        placeholderTextColor="#94A3B8"
-                        onIconPress={() => fetchInvitationsFromServer(1)}
+                        onChangeText={setSearch}
                         onSubmitEditing={() => fetchInvitationsFromServer(1)}
-                        elevation={0}
                     />
                 </View>
 
@@ -253,24 +220,27 @@ export const InvitationsScreen = () => {
 
             {loading && page === 1 && !refreshing ? (
                 <View style={styles.loadingCenter}>
-                    <ActivityIndicator size="large" color="#065911" />
+                    <ActivityIndicator size="large" color={tokens.color.primary} />
                     <Text style={styles.loadingText}>Buscando invitaciones...</Text>
                 </View>
             ) : (
                 <FlatList
                     data={invitations}
                     renderItem={renderItem}
+                    ListHeaderComponent={
+                        <ListSectionHeader index={1} text="PASES" hint={`${total} en total`} />
+                    }
                     keyExtractor={(item) => item.id.toString()}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#065911"]} />}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[tokens.color.primary]} />}
                     onEndReached={handleLoadMore}
                     onEndReachedThreshold={0.5}
-                    ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color="#065911" /> : null}
+                    ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color={tokens.color.primary} /> : null}
                     onScroll={onScroll}
                     contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
                     ListEmptyComponent={
                         !loading ? (
                             <View style={styles.emptyContainer}>
-                                <Icon source="ticket-search-outline" size={64} color="#E2E8F0" />
+                                <Icon source="ticket-search-outline" size={64} color={tokens.color.border} />
                                 <Text style={styles.emptyText}>No se encontraron pases</Text>
                             </View>
                         ) : null
@@ -297,7 +267,10 @@ const styles = StyleSheet.create({
     compactSummary: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
     compactChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: tokens.color.card, borderWidth: 1, borderColor: tokens.color.border, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
     compactText: { fontSize: 10, fontWeight: '800', color: tokens.color.textMuted },
-    iRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: tokens.color.card, paddingHorizontal: 12, paddingVertical: 10 },
+    iRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: tokens.color.card, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10, borderRadius: tokens.radius.card, borderWidth: 1, borderColor: tokens.color.border },
+    labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 10 },
+    sectionLabel: { ...tokens.font.label },
+    sectionHint: { ...tokens.font.hint },
     iAvatar: { backgroundColor: tokens.color.primarySoft },
     iCopy: { flex: 1, minWidth: 0 },
     iNameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -316,7 +289,7 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         paddingBottom: 12, // Adjusted for status filters
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: tokens.color.screen,
     },
     headerTop: {
         flexDirection: 'row',
@@ -341,7 +314,7 @@ const styles = StyleSheet.create({
     },
     searchBar: {
         elevation: 0,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: tokens.color.screen,
         borderRadius: 16,
         height: 52,
         marginBottom: 12
@@ -351,6 +324,7 @@ const styles = StyleSheet.create({
         minHeight: 0
     },
     statusFiltersScroll: {
+        paddingTop: 14,
         paddingBottom: 4,
         gap: 8
     },
@@ -362,7 +336,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: tokens.color.screen,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: tokens.color.screen,
         gap: 8
     },
     statusTabActive: {
@@ -396,11 +370,11 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: tokens.color.screen,
         borderWidth: 1,
-        borderColor: '#F1F5F9'
+        borderColor: tokens.color.screen
     },
     filterPillActive: {
-        backgroundColor: '#ECFDF5',
-        borderColor: '#10B981',
+        backgroundColor: tokens.color.primarySoft,
+        borderColor: tokens.color.primary,
     },
     filterText: {
         fontSize: 13,
@@ -408,7 +382,7 @@ const styles = StyleSheet.create({
         color: tokens.color.textMuted
     },
     filterTextActive: {
-        color: '#10B981'
+        color: tokens.color.primary
     },
     verticalDivider: {
         width: 1,
@@ -427,7 +401,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         backgroundColor: '#fff',
         borderWidth: 1,
-        borderColor: '#F1F5F9'
+        borderColor: tokens.color.screen
     },
     cardHero: {
         height: 4,
@@ -500,7 +474,7 @@ const styles = StyleSheet.create({
     },
     cardDivider: {
         height: 1,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: tokens.color.screen,
         marginBottom: 16
     },
     cardFooter: {
@@ -559,10 +533,10 @@ const styles = StyleSheet.create({
         margin: 16,
         right: 0,
         bottom: 0,
-        backgroundColor: '#10B981', 
+        backgroundColor: tokens.color.primary, 
         borderRadius: 20,
         elevation: 8,
-        shadowColor: '#10B981',
+        shadowColor: tokens.color.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8

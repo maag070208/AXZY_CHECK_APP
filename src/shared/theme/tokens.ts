@@ -24,6 +24,9 @@ export const tokens = {
     heroAccent: '#A7F3D0',
     heroSoft: '#D1FAE5',
     heroMuted: '#9FB8AC',
+    // Estados (pendiente, en curso)
+    warning: '#B45309',
+    warningSoft: '#FFF7ED',
   },
   radius: {
     icon: 11,

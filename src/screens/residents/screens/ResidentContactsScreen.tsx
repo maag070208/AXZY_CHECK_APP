@@ -34,6 +34,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ResidentContactModal } from '../components/ResidentContactModal';
 import { tokens } from '../../../shared/theme/tokens';
+import { ListAvatar, ListRowCard, ListSearch, ListSectionHeader, StatusChip } from '../../../shared/components/ListComponents';
 
 const PRIMARY_GREEN = '#1f8a3a';
 const SECONDARY_BG = tokens.color.card;
@@ -163,16 +164,10 @@ export const ResidentContactsScreen = () => {
             
 
             <View style={styles.searchBox}>
-                <TextInput 
-                    mode="outlined"
+                <ListSearch
                     placeholder="Buscar por nombre o relación"
                     value={searchQuery}
                     onChangeText={setSearchQuery}
-                    style={styles.simpleSearch}
-                    left={<TextInput.Icon icon="magnify" color={tokens.color.textHint} />}
-                    outlineColor={tokens.color.border}
-                    activeOutlineColor={PRIMARY_GREEN}
-                    theme={{ roundness: 12 }}
                 />
             </View>
 
@@ -188,6 +183,7 @@ export const ResidentContactsScreen = () => {
                         tintColor={PRIMARY_GREEN}
                     />
                 }
+                ListHeaderComponent={<ListSectionHeader index={1} text="CONTACTOS" hint={`${filteredContacts.length} en total`} />}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <View style={styles.emptyIconContainer}>
@@ -209,67 +205,32 @@ export const ResidentContactsScreen = () => {
                     </View>
                 }
                 renderItem={({ item }) => (
-                    <TouchableOpacity 
-                        style={styles.contactCard}
-                        onPress={() => openForm(item)}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.cardContent}>
-                            <View style={styles.avatarSection}>
-                                {(item as any).photoUrl ? (
-                                    <Image source={{ uri: (item as any).photoUrl }} style={styles.avatarPhoto} accessibilityLabel={`Foto de ${item.name}`} />
-                                ) : (
-                                    <View style={styles.avatarContainer}>
-                                        <Text style={styles.avatarText}>
-                                            {item.name.charAt(0).toUpperCase()}
-                                        </Text>
-                                    </View>
-                                )}
-                                {item.phone && (
-                                    <View style={styles.whatsappBadge}>
-                                        <Icon source="whatsapp" size={12} color="#fff" />
-                                    </View>
-                                )}
+                    <ListRowCard
+                        avatar={<ListAvatar photoUrl={(item as any).photoUrl} initial={item.name.charAt(0).toUpperCase()} />}
+                        title={item.name}
+                        subtitle={item.phone || 'Sin teléfono'}
+                        meta={item.relationship ? (
+                            <View style={styles.relationRow}>
+                                <StatusChip label={item.relationship} color={tokens.color.primary} background={tokens.color.primarySoft} />
                             </View>
-
-                            <View style={styles.infoSection}>
-                                <Text style={styles.contactName} numberOfLines={1}>
-                                    {item.name}
-                                </Text>
-                                <Text style={styles.contactPhone} numberOfLines={1}>
-                                    {item.phone || 'Sin teléfono'}
-                                </Text>
-                                {item.relationship ? (
-                                    <View style={styles.relationshipBadge}>
-                                        <Text style={styles.relationshipText}>{item.relationship}</Text>
-                                    </View>
-                                ) : null}
-                            </View>
-
-                            <View style={styles.actionsSection}>
-                                <TouchableOpacity 
-                                    onPress={() => handleGenerateQR(item)} 
-                                    style={styles.actionButton}
-                                >
+                        ) : undefined}
+                        actions={
+                            <>
+                                <TouchableOpacity onPress={() => handleGenerateQR(item)} style={styles.actionButton} accessibilityRole="button" accessibilityLabel={`Generar pase para ${item.name}`}>
                                     <Icon source="qrcode" size={20} color={tokens.color.primary} />
                                 </TouchableOpacity>
                                 {item.phone && (
-                                    <TouchableOpacity 
-                                        onPress={() => handleCall(item.phone)} 
-                                        style={styles.actionButton}
-                                    >
-                                        <Icon source="phone" size={20} color={PRIMARY_GREEN} />
+                                    <TouchableOpacity onPress={() => handleCall(item.phone)} style={styles.actionButton} accessibilityRole="button" accessibilityLabel={`Llamar a ${item.name}`}>
+                                        <Icon source="phone" size={20} color={tokens.color.primary} />
                                     </TouchableOpacity>
                                 )}
-                                <TouchableOpacity 
-                                    onPress={() => handleDelete(item.id)} 
-                                    style={styles.actionButton}
-                                >
+                                <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton} accessibilityRole="button" accessibilityLabel={`Eliminar ${item.name}`}>
                                     <Icon source="delete-outline" size={20} color={tokens.color.danger} />
                                 </TouchableOpacity>
-                            </View>
-                        </View>
-                    </TouchableOpacity>
+                            </>
+                        }
+                        onPress={() => openForm(item)}
+                    />
                 )}
             />
 
@@ -362,6 +323,7 @@ const styles = StyleSheet.create({
         position: 'relative',
         marginRight: 14,
     },
+    relationRow: { flexDirection: 'row', marginTop: 2 },
     avatarPhoto: {
         width: 56,
         height: 56,

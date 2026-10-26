@@ -5,7 +5,6 @@ import { ResidentsScreen } from '../screens/ResidentsScreen';
 import { ResidentDetailScreen } from '../screens/ResidentDetailScreen';
 import { ResidentFormScreen } from '../screens/ResidentFormScreen';
 import { ResidentContactsScreen } from '../screens/ResidentContactsScreen';
-import { ResidentSelfProfileScreen } from '../screens/ResidentSelfProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -59,19 +58,6 @@ export const ResidentsStack = () => {
             <HeaderBack
               navigation={navigation}
               title="Mi Agenda"
-              back={true}
-            />
-          ),
-        })}
-      />
-      <Stack.Screen
-        name="RESIDENT_PROFILE"
-        component={ResidentSelfProfileScreen}
-        options={({ navigation }) => ({
-          header: () => (
-            <HeaderBack
-              navigation={navigation}
-              title="Mi Perfil"
               back={true}
             />
           ),

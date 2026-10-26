@@ -57,6 +57,7 @@ import { getGuardSnapshot, saveGuardSnapshot } from '../../../offline/snapshot';
 import { endLocalRound, getLocalActiveRound, getLocalChecksForRound, startLocalRound } from '../../../offline/rounds';
 import { mergeLocalRoundStatus } from '../../../offline/roundStatus';
 import { E2E_MODE } from '../../../core/constants/test-mode';
+import { tokens } from '../../../shared/theme/tokens';
 
 const { width } = Dimensions.get('window');
 
@@ -72,22 +73,22 @@ const LOCATION_STATUS = {
     label: 'Pendiente',
     bg: '#FFFBF5',
     border: '#FED7AA',
-    dot: '#F59E0B',
-    color: '#B45309',
+    dot: tokens.color.warning,
+    color: tokens.color.warning,
   },
   NOT_COMPLETED: {
     label: 'No completada',
     bg: '#FFF7F7',
     border: '#FECACA',
-    dot: '#EF4444',
-    color: '#B91C1C',
+    dot: tokens.color.danger,
+    color: tokens.color.dangerStrong,
   },
   COMPLETED: {
     label: 'Completada',
     bg: '#F5FDF8',
     border: '#BBF7D0',
-    dot: '#22C55E',
-    color: '#065911',
+    dot: tokens.color.primary,
+    color: tokens.color.primary,
   },
 } as const;
 
@@ -561,7 +562,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
           </View>
 
           <View style={styles.locTimeRow}>
-            <Icon source="clock-outline" size={12} color="#94A3B8" />
+            <Icon source="clock-outline" size={12} color={tokens.color.textHint} />
             <Text style={styles.timeText}>
               {scannedAt
                 ? `${
@@ -591,8 +592,8 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
   const renderBusyConfig = (item: any) => (
     <View style={[styles.configSection, styles.busySection]}>
       <View style={styles.configHeader}>
-        <View style={[styles.configIconBox, { backgroundColor: '#FFF7ED' }]}>
-          <Icon source="lock-outline" size={18} color="#B45309" />
+        <View style={[styles.configIconBox, { backgroundColor: tokens.color.warningSoft }]}>
+          <Icon source="lock-outline" size={18} color={tokens.color.warning} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.configTitle} numberOfLines={1}>
@@ -606,7 +607,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
           </Text>
         </View>
         <View style={[styles.configStatusChip, { backgroundColor: '#FFF3E0' }]}>
-          <Text style={[styles.configStatusText, { color: '#B45309' }]}>Ocupada</Text>
+          <Text style={[styles.configStatusText, { color: tokens.color.warning }]}>Ocupada</Text>
         </View>
       </View>
     </View>
@@ -626,10 +627,10 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
     const available = !showContent && !isCompleted;
 
     const status = showContent
-      ? { label: 'En curso', bg: '#E8F7EF', color: '#065911', icon: 'play-circle-outline' }
+      ? { label: 'En curso', bg: tokens.color.primarySoft, color: tokens.color.primary, icon: 'play-circle-outline' }
       : isCompleted
       ? { label: 'Completado', bg: '#EFF6FF', color: '#1D4ED8', icon: 'check-circle-outline' }
-      : { label: 'Asignado', bg: '#F1F5F9', color: '#475569', icon: 'map-marker-path' };
+      : { label: 'Asignado', bg: tokens.color.screen, color: tokens.color.textBody, icon: 'map-marker-path' };
 
     const cardContent = (
       <>
@@ -637,13 +638,13 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
           <View
             style={[
               styles.configIconBox,
-              { backgroundColor: showContent ? '#E8F7EF' : isCompleted ? '#EFF6FF' : '#F8FAFC' },
+              { backgroundColor: showContent ? tokens.color.primarySoft : isCompleted ? '#EFF6FF' : tokens.color.screen },
             ]}
           >
             <Icon
               source={status.icon as any}
               size={18}
-              color={showContent ? '#065911' : isCompleted ? '#1D4ED8' : '#64748B'}
+              color={showContent ? tokens.color.primary : isCompleted ? '#1D4ED8' : tokens.color.textMuted}
             />
           </View>
 
@@ -679,7 +680,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
                   styles.progressFill,
                   {
                     width: `${Math.min(100, Math.max(0, pct))}%`,
-                    backgroundColor: showContent ? '#12A36F' : '#94A3B8',
+                    backgroundColor: showContent ? '#12A36F' : tokens.color.textHint,
                   },
                 ]}
               />
@@ -700,7 +701,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             <View style={styles.pointsPreview}>
               {item.recurringLocations.slice(0, 3).map((loc: any) => (
                 <View key={loc.id} style={styles.pointChip}>
-                  <Icon source="map-marker-outline" size={12} color="#64748B" />
+                  <Icon source="map-marker-outline" size={12} color={tokens.color.textMuted} />
                   <Text style={styles.pointChipText} numberOfLines={1}>
                     {loc.location?.name}
                   </Text>
@@ -716,9 +717,9 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             </View>
 
             <View style={styles.startHint}>
-              <Icon source="play-circle-outline" size={15} color="#065911" />
+              <Icon source="play-circle-outline" size={15} color={tokens.color.primary} />
               <Text style={styles.startHintText}>Toca para iniciar esta ruta</Text>
-              <Icon source="chevron-right" size={17} color="#CBD5E1" />
+              <Icon source="chevron-right" size={17} color={tokens.color.borderStrong} />
             </View>
           </>
         )}
@@ -749,18 +750,29 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
     icon: string,
     color: string,
     onPress: () => void,
-  ) => (
-    <TouchableOpacity
-      style={[styles.actionTile, { backgroundColor: color }]}
-      activeOpacity={0.85}
-      onPress={onPress}
-    >
-      <Icon source={icon as any} size={17} color="#FFFFFF" />
-      <Text style={styles.actionTileText} numberOfLines={1} adjustsFontSizeToFit>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
+  ) => {
+    const soft = color === tokens.color.danger
+      ? tokens.color.dangerSoft
+      : color === tokens.color.warning
+        ? tokens.color.warningSoft
+        : tokens.color.primarySoft;
+    return (
+      <TouchableOpacity
+        style={styles.actionCard}
+        activeOpacity={0.85}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
+        <View style={[styles.actionChip, { backgroundColor: soft }]}>
+          <Icon source={icon as any} size={18} color={color} />
+        </View>
+        <Text style={styles.actionCardText} numberOfLines={1} adjustsFontSizeToFit>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   const closeScanDialog = () => {
     setScanDialog(null);
@@ -778,13 +790,13 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
           <View
             style={[
               styles.iconCircle,
-              { backgroundColor: scanDialog?.tone === 'error' ? '#FEF2F2' : '#FFF7ED' },
+              { backgroundColor: scanDialog?.tone === 'error' ? tokens.color.dangerSoft : tokens.color.warningSoft },
             ]}
           >
             <Icon
               source="alert-circle-outline"
               size={40}
-              color={scanDialog?.tone === 'error' ? '#EF4444' : '#D97706'}
+              color={scanDialog?.tone === 'error' ? tokens.color.danger : '#D97706'}
             />
           </View>
         </View>
@@ -797,8 +809,8 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             mode="contained"
             onPress={closeScanDialog}
             style={styles.modalBtn}
-            buttonColor="#065911"
-            textColor="#FFFFFF"
+            buttonColor={tokens.color.primary}
+            textColor={tokens.color.card}
           >
             Volver a escanear
           </Button>
@@ -815,7 +827,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
         contentContainerStyle={styles.modernModalContent}
       >
         <View style={styles.modalIconContainer}>
-          <View style={[styles.iconCircle, { backgroundColor: '#E8F7EF' }]}>
+          <View style={[styles.iconCircle, { backgroundColor: tokens.color.primarySoft }]}>
             <Icon source="check-circle" size={44} color="#12A36F" />
           </View>
         </View>
@@ -845,8 +857,8 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             contentContainerStyle={styles.modernModalContent}
         >
             <View style={styles.modalIconContainer}>
-                <View style={[styles.iconCircle, { backgroundColor: '#FEF2F2' }]}>
-                    <Icon source="alert-circle-outline" size={40} color="#EF4444" />
+                <View style={[styles.iconCircle, { backgroundColor: tokens.color.dangerSoft }]}>
+                    <Icon source="alert-circle-outline" size={40} color={tokens.color.danger} />
                 </View>
             </View>
 
@@ -860,14 +872,14 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
                     mode="outlined" 
                     onPress={() => setEndRoundVisible(false)} 
                     style={styles.modalBtn}
-                    textColor="#64748B"
+                    textColor={tokens.color.textMuted}
                 >
                     Cancelar
                 </Button>
                 <Button 
                     mode="contained" 
                     onPress={onEndRoundConfirmed} 
-                    style={[styles.modalBtn, { backgroundColor: '#EF4444' }]}
+                    style={[styles.modalBtn, { backgroundColor: tokens.color.danger }]}
                     textColor="white"
                 >
                     Finalizar
@@ -917,7 +929,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
                             <Text style={styles.optionTitle}>{item.title}</Text>
                             <Text style={styles.optionSub}>{item.recurringLocations?.length || 0} ubicaciones registradas</Text>
                         </View>
-                        <Icon source="chevron-right" size={20} color="#CBD5E1" />
+                        <Icon source="chevron-right" size={20} color={tokens.color.borderStrong} />
                     </TouchableOpacity>
                 )}
             />
@@ -925,7 +937,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             <Button 
                 mode="text" 
                 onPress={() => setRouteSelectionVisible(false)} 
-                textColor="#64748B"
+                textColor={tokens.color.textMuted}
                 style={{ marginTop: 8 }}
             >
                 Cancelar
@@ -966,7 +978,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
           </ScrollView>
           <Button
             mode="outlined"
-            textColor="#B91C1C"
+            textColor={tokens.color.dangerStrong}
             onPress={() => {
               setE2eScanVisible(false);
               setScanDialog({
@@ -1020,7 +1032,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             mode="outlined"
             onPress={() => setStartModalConfig(null)}
             style={styles.modalBtn}
-            textColor="#64748B"
+            textColor={tokens.color.textMuted}
           >
             Cancelar
           </Button>
@@ -1067,7 +1079,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             <View style={[styles.scannerContainer, cameraActive && styles.scannerContainerActive, isMyRound && !cameraActive && styles.scannerContainerRoundActive]}>
               {!activeRound || isRoundCompleted ? (
                 <View style={styles.startContainer}>
-                  <Icon source="shield-lock-outline" size={34} color="#94A3B8" />
+                  <Icon source="shield-lock-outline" size={34} color={tokens.color.textHint} />
                   <Text style={styles.startTitle}>
                     {configs.length > 0
                       ? 'Ronda no iniciada'
@@ -1191,13 +1203,13 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
               {/* BOTONES DE ACCIÓN */}
               <View style={styles.actionSection}>
                 <View style={styles.actionGrid}>
-                  {renderAction('Incidencia', 'alert-circle', '#E53935', () =>
+                  {renderAction('Incidencia', 'alert-circle', tokens.color.danger, () =>
                     navigation.navigate('INCIDENT_REPORT', { initialCategory: 'FALTAS' }),
                   )}
-                  {renderAction('Mantenimiento', 'wrench', '#F59E0B', () =>
+                  {renderAction('Mantenimiento', 'wrench', tokens.color.warning, () =>
                     navigation.navigate('MAINTENANCE_REPORT'),
                   )}
-                  {renderAction('Casa Club', 'home-modern', '#0EA5E9', () =>
+                  {renderAction('Casa Club', 'home-modern', tokens.color.primary, () =>
                     navigation.navigate('CLUB_REPORT'),
                   )}
                 </View>
@@ -1235,7 +1247,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
                       <View style={styles.specialSection}>
                         <View style={styles.sectionHeader}>
                           <View style={styles.sectionTitleRow}>
-                            <Icon source="star" size={14} color="#F59E0B" />
+                            <Icon source="star" size={14} color={tokens.color.warning} />
                             <Text style={styles.sectionTitle}>ASIGNACIONES ESPECIALES</Text>
                           </View>
                           <Text style={styles.sectionAside}>{specialAssignments.length}</Text>
@@ -1330,6 +1342,18 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
 };
 
 const styles = StyleSheet.create({
+  actionCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: tokens.radius.card,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.card,
+  },
+  actionChip: { width: 38, height: 38, borderRadius: tokens.radius.icon, alignItems: 'center', justifyContent: 'center' },
+  actionCardText: { fontSize: 12, fontWeight: '800', color: tokens.color.textStrong },
   container: { flex: 1, backgroundColor: '#F4F9F6' },
   skeletonWrap: { flex: 1, paddingHorizontal: 16, paddingTop: 8 },
   skeletonActions: { flexDirection: 'row', gap: 8, marginTop: 16 },
@@ -1376,7 +1400,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   cameraHint: {
-    color: '#FFFFFF',
+    color: tokens.color.card,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.2,
@@ -1402,8 +1426,8 @@ const styles = StyleSheet.create({
     right: 10,
     height: 2,
     borderRadius: 2,
-    backgroundColor: '#22C55E',
-    shadowColor: '#22C55E',
+    backgroundColor: tokens.color.primary,
+    shadowColor: tokens.color.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 8,
@@ -1437,7 +1461,7 @@ const styles = StyleSheet.create({
   dragIndicator: {
     width: 40,
     height: 4,
-    backgroundColor: '#CBD5E1',
+    backgroundColor: tokens.color.borderStrong,
     borderRadius: 2,
     alignSelf: 'center',
     marginVertical: 10,
@@ -1469,7 +1493,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionTileText: {
-    color: '#FFFFFF',
+    color: tokens.color.card,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.2,
@@ -1485,14 +1509,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   startTitle: {
-    color: '#ffffff',
+    color: tokens.color.card,
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: 0.2,
     textAlign: 'center',
   },
   startSub: {
-    color: '#94A3B8',
+    color: tokens.color.textHint,
     fontSize: 11,
     fontWeight: '600',
     textAlign: 'center',
@@ -1516,8 +1540,8 @@ const styles = StyleSheet.create({
   },
   cancelScanButton: {
     width: 200,
-    backgroundColor: '#FFFFFF',
-    borderColor: '#FFFFFF',
+    backgroundColor: tokens.color.card,
+    borderColor: tokens.color.card,
   },
 
   // Secciones
@@ -1533,10 +1557,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#94A3B8',
+    color: tokens.color.textHint,
     letterSpacing: 1.1,
   },
-  sectionAside: { fontSize: 10, fontWeight: '700', color: '#94A3B8' },
+  sectionAside: { fontSize: 10, fontWeight: '700', color: tokens.color.textHint },
   listHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1546,38 +1570,38 @@ const styles = StyleSheet.create({
 
   // Tarjetas Especiales
   specialCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.color.card,
     marginBottom: 8,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E6EEE9',
+    borderColor: tokens.color.border,
     overflow: 'hidden',
   },
-  specialLocName: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  specialLocName: { fontSize: 14, fontWeight: '800', color: tokens.color.textStrong },
   specialNotes: {
     fontSize: 11,
-    color: '#64748B',
+    color: tokens.color.textMuted,
     fontStyle: 'italic',
     marginTop: 4,
   },
   specialBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#E8F7EF',
+    backgroundColor: tokens.color.primarySoft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
     marginTop: 8,
   },
-  specialBadgeText: { fontSize: 9, fontWeight: '800', color: '#065911' },
+  specialBadgeText: { fontSize: 9, fontWeight: '800', color: tokens.color.primary },
 
   // Rondas (Configs)
   configSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.color.card,
     borderRadius: 16,
     marginBottom: 10,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E6EEE9',
+    borderColor: tokens.color.border,
   },
   configSectionActive: {
     backgroundColor: '#FBFEFC',
@@ -1610,7 +1634,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: tokens.color.textStrong,
     marginRight: 8,
   },
   configStatusChip: {
@@ -1632,7 +1656,7 @@ const styles = StyleSheet.create({
   configMetaText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: tokens.color.textMuted,
     marginTop: 2,
   },
   progressHeader: {
@@ -1642,8 +1666,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 6,
   },
-  progressLabel: { fontSize: 10, fontWeight: '700', color: '#64748B' },
-  progressCount: { fontSize: 10, fontWeight: '800', color: '#0F172A' },
+  progressLabel: { fontSize: 10, fontWeight: '700', color: tokens.color.textMuted },
+  progressCount: { fontSize: 10, fontWeight: '800', color: tokens.color.textStrong },
   progressTrack: {
     height: 6,
     borderRadius: 3,
@@ -1655,7 +1679,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 6,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: tokens.color.screen,
   },
   pointsPreview: {
     flexDirection: 'row',
@@ -1670,13 +1694,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: tokens.color.screen,
   },
   startHintText: {
     flex: 1,
     fontSize: 11,
     fontWeight: '700',
-    color: '#065911',
+    color: tokens.color.primary,
   },
   pointsCarousel: {
     gap: 8,
@@ -1687,9 +1711,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: tokens.color.screen,
     borderWidth: 1,
-    borderColor: '#E6EEE9',
+    borderColor: tokens.color.border,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -1697,7 +1721,7 @@ const styles = StyleSheet.create({
   pointChipText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#64748B',
+    color: tokens.color.textMuted,
     maxWidth: 120,
   },
   e2eScanBtn: {
@@ -1720,7 +1744,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: tokens.color.screen,
   },
   modalPointDot: {
     width: 8,
@@ -1748,13 +1772,13 @@ const styles = StyleSheet.create({
   locMainInfo: { flex: 1 },
   locHeader: { flexDirection: 'row', alignItems: 'center' },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  pendingDot: { backgroundColor: '#F59E0B' },
-  completedDot: { backgroundColor: '#22C55E' },
+  pendingDot: { backgroundColor: tokens.color.warning },
+  completedDot: { backgroundColor: tokens.color.primary },
   locName: {
     flex: 1,
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: tokens.color.textStrong,
     marginRight: 8,
   },
   locStatusChip: {
@@ -1764,7 +1788,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   locStatusText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.3 },
-  completedText: { color: '#64748B' },
+  completedText: { color: tokens.color.textMuted },
   metaContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 8 },
   locBadge: {
     flexDirection: 'row',
@@ -1775,13 +1799,13 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 8,
   },
-  locBadgeText: { fontSize: 10, fontWeight: '700', color: '#475569' },
+  locBadgeText: { fontSize: 10, fontWeight: '700', color: tokens.color.textBody },
   completedTaskBadge: { backgroundColor: '#E8F5E9' },
   taskCount: { fontSize: 11, fontWeight: '700', color: '#546E7A' },
   completedTaskCount: { color: '#43A047' },
   timeContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   locTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
-  timeText: { fontSize: 10, fontWeight: '600', color: '#94A3B8' },
+  timeText: { fontSize: 10, fontWeight: '600', color: tokens.color.textHint },
   
   // Modern Modal Styles
   modernModalContent: {
@@ -1819,11 +1843,11 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       paddingVertical: 14,
       paddingHorizontal: 12,
-      backgroundColor: '#F8FAFC',
+      backgroundColor: tokens.color.screen,
       borderRadius: 16,
       marginBottom: 10,
       borderWidth: 1,
-      borderColor: '#F1F5F9',
+      borderColor: tokens.color.screen,
   },
   optionIconBox: {
       width: 40,
@@ -1854,7 +1878,7 @@ const styles = StyleSheet.create({
       elevation: 5
   },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1E293B', marginBottom: 8, textAlign: 'center' },
-  modalSubtitle: { fontSize: 14, color: '#64748B', textAlign: 'center', marginBottom: 20, lineHeight: 20 },
+  modalSubtitle: { fontSize: 14, color: tokens.color.textMuted, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
   modalOption: {
       flexDirection: 'row',
       alignItems: 'center',
