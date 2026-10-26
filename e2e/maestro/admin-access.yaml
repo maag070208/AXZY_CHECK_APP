@@ -1,0 +1,61 @@
+appId: com.axzy.checkapp.barcelona
+---
+# Fase 2A: avisos, vehículos y bitácora desde la administración.
+- launchApp:
+    clearState: true
+- tapOn:
+    text: "Nunca en esta aplicación o sitio web"
+    optional: true
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "isabel"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- tapOn:
+    text: "Nunca en esta aplicación o sitio web"
+    optional: true
+- extendedWaitUntil:
+    visible: "Buenos días, Isabel"
+    timeout: 30000
+
+# Avisos
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "Avisos"
+    timeout: 10000
+- tapOn:
+    text: "Avisos"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: "Avisos"
+    timeout: 15000
+- assertVisible: "Nuevo aviso"
+- pressKey: Back
+
+# Vehículos
+- tapOn: "Abrir menú"
+- tapOn:
+    text: "Vehículos"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: "Vehículos"
+    timeout: 15000
+- assertVisible: "Refrescar"
+- pressKey: Back
+
+# Bitácora
+- tapOn: "Abrir menú"
+- tapOn:
+    text: "Bitácora de accesos"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: "Bitácora de accesos"
+    timeout: 15000
+- assertVisible: "Exportar CSV"
+- pressKey: Back

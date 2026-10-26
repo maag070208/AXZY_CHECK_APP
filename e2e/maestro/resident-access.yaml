@@ -1,0 +1,73 @@
+appId: com.axzy.checkapp.barcelona
+---
+# Fase 2A: avisos, clave peatonal, vehículos e historial del residente.
+- launchApp:
+    clearState: true
+- tapOn:
+    text: "Nunca en esta aplicación o sitio web"
+    optional: true
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "e2e_resident"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- tapOn:
+    text: "Nunca en esta aplicación o sitio web"
+    optional: true
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 30000
+
+# Avisos (campana)
+- tapOn: "Ver avisos"
+- extendedWaitUntil:
+    visible: "Avisos"
+    timeout: 15000
+- assertVisible: "Comunicados de la administración."
+- pressKey: Back
+
+# Mi clave peatonal
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "Mi clave peatonal"
+    timeout: 10000
+- tapOn:
+    point: "50%,74%"
+- extendedWaitUntil:
+    visible: "Mi clave peatonal"
+    timeout: 15000
+- tapOn:
+    text: "Generar.*"
+- extendedWaitUntil:
+    visible: "Tu nueva clave"
+    timeout: 15000
+- tapOn: "Entendido"
+- pressKey: Back
+
+# Mis vehículos
+- tapOn: "Abrir menú"
+- tapOn:
+    text: "Mis vehículos"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: "Mis vehículos"
+    timeout: 15000
+- assertVisible: "Agregar"
+- pressKey: Back
+
+# Mis accesos
+- tapOn: "Abrir menú"
+- tapOn:
+    text: "Mis accesos"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: "Mis accesos"
+    timeout: 15000
+- assertVisible: "Entradas y salidas de tu propiedad."
+- pressKey: Back

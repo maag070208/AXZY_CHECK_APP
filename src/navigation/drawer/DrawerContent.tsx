@@ -426,6 +426,7 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
                     ? { residentId: Number(userState.id) }
                     : undefined;
                 resetToModule(item.route as any, item.screen, params);
+                navigation.closeDrawer();
               }}
             >
               <Icon

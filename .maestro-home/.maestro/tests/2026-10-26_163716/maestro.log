@@ -1,0 +1,36 @@
+16:37:16.363 [ INFO] maestro.cli.report.TestDebugReporter.logSystemInfo: Debug output path: /Users/axzy/DEV/CHECK/BARCELONA/APP/.maestro-home/.maestro/tests/2026-10-26_163716
+16:37:16.365 [ INFO] MAESTRO.logSystemInfo: ---- System Info ----
+16:37:16.366 [ INFO] MAESTRO.logSystemInfo: Maestro Version: 2.5.1
+16:37:16.366 [ INFO] MAESTRO.logSystemInfo: CI: Undefined
+16:37:16.366 [ INFO] MAESTRO.logSystemInfo: OS Name: Mac OS X
+16:37:16.367 [ INFO] MAESTRO.logSystemInfo: OS Version: 26.6.2
+16:37:16.367 [ INFO] MAESTRO.logSystemInfo: Architecture: aarch64
+16:37:16.368 [ INFO] MAESTRO.logSystemInfo: Java Version: 17
+16:37:16.480 [ INFO] MAESTRO.logSystemInfo: Xcode Version: 27.0
+16:37:16.484 [ INFO] MAESTRO.logSystemInfo: Flutter Version: Undefined
+16:37:16.488 [ INFO] MAESTRO.logSystemInfo: Flutter Channel: Undefined
+16:37:16.488 [ INFO] MAESTRO.logSystemInfo: ---------------------
+16:37:16.518 [DEBUG] io.micrometer.common.util.internal.logging.InternalLoggerFactory.newDefaultFactory: Using SLF4J as the default logging framework
+16:37:18.519 [ INFO] maestro.cli.command.TestCommand.runShardSuite: [shard 1] Selected device R58YA0MM1TZ using port 7001 with execution plan ExecutionPlan(flowsToRun=[/Users/axzy/DEV/CHECK/BARCELONA/APP/e2e/maestro/resident-access.yaml], sequence=FlowSequence(flows=[], continueOnFailure=true), workspaceConfig=WorkspaceConfig(flows=null, includeTags=null, excludeTags=null, executionOrder=null, baselineBranch=null, notifications=null, disableRetries=false, platform=PlatformConfiguration(android=AndroidConfiguration(disableAnimations=false), ios=IOSConfiguration(disableAnimations=false, snapshotKeyHonorModalViews=null)), testOutputDir=null))
+16:37:25.665 [ INFO] maestro.cli.runner.TestRunner.runSingle$lambda$0: Running flow resident-access.yaml...
+16:37:25.678 [ INFO] maestro.Maestro.cachedDeviceInfo_delegate$lambda$0: Getting device info
+16:37:25.799 [ INFO] maestro.Maestro.cachedDeviceInfo_delegate$lambda$0: Got device info: DeviceInfo(platform=ANDROID, widthPixels=1080, heightPixels=2340, widthGrid=1080, heightGrid=2340)
+16:37:25.852 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Define variables RUNNING
+16:37:25.858 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Define variables metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(defineVariablesCommand=DefineVariablesCommand(env={MAESTRO_FILENAME=resident-access, MAESTRO_DEVICE_UDID=R58YA0MM1TZ, MAESTRO_SHARD_ID=1, MAESTRO_SHARD_INDEX=0}, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+16:37:25.859 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Define variables COMPLETED
+16:37:25.859 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Apply configuration RUNNING
+16:37:25.862 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Apply configuration metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(applyConfigurationCommand=ApplyConfigurationCommand(config=MaestroConfig(appId=com.axzy.checkapp.barcelona, name=null, tags=[], ext={}, onFlowStart=null, onFlowComplete=null, properties={}), label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+16:37:25.862 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Apply configuration COMPLETED
+16:37:25.862 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Launch app "com.axzy.checkapp.barcelona" with clear state RUNNING
+16:37:25.865 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Launch app "com.axzy.checkapp.barcelona" with clear state metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(launchAppCommand=LaunchAppCommand(appId=com.axzy.checkapp.barcelona, clearState=true, clearKeychain=null, stopApp=null, permissions=null, launchArguments=null, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+16:37:25.866 [ INFO] maestro.Maestro.clearAppState$lambda$5: Clearing app state com.axzy.checkapp.barcelona
+16:37:29.924 [ INFO] maestro.Maestro.launchApp$lambda$2: Launching app com.axzy.checkapp.barcelona
+16:37:29.924 [ INFO] maestro.Maestro.launchApp$lambda$2: Stopping com.axzy.checkapp.barcelona app during launch
+16:37:30.142 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Launch app "com.axzy.checkapp.barcelona" with clear state COMPLETED
+16:37:30.142 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Assert that "Iniciar sesión" is visible RUNNING
+16:37:30.149 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Assert that "Iniciar sesión" is visible metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(assertConditionCommand=AssertConditionCommand(condition=Condition(platform=null, visible=ElementSelector(textRegex=Iniciar sesión, idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=false, selected=null, checked=null, focused=null, childOf=null, css=null), notVisible=null, scriptCondition=null, label=null), timeout=30000, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+16:38:01.141 [ERROR] maestro.orchestra.Orchestra.executeCommands: [Command execution] CommandFailed: Assertion is false: "Iniciar sesión" is visible
+16:38:01.147 [ INFO] maestro.Maestro.takeScreenshot: Taking screenshot
+16:38:01.149 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+16:38:01.638 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$4: Assert that "Iniciar sesión" is visible FAILED
+16:38:01.963 [ INFO] maestro.cli.report.TestDebugReporter.deleteOldFiles: Performing purge of logs older than 14 days from /Users/axzy/DEV/CHECK/BARCELONA/APP/.maestro-home/.maestro/tests

@@ -80,3 +80,17 @@ Usuarios de prueba creados en dev:
 - `e2e_guard` / `123456` (GUARD, horario Administración).
 
 > El guardia sigue usando `marcoh` / `123456` y sus suites existentes.
+
+
+## Fase 2A (nuevos flujos)
+
+- `resident-access.yaml` — avisos, clave peatonal, vehículos e historial del residente.
+- `caseta-access.yaml` — consulta de vehículos y validación de PIN en caseta.
+- `admin-access.yaml` — avisos, padrón de vehículos y bitácora.
+
+Requieren que la migración `20261026160000_rbac_guard_report_views` esté aplicada y que el usuario de prueba tenga los permisos nuevos.
+
+```bash
+JAVA_OPTS="-Duser.home=$PWD/.maestro-home" \
+  ~/.maestro/bin/maestro test e2e/maestro/resident-access.yaml
+```

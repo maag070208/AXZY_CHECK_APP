@@ -1,0 +1,50 @@
+appId: com.axzy.checkapp.barcelona
+---
+# Fase 2A: consulta de vehículos y clave peatonal en caseta.
+- launchApp:
+    clearState: true
+- tapOn:
+    text: "Nunca en esta aplicación o sitio web"
+    optional: true
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "marcoh"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- tapOn:
+    text: "Nunca en esta aplicación o sitio web"
+    optional: true
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 30000
+
+# Vehículos
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "Vehículos"
+    timeout: 10000
+- tapOn:
+    text: "Vehículos"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: "Consulta de vehículos"
+    timeout: 15000
+- assertVisible: "Busca por placa o tag y registra el acceso manual. Sin lector físico todavía."
+- pressKey: Back
+
+# Clave peatonal
+- tapOn: "Abrir menú"
+- tapOn:
+    text: "Clave peatonal"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: "Validar clave peatonal"
+    timeout: 15000
+- assertVisible: "La puerta se abre manualmente."
+- pressKey: Back
