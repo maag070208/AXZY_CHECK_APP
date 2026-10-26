@@ -92,6 +92,12 @@ export type RootStackParamList = {
       location?: any;
     }>;
   };
+  PAYMENTS_STACK: {
+    PAYMENTS_MAIN: undefined;
+  };
+  RESIDENT_KARDEX_STACK: {
+    RESIDENT_KARDEX_MAIN: undefined;
+  };
   PROFILE_SCREEN: undefined;
 };
 
@@ -150,6 +156,12 @@ export const AppStacks: RootStackParamList = {
   CHECK_STACK: {
     CHECK_SCAN: {},
     CHECK_MAIN: {},
+  },
+  PAYMENTS_STACK: {
+    PAYMENTS_MAIN: undefined,
+  },
+  RESIDENT_KARDEX_STACK: {
+    RESIDENT_KARDEX_MAIN: undefined,
   },
   PROFILE_SCREEN: undefined,
 };

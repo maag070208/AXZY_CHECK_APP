@@ -14,6 +14,7 @@ import { tokens } from '../../../shared/theme/tokens';
 import {
   addComplaintMessage,
   closeComplaint,
+  reopenComplaint,
   COMPLAINT_CATEGORIES,
   COMPLAINT_STATUS_LABELS,
   ComplaintDetail,
@@ -37,6 +38,7 @@ const statusStyle = (status: string) => {
     case 'IN_REVIEW': return { color: tokens.color.primary, background: tokens.color.primarySoft };
     case 'WAITING_RESIDENT': return { color: tokens.color.warning, background: tokens.color.warningSoft };
     case 'RESOLVED': return { color: tokens.color.primary, background: tokens.color.primarySoft };
+    case 'REOPENED': return { color: tokens.color.dangerStrong, background: tokens.color.dangerSoft };
     default: return { color: tokens.color.textMuted, background: tokens.color.screen };
   }
 };
@@ -52,6 +54,7 @@ export const ComplaintDetailScreen = () => {
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [confirmingClose, setConfirmingClose] = useState(false);
+  const [confirmingReopen, setConfirmingReopen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -95,6 +98,19 @@ export const ComplaintDetailScreen = () => {
     }
   };
 
+  const reopen = async () => {
+    setBusy(true);
+    try {
+      await reopenComplaint(id);
+      setConfirmingReopen(false);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo reabrir la queja');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -115,6 +131,8 @@ export const ComplaintDetailScreen = () => {
 
   const closed = complaint.status === 'CLOSED';
   const resolved = complaint.status === 'RESOLVED';
+  const reopened = complaint.status === 'REOPENED';
+  const canReopen = resolved && !!complaint.resolvedAt && dayjs().isBefore(dayjs(complaint.resolvedAt).add(7, 'day'));
   const category = COMPLAINT_CATEGORIES.find((c) => c.value === complaint.category)?.label ?? complaint.category;
   const st = statusStyle(complaint.status);
 
@@ -211,16 +229,50 @@ export const ComplaintDetailScreen = () => {
         )}
 
         {closed && <Text style={styles.closedNote}>Esta queja está cerrada.</Text>}
-        {resolved && <Text style={styles.closedNote}>La administración marcó esta queja como resuelta.</Text>}
+        {resolved && (
+          <Text style={styles.closedNote}>
+            La administración marcó esta queja como resuelta.
+            {canReopen ? ' Puedes reabrirla dentro de los próximos 7 días.' : ' El plazo para reabrirla ya venció.'}
+          </Text>
+        )}
+        {reopened && <Text style={styles.closedNote}>Reabriste esta queja; la administración volverá a revisarla.</Text>}
       </KeyboardAwareScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
         {resolved ? (
-          <AppButton label="Quedé satisfecho, cerrar queja" icon="check-circle-outline" onPress={() => setConfirmingClose(true)} disabled={busy} />
+          <View style={styles.footerActions}>
+            {canReopen && (
+              <AppButton
+                label="Reabrir queja"
+                icon="backup-restore"
+                variant="outline"
+                onPress={() => setConfirmingReopen(true)}
+                disabled={busy}
+              />
+            )}
+            <AppButton
+              label="Quedé satisfecho, cerrar queja"
+              icon="check-circle-outline"
+              onPress={() => setConfirmingClose(true)}
+              disabled={busy}
+            />
+          </View>
         ) : closed ? null : (
           <AppButton label="Enviar respuesta" icon="send-outline" onPress={send} disabled={busy || !reply.trim()} loading={busy} />
         )}
       </View>
+
+      <ConfirmDialog
+        visible={confirmingReopen}
+        title="¿Reabrir esta queja?"
+        message="La queja volverá a revisión de la administración. Solo puedes hacerlo dentro de los 7 días posteriores a la resolución."
+        confirmLabel="Sí, reabrir"
+        tone="primary"
+        icon="backup-restore"
+        loading={busy}
+        onConfirm={reopen}
+        onCancel={() => setConfirmingReopen(false)}
+      />
 
       <ConfirmDialog
         visible={confirmingClose}
@@ -303,4 +355,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: tokens.color.border,
   },
+  footerActions: { gap: 8 },
 });

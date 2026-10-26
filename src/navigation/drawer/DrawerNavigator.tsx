@@ -20,6 +20,8 @@ import { PropertiesStack } from '../../screens/properties/stack/PropertiesStack'
 import { InvitationsStack } from '../../screens/invitations/stack/InvitationsStack';
 import { ResidentsStack } from '../../screens/residents/stack/ResidentsStack';
 import { ComplaintsStack } from '../../screens/complaints/stack/ComplaintsStack';
+import { PaymentsStack } from '../../screens/payments/stack/PaymentsStack';
+import { ResidentKardexStack } from '../../screens/residentKardex/stack/ResidentKardexStack';
 import { ChatStack } from '../../screens/chat/stack/ChatStack';
 import { ShiftHandoverStack } from '../../screens/shiftHandover/stack/ShiftHandoverStack';
 import { UniformStack } from '../../screens/uniform/stack/UniformStack';
@@ -201,6 +203,22 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="COMPLAINTS_STACK"
         component={ComplaintsStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="PAYMENTS_STACK"
+        component={PaymentsStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="RESIDENT_KARDEX_STACK"
+        component={ResidentKardexStack}
         options={{
             drawerItemStyle: { display: 'none' }
         }}

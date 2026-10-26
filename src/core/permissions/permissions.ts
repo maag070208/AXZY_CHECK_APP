@@ -49,6 +49,10 @@ export const P = {
   COMPLAINT_VIEW: 'complaint.view',
   COMPLAINT_CREATE: 'complaint.create',
   COMPLAINT_MANAGE: 'complaint.manage',
+  CHARGE_VIEW: 'charge.view',
+  CHARGE_MANAGE: 'charge.manage',
+  PAYMENT_VIEW: 'payment.view',
+  PAYMENT_MANAGE: 'payment.manage',
 } as const;
 
 export type PermissionCode = (typeof P)[keyof typeof P];
@@ -65,6 +69,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'settings.manage','shift-handover.manage','uniform.manage','users.manage','users.read',
     'round.view','round.start','round.end','round.scan','assignment.view',
     'club.view','club.create','club.resolve','club.delete',
+    'complaint.view','complaint.manage','charge.view','charge.manage','payment.view','payment.manage',
   ],
   SHIFT: [
     'access.check','assignments.manage','properties.view','chat.use','club.manage','dashboard.view',
@@ -73,6 +78,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'shift-handover.manage','uniform.manage','users.read','round.view','round.start','round.end','round.scan',
     'assignment.view','maintenance.view','maintenance.create',
     'club.view','club.create','club.resolve','club.delete',
+    'complaint.view','complaint.manage',
   ],
   GUARD: [
     'access.check','chat.use','recurring.operate','round.view','round.start','round.end','round.scan',
@@ -83,5 +89,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'assignment.view','incident.create','maintenance.view','maintenance.create','maintenance.resolve','maintenance.delete',
     'club.view','club.create','club.resolve','club.delete',
   ],
-  RESDN: ['resident.self','invitation.view','invitation.create','invitation.revoke','complaint.create','complaint.view'],
+  RESDN: [
+    'resident.self','invitation.view','invitation.create','invitation.revoke',
+    'complaint.create','complaint.view','charge.view','payment.view',
+  ],
 };

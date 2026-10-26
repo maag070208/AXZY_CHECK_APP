@@ -1,0 +1,54 @@
+appId: com.checkapp
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "e2e_resident"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 30000
+
+# Mis pagos desde el home
+- assertVisible: "Mis pagos"
+- tapOn: "Mis pagos"
+- extendedWaitUntil:
+    visible: "Mis pagos"
+    timeout: 20000
+- assertVisible: "Cargos.*"
+- assertVisible: "Pagos.*"
+- assertVisible: "PAGADO"
+- pressKey: Back
+
+# Mi kardex desde el drawer
+- tapOn: "Abrir menú"
+- scrollUntilVisible:
+    element:
+      text: "Mi kardex"
+    direction: DOWN
+- tapOn: "Mi kardex"
+- extendedWaitUntil:
+    visible: "Mi kardex"
+    timeout: 20000
+- assertVisible: "Últimos 90 días.*"
+- pressKey: Back
+
+# Buzón de quejas
+- tapOn: "Abrir menú"
+- scrollUntilVisible:
+    element:
+      text: "Quejas"
+    direction: DOWN
+- tapOn: "Quejas"
+- extendedWaitUntil:
+    visible: "Mis quejas"
+    timeout: 20000
+- assertVisible: "Todas"

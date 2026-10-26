@@ -22,7 +22,9 @@ import {
   getPaginatedInvitations,
   Invitation,
 } from '../../invitations/service/invitation.service';
+import { getMyBalance } from '../../payments/service/payment.service';
 import { tokens } from '../../../shared/theme/tokens';
+import { formatMoney } from '../../../shared/utils/money';
 
 const PRIMARY = tokens.color.primary;
 const BRAND = '#12A36F';
@@ -54,6 +56,7 @@ export const ResidentHomeScreen = () => {
   const [resident, setResident] = useState<ResidentUser | null>(null);
   const [contacts, setContacts] = useState<ResidentContact[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   const residentId = Number(user.id);
@@ -75,6 +78,10 @@ export const ResidentHomeScreen = () => {
     } finally {
       setLoading(false);
     }
+    // El saldo no bloquea el home: se pinta cuando llega (y se refresca con el pull).
+    getMyBalance()
+      .then((summary) => setBalance(summary.balance))
+      .catch(() => setBalance(null));
   }, [residentId]);
 
   useEffect(() => {
@@ -124,6 +131,20 @@ export const ResidentHomeScreen = () => {
       permission: P.INVITATION_VIEW,
       icon: 'ticket-confirmation-outline',
       onPress: () => go('INVITATIONS_STACK', 'INVITATIONS_MAIN'),
+    },
+    {
+      label: 'Mis pagos',
+      detail:
+        balance == null
+          ? 'Saldo y cargos'
+          : balance > 0
+            ? `${formatMoney(balance)} pendiente`
+            : balance < 0
+              ? `${formatMoney(Math.abs(balance))} a favor`
+              : 'Al día',
+      permission: P.PAYMENT_VIEW,
+      icon: 'wallet-outline',
+      onPress: () => go('PAYMENTS_STACK', 'PAYMENTS_MAIN'),
     },
     {
       label: 'Mis quejas',

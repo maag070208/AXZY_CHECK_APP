@@ -1,4 +1,4 @@
-import { addComplaintMessage, closeComplaint, createComplaint, getMyComplaints } from '../../src/screens/complaints/service/complaint.service';
+import { addComplaintMessage, closeComplaint, createComplaint, getMyComplaints, reopenComplaint } from '../../src/screens/complaints/service/complaint.service';
 import { get, patch, post } from '../../src/core/axios';
 
 jest.mock('../../src/core/axios', () => ({
@@ -47,5 +47,17 @@ describe('servicio de quejas (APP)', () => {
     const result = await closeComplaint(7);
     expect(mockPatch).toHaveBeenCalledWith('/complaints/7/status', { status: 'CLOSED' });
     expect(result.status).toBe('CLOSED');
+  });
+
+  it('reabre una queja resuelta dentro de los 7 días', async () => {
+    mockPost.mockResolvedValue({ success: true, data: { id: 7, status: 'REOPENED' } });
+    const result = await reopenComplaint(7);
+    expect(mockPost).toHaveBeenCalledWith('/complaints/7/reopen');
+    expect(result.status).toBe('REOPENED');
+  });
+
+  it('propaga el rechazo cuando el plazo de reapertura venció', async () => {
+    mockPost.mockResolvedValue({ success: false, data: null, messages: ['El plazo de 7 días para reabrir la queja venció'] });
+    await expect(reopenComplaint(7)).rejects.toThrow('El plazo de 7 días para reabrir la queja venció');
   });
 });

@@ -165,6 +165,22 @@ const MENU_ITEMS: MenuItem[] = [
     roles: ['RESDN'],
   },
   {
+    label: 'Mis pagos',
+    icon: 'wallet-outline',
+    route: 'PAYMENTS_STACK',
+    screen: 'PAYMENTS_MAIN',
+    permission: P.PAYMENT_VIEW,
+    roles: ['RESDN'],
+  },
+  {
+    label: 'Mi kardex',
+    icon: 'timeline-text-outline',
+    route: 'RESIDENT_KARDEX_STACK',
+    screen: 'RESIDENT_KARDEX_MAIN',
+    permission: P.RESIDENT_SELF,
+    roles: ['RESDN'],
+  },
+  {
     label: 'Entrega de turno',
     icon: 'swap-horizontal',
     route: 'SHIFT_HANDOVER_STACK',

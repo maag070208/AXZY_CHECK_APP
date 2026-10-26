@@ -34,6 +34,7 @@ const statusStyle = (status: string) => {
     case 'IN_REVIEW': return { color: tokens.color.primary, background: tokens.color.primarySoft };
     case 'WAITING_RESIDENT': return { color: tokens.color.warning, background: tokens.color.warningSoft };
     case 'RESOLVED': return { color: tokens.color.primary, background: tokens.color.primarySoft };
+    case 'REOPENED': return { color: tokens.color.dangerStrong, background: tokens.color.dangerSoft };
     default: return { color: tokens.color.textMuted, background: tokens.color.screen };
   }
 };
@@ -41,7 +42,7 @@ const statusStyle = (status: string) => {
 /** Agrupa los estados para los filtros: "En proceso" junta nueva, en revisión y esperando al residente. */
 const matchesFilter = (status: string, filter: StatusFilter) => {
   if (filter === 'ALL') return true;
-  if (filter === 'OPEN') return status === 'NEW' || status === 'IN_REVIEW' || status === 'WAITING_RESIDENT';
+  if (filter === 'OPEN') return status === 'NEW' || status === 'IN_REVIEW' || status === 'WAITING_RESIDENT' || status === 'REOPENED';
   return status === filter;
 };
 

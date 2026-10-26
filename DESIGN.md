@@ -1,7 +1,7 @@
 # CheckApp APP — Design System
 
 > Fuente de verdad del diseño de la aplicación móvil (React Native + React Native Paper).
-> Última actualización: **2026-10-25 · v2.43**
+> Última actualización: **2026-10-26 · v2.46**
 >
 > Antes de modificar cualquier pantalla, lee este documento. Si introduces un patrón nuevo,
 > actualízalo aquí en el mismo cambio (ver “Cómo mantener este documento”).
@@ -304,6 +304,29 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
   `soft` o chip de conteo.
 - Separación superior 22, inferior 10.
 
+### 6.9.2 Mis pagos (residente)
+- Header plano “Mis pagos”; pantalla de solo consulta (los pagos se registran en administración).
+- Hero verde con saldo pendiente o a favor, total de cargos, pagado y crédito; el detalle del
+  acceso en el home muestra el saldo (“$400.00 pendiente”, “$200.00 a favor” o “Al día”).
+- Pestañas **Cargos / Pagos** con conteo, en pills de 12/800.
+- Cargo: concepto, categoría, vence, monto, chip de estado, pagado/saldo y “Vencido” si aplica.
+  Estados: Pendiente, Parcial, Pagado, Cancelado.
+- Pago: método, referencia, fecha, folio, aplicado, crédito y “Reversado” si fue reversado. Acción
+  “Recibo” que abre un modal con folio, fecha, propiedad, método, total, aplicado y saldo a favor;
+  el botón “Compartir PDF” descarga el recibo con el token de la sesión y lo comparte como data URI.
+- Estados: skeleton con la forma del contenido, error con “Reintentar” y vacío por pestaña.
+- Permiso `payment.view`; entrada desde el home del residente y el drawer (solo RESDN).
+
+### 6.9.3 Mi kardex (residente)
+- Header “Mi kardex”. Timeline de los últimos 90 días: accesos de invitados, incidencias de la
+  propiedad, cargos y pagos.
+- Filtros en pills: Todo, Accesos, Incidencias, Pagos y cargos; paginación de 20 con carga al
+  llegar al final.
+- Fila: icono por tipo, título, subtítulo (código/tipo, método, categoría), fecha/hora, monto y
+  chip de estado. Estados: skeleton, vacío “Aún no hay movimientos” y error con “Reintentar”.
+- Solo lectura; el servidor filtra por propiedad y residente.
+- Entrada en el drawer del residente con permiso `resident.self`.
+
 ---
 
 ## 7. Movimiento
@@ -418,3 +441,6 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 | 2026-10-24 | 2.41 | Lista de Incidencias con el mismo estándar; fix del home de residente al leer invitaciones (`data.rows`). |
 | 2026-10-24 | 2.42 | Estándar aplicado a Mantenimiento, Casa Club, Recorridos y Kardex; cierre del rollout de listas. |
 | 2026-10-25 | 2.43 | Perfil del guardia/mantenimiento de solo lectura (nombre, usuario, rol y turno) con foto de perfil editable; foto también en header, drawer y guardias. `ProfileScreen`, `user.slice`, `HeaderMain`, `DrawerContent`, `GuardListScreen`, `GuardDetailScreen`. |
+| 2026-10-25 | 2.44 | “Mis pagos” del residente: saldo, cargos y pagos de solo lectura, con pestañas, chips de estado y estados de carga/error/vacío. Acceso desde home y drawer; permisos `charge.view`/`payment.view`. `PaymentsScreen`, `PaymentsStack`, `payment.service`, `ResidentHomeScreen`, `DrawerContent`, `permissions.ts`. |
+| 2026-10-25 | 2.45 | “Mi kardex” del residente (accesos, incidencias, cargos y pagos), filtros y paginación; folio consecutivo en pagos y recibo PDF. También reapertura de quejas a 7 días en el detalle. `ResidentKardexScreen`, `ResidentKardexStack`, `residentKardex.service`, `ComplaintDetailScreen`, `payment.service`. |
+| 2026-10-26 | 2.46 | Recibo PDF en la APP: modal de recibo desde el pago, descarga binaria autenticada y “Compartir PDF” con `react-native-share`; codificador base64 propio para Hermes. `PaymentsScreen`, `payment.service`, `core/axios`, `shared/utils/base64`. |

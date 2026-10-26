@@ -95,7 +95,23 @@ export const get = async <T>(
   }
 };
 
-export const patch = async <T>(
+/**
+ * Descarga binaria (PDFs) manteniendo el token del interceptor. No pasa por
+ * `handleError` porque la respuesta de error puede ser un Blob/ArrayBuffer.
+ */
+export const getArrayBuffer = async (url: string, config?: AxiosRequestConfig): Promise<ArrayBuffer> => {
+  try {
+    const response = await axiosInstance.get<ArrayBuffer>(url, {
+      ...config,
+      responseType: 'arraybuffer',
+    });
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data ?? error;
+  }
+};
+
+export const patch = async <T> (
   url: string,
   data?: unknown,
   config?: AxiosRequestConfig,
