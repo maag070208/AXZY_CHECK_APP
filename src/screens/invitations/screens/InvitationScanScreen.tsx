@@ -61,7 +61,7 @@ export const InvitationScanScreen = () => {
                         dispatch(showToast({ type: 'success', message: 'Entrada Registrada Correctamente' }));
                         navigation.replace('INVITATION_DETAIL', { invitation: updateRes.data });
                     } else {
-                        dispatch(showToast({ type: 'error', message: 'Error al registrar entrada' }));
+                        dispatch(showToast({ type: 'error', message: updateRes.messages?.[0] ?? 'Error al registrar entrada' }));
                         setScanned(false);
                     }
                 } else if (scannedInvitation.status === 'ENTERED') {
@@ -70,7 +70,7 @@ export const InvitationScanScreen = () => {
                         dispatch(showToast({ type: 'success', message: 'Salida Registrada Correctamente' }));
                         navigation.replace('INVITATION_DETAIL', { invitation: updateRes.data });
                     } else {
-                        dispatch(showToast({ type: 'error', message: 'Error al registrar salida' }));
+                        dispatch(showToast({ type: 'error', message: updateRes.messages?.[0] ?? 'Error al registrar salida' }));
                         setScanned(false);
                     }
                 } else {
@@ -114,7 +114,7 @@ export const InvitationScanScreen = () => {
                 }));
                 navigation.replace('INVITATION_DETAIL', { invitation: res.data });
             } else {
-                dispatch(showToast({ type: 'error', message: 'Error al actualizar estado' }));
+                dispatch(showToast({ type: 'error', message: res.messages?.[0] ?? 'Error al actualizar estado' }));
             }
         } catch (error) {
             dispatch(showToast({ type: 'error', message: 'Error de red' }));

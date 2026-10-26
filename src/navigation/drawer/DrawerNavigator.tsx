@@ -22,6 +22,8 @@ import { ResidentsStack } from '../../screens/residents/stack/ResidentsStack';
 import { ComplaintsStack } from '../../screens/complaints/stack/ComplaintsStack';
 import { PaymentsStack } from '../../screens/payments/stack/PaymentsStack';
 import { ResidentKardexStack } from '../../screens/residentKardex/stack/ResidentKardexStack';
+import { VehiclesStack } from '../../screens/vehicles/stack/VehiclesStack';
+import { VehicleAccessScreen } from '../../screens/vehicles/screens/VehicleAccessScreen';
 import { ChatStack } from '../../screens/chat/stack/ChatStack';
 import { ShiftHandoverStack } from '../../screens/shiftHandover/stack/ShiftHandoverStack';
 import { UniformStack } from '../../screens/uniform/stack/UniformStack';
@@ -230,6 +232,30 @@ const DrawerNavigator = () => {
         options={{
             drawerItemStyle: { display: 'none' }
         }}
+      />
+
+      <Drawer.Screen
+        name="VEHICLES_STACK"
+        component={VehiclesStack}
+        options={{ drawerItemStyle: { display: 'none' } }}
+      />
+
+      <Drawer.Screen
+        name="VEHICLE_ACCESS"
+        component={VehicleAccessScreen}
+        options={({ navigation }) => ({
+            drawerItemStyle: { display: 'none' },
+            headerShown: true,
+            header: () => (
+              <HeaderBack
+                navigation={navigation}
+                title="Vehículos"
+                icon="menu"
+                accessibilityLabel="Abrir menú"
+                onBack={() => navigation.openDrawer()}
+              />
+            ),
+        })}
       />
 
       <Drawer.Screen

@@ -26,13 +26,22 @@ describe('describeVerification', () => {
     expect(view).toEqual({ tone: 'deny', title: 'No puede pasar', detail: 'El pase fue revocado.' });
   });
 
+  it('explica el adeudo sin revelar montos', () => {
+    const view = describeVerification({ decision: 'DENIED', reason: 'PROPERTY_DEBT', person: null });
+    expect(view).toEqual({
+      tone: 'deny',
+      title: 'No puede pasar',
+      detail: 'La propiedad tiene adeudo. La administración debe autorizar el acceso.',
+    });
+  });
+
   it('usa un texto genérico para un motivo desconocido', () => {
     const view = describeVerification({ decision: 'DENIED', reason: 'ALGO_NUEVO', person: null });
     expect(view?.detail).toBe('No se pudo determinar el acceso.');
   });
 
   it('cubre todos los motivos que devuelve la API', () => {
-    const reasons = ['IN_SCHEDULE', 'OUT_OF_SCHEDULE', 'REVOKED', 'EXPIRED', 'NOT_YET_VALID', 'SCOPE_MISMATCH', 'UNKNOWN_PASS', 'NO_AUTHORIZATION'];
+    const reasons = ['IN_SCHEDULE', 'OUT_OF_SCHEDULE', 'REVOKED', 'EXPIRED', 'NOT_YET_VALID', 'SCOPE_MISMATCH', 'UNKNOWN_PASS', 'NO_AUTHORIZATION', 'PROPERTY_DEBT'];
     reasons.forEach((reason) => {
       expect(describeVerification({ decision: 'DENIED', reason, person: null })?.detail).not.toBe(
         'No se pudo determinar el acceso.',

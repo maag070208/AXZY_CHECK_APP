@@ -17,6 +17,7 @@ const REASON_TEXT: Record<string, string> = {
   SCOPE_MISMATCH: 'El pase no aplica a este tipo de acceso.',
   UNKNOWN_PASS: 'El pase no es válido.',
   NO_AUTHORIZATION: 'Esta persona no está autorizada en esta propiedad.',
+  PROPERTY_DEBT: 'La propiedad tiene adeudo. La administración debe autorizar el acceso.',
 };
 
 /** Traduce la decisión del servidor a lo que el guardia necesita ver: tono, título y motivo. */

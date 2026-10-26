@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -34,14 +33,14 @@ const FILTERS: { value: ResidentKardexFilter | 'ALL'; label: string }[] = [
   { value: 'ALL', label: 'Todo' },
   { value: 'ACCESS', label: 'Accesos' },
   { value: 'INCIDENT', label: 'Incidencias' },
-  { value: 'FINANCE', label: 'Pagos y cargos' },
+  { value: 'FINANCE', label: 'Cargos y pagos' },
 ];
 
 const TYPE_ICON: Record<ResidentKardexType, string> = {
   ACCESS_ENTRY: 'login',
   ACCESS_EXIT: 'logout',
   INCIDENT: 'alert-circle-outline',
-  CHARGE: 'receipt-text-outline',
+  CHARGE: 'receipt',
   PAYMENT: 'wallet-outline',
 };
 
@@ -182,7 +181,7 @@ export const ResidentKardexScreen = () => {
         <Text style={styles.hint}>
           Últimos 90 días · {total} {total === 1 ? 'movimiento' : 'movimientos'}
         </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+        <View style={styles.filters}>
           {FILTERS.map((option) => {
             const active = filter === option.value;
             return (
@@ -203,7 +202,7 @@ export const ResidentKardexScreen = () => {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
 
       <FlatList
@@ -226,9 +225,13 @@ export const ResidentKardexScreen = () => {
             <View style={styles.emptyIcon}>
               <Icon source="timeline-text-outline" size={28} color={tokens.color.primary} />
             </View>
-            <Text style={styles.emptyTitle}>Aún no hay movimientos</Text>
+            <Text style={styles.emptyTitle}>
+              {filter === 'ALL' ? 'Aún no hay movimientos' : 'No hay movimientos en este filtro'}
+            </Text>
             <Text style={styles.muted}>
-              Cuando haya accesos de tus invitados, cargos o pagos, aparecerán aquí.
+              {filter === 'ALL'
+                ? 'Cuando haya accesos de tus invitados, cargos o pagos, aparecerán aquí.'
+                : 'Prueba con otro filtro para ver más movimientos.'}
             </Text>
           </View>
         }
@@ -258,7 +261,7 @@ const styles = StyleSheet.create({
     borderBottomColor: tokens.color.border,
   },
   hint: { ...tokens.font.hint, marginBottom: 10 },
-  filters: { gap: 8 },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   filter: {
     paddingHorizontal: 14,
     paddingVertical: 7,

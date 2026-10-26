@@ -8,6 +8,8 @@ import { RootState } from '../../core/store/redux.config';
 import { getPendingIncidentsCount } from '../../screens/assignments/service/incident.service';
 import { getPendingMaintenancesCount } from '../../screens/maintenances/service/maintenance.service';
 import { getPendingClubsCount } from '../../screens/club/service/club.service';
+import { getUnreadNotificationCount } from '../../screens/notifications/service/notification.service';
+import { UserRole } from '../../core/types/IUser';
 import { useCan } from '../../core/permissions/useCan';
 import { P } from '../../core/permissions/permissions';
 import { SyncHeaderButton } from './SyncHeaderButton';
@@ -24,10 +26,23 @@ export const HeaderMain = ({ navigation }: any) => {
   const canChat = can(P.CHAT_USE);
   // Alertas del dashboard operativo: ADMIN/SHIFT tienen dashboard.view.
   const canSeeAlerts = can(P.DASHBOARD_VIEW);
+  const isResident = user.role === UserRole.RESDN;
+  const showBell = canSeeAlerts || isResident;
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
+
+      if (isResident) {
+        getUnreadNotificationCount()
+          .then((res) => {
+            if (active && res.success) setAlertCount(Number(res.data?.count) || 0);
+          })
+          .catch(() => {});
+        return () => {
+          active = false;
+        };
+      }
 
       if (!canSeeAlerts) {
         setAlertCount(0);
@@ -51,7 +66,7 @@ export const HeaderMain = ({ navigation }: any) => {
       return () => {
         active = false;
       };
-    }, [canSeeAlerts]),
+    }, [canSeeAlerts, isResident]),
   );
 
   const name = (user.fullName || user.username || 'Usuario').trim();
@@ -64,8 +79,8 @@ export const HeaderMain = ({ navigation }: any) => {
   const goChat = () =>
     navigation.getParent()?.navigate?.('CHAT_STACK', { screen: 'CHAT_MAIN' });
   const goAlerts = () => {
-    // Notificaciones = incidencias + mantenimiento + casa club.
-    navigation.navigate('NOTIFICATIONS');
+    // Personal: incidencias + mantenimiento + casa club. Residente: comunicados.
+    navigation.navigate(isResident ? 'RESIDENT_NOTIFICATIONS' : 'NOTIFICATIONS');
   };
 
   return (
@@ -97,12 +112,12 @@ export const HeaderMain = ({ navigation }: any) => {
           </TouchableOpacity>
         )}
 
-        {canSeeAlerts && (
+        {showBell && (
           <TouchableOpacity
             style={styles.iconBtn}
             onPress={goAlerts}
             accessibilityRole="button"
-            accessibilityLabel="Ver alertas"
+            accessibilityLabel={isResident ? "Ver avisos" : "Ver alertas"}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
           >
             <Icon source="bell-outline" size={22} color="#475569" />

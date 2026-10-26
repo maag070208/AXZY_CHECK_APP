@@ -1,7 +1,7 @@
 # CheckApp APP — Design System
 
 > Fuente de verdad del diseño de la aplicación móvil (React Native + React Native Paper).
-> Última actualización: **2026-10-26 · v2.49**
+> Última actualización: **2026-10-26 · v2.50**
 >
 > Antes de modificar cualquier pantalla, lee este documento. Si introduces un patrón nuevo,
 > actualízalo aquí en el mismo cambio (ver “Cómo mantener este documento”).
@@ -320,10 +320,11 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 ### 6.9.3 Mi kardex (residente)
 - Header “Mi kardex”. Timeline de los últimos 90 días: accesos de invitados, incidencias de la
   propiedad, cargos y pagos.
-- Filtros en pills: Todo, Accesos, Incidencias, Pagos y cargos; paginación de 20 con carga al
-  llegar al final.
-- Fila: icono por tipo, título, subtítulo (código/tipo, método, categoría), fecha/hora, monto y
-  chip de estado. Estados: skeleton, vacío “Aún no hay movimientos” y error con “Reintentar”.
+- Filtros en pills que envuelven en varias líneas: Todo, Accesos, Incidencias, Cargos y pagos;
+  paginación de 20 con carga al llegar al final. Cada filtro tiene su propio estado vacío.
+- Fila: icono por tipo (cargo con recibo), título, subtítulo humano (código/tipo, método,
+  categoría como “Cuota” o “Efectivo”), fecha/hora, monto y chip de estado. Estados: skeleton,
+  vacío “Aún no hay movimientos” y error con “Reintentar”.
 - Solo lectura; el servidor filtra por propiedad y residente.
 - Entrada en el drawer del residente con permiso `resident.self`.
 
@@ -447,3 +448,4 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 | 2026-10-26 | 2.47 | Se muestra la categoría **Recargo** en los cargos del residente; los recargos configurados en Cobranza llegan como cargos independientes. `PaymentsScreen`, `payment.service`. |
 | 2026-10-26 | 2.48 | Se agrega **Multa / Infracción** como tipo de cargo manual, visible en los cargos del residente. `payment.service`, `PaymentsScreen`. |
 | 2026-10-26 | 2.49 | Mis pagos: filtros rápidos de cargos (Todos, Pendientes, Pagados) con conteo y estados vacíos por filtro; margen superior para “Levantar una queja”. `PaymentsScreen`, `payments/utils/chargeFilters`. |
+| 2026-10-26 | 2.50 | Mi kardex: icono de cargo corregido, filtros que envuelven sin cortarse, etiquetas humanas para categoría/método y estados vacíos por filtro. `ResidentKardexScreen`, `kardex.service`. |

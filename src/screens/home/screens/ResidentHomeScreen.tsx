@@ -133,6 +133,13 @@ export const ResidentHomeScreen = () => {
       onPress: () => go('INVITATIONS_STACK', 'INVITATIONS_MAIN'),
     },
     {
+      label: 'Mis vehículos',
+      detail: 'Tus autos y tags',
+      permission: P.VEHICLE_SELF,
+      icon: 'car-outline',
+      onPress: () => go('VEHICLES_STACK', 'MY_VEHICLES'),
+    },
+    {
       label: 'Mis pagos',
       detail:
         balance == null

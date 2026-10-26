@@ -1,4 +1,5 @@
 import { post, put } from '../../../core/axios';
+import { TResult } from '../../../core/types/TResult';
 
 export interface Invitation {
     id: number;
@@ -26,8 +27,17 @@ export const createInvitation = async (data: any) => {
     return await post<Invitation>('/invitations', data);
 };
 
-export const updateInvitationStatus = async (id: number, status: string) => {
-    return await put<Invitation>(`/invitations/${id}/status`, { status });
+export const updateInvitationStatus = async (id: number, status: string): Promise<TResult<Invitation>> => {
+    try {
+        return await put<Invitation>(`/invitations/${id}/status`, { status });
+    } catch (error: any) {
+        return {
+            success: false,
+            data: null,
+            messages: error?.messages ?? ['No se pudo actualizar el pase'],
+            ex: error,
+        };
+    }
 };
 
 export const getInvitationByCode = async (code: string) => {

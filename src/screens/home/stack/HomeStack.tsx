@@ -10,6 +10,7 @@ import { GuardTrackingScreen } from '../../admin/screens/GuardTrackingScreen';
 import { CasetaScreen } from '../../caseta/screens/CasetaScreen';
 import { SyncScreen } from '../../sync/SyncScreen';
 import { NotificationsScreen } from '../../notifications/NotificationsScreen';
+import { ResidentAnnouncementsScreen } from '../../notifications/ResidentAnnouncementsScreen';
 import { ShiftRoundScreen } from '../screens/ShiftRoundScreen';
 
 const Stack = createNativeStackNavigator();
@@ -35,6 +36,11 @@ const HomeStack = () => {
       <Stack.Screen
         name="NOTIFICATIONS"
         component={NotificationsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="RESIDENT_NOTIFICATIONS"
+        component={ResidentAnnouncementsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

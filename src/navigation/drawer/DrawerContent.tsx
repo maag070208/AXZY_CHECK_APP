@@ -165,6 +165,14 @@ const MENU_ITEMS: MenuItem[] = [
     roles: ['RESDN'],
   },
   {
+    label: 'Mis vehículos',
+    icon: 'car-outline',
+    route: 'VEHICLES_STACK',
+    screen: 'MY_VEHICLES',
+    permission: P.VEHICLE_SELF,
+    roles: ['RESDN'],
+  },
+  {
     label: 'Mis pagos',
     icon: 'wallet-outline',
     route: 'PAYMENTS_STACK',
@@ -199,6 +207,13 @@ const MENU_ITEMS: MenuItem[] = [
     icon: 'shield-check-outline',
     route: 'CASETA',
     screen: 'CASETA',
+    permission: P.ACCESS_CHECK,
+  },
+  {
+    label: 'Vehículos',
+    icon: 'car-search',
+    route: 'VEHICLE_ACCESS',
+    screen: 'VEHICLE_ACCESS',
     permission: P.ACCESS_CHECK,
   },
 ];
