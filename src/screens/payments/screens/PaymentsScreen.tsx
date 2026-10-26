@@ -22,6 +22,8 @@ import {
   PAYMENT_METHOD_LABELS,
 } from '../service/payment.service';
 
+import { ChargeFilter, filterCharges } from '../utils/chargeFilters';
+
 type Tab = 'charges' | 'payments';
 
 const statusTone = (status: ChargeStatus) => {
@@ -40,7 +42,7 @@ const statusTone = (status: ChargeStatus) => {
 const chargeIcon = (category: MyCharge['category']) => {
   if (category === 'CUOTA') return 'calendar-month-outline';
   if (category === 'MANTENIMIENTO') return 'wrench-outline';
-  if (category === 'RECARGO') return 'alert-circle-outline';
+  if (category === 'RECARGO' || category === 'MULTA') return 'alert-circle-outline';
   return 'receipt-text-outline';
 };
 
@@ -157,6 +159,7 @@ export const PaymentsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('charges');
+  const [chargeFilter, setChargeFilter] = useState<ChargeFilter>('ALL');
   const [receiptPayment, setReceiptPayment] = useState<MyPayment | null>(null);
   const [receiptBusy, setReceiptBusy] = useState(false);
   const [receiptError, setReceiptError] = useState<string | null>(null);
@@ -247,6 +250,14 @@ export const PaymentsScreen = () => {
   const summary = data?.summary;
   const charges = data?.charges ?? [];
   const payments = data?.payments ?? [];
+  const pendingCharges = filterCharges(charges, 'PENDING');
+  const paidCharges = filterCharges(charges, 'PAID');
+  const visibleCharges = filterCharges(charges, chargeFilter);
+  const chargeFilterOptions: { value: ChargeFilter; label: string }[] = [
+    { value: 'ALL', label: `Todos (${charges.length})` },
+    { value: 'PENDING', label: `Pendientes (${pendingCharges.length})` },
+    { value: 'PAID', label: `Pagados (${paidCharges.length})` },
+  ];
   const balance = summary?.balance ?? 0;
   const owed = balance > 0;
   const hasCredit = balance < 0;
@@ -321,6 +332,28 @@ export const PaymentsScreen = () => {
         })}
       </View>
 
+      {tab === 'charges' && charges.length > 0 && (
+        <View style={styles.chargeFilters}>
+          {chargeFilterOptions.map((option) => {
+            const active = chargeFilter === option.value;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`Filtrar cargos: ${option.label}`}
+                onPress={() => setChargeFilter(option.value)}
+                style={[styles.chargeFilter, active && styles.chargeFilterActive]}
+              >
+                <Text style={[styles.chargeFilterText, active && styles.chargeFilterTextActive]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
       {tab === 'charges' ? (
         charges.length === 0 ? (
           <View style={styles.empty}>
@@ -332,8 +365,26 @@ export const PaymentsScreen = () => {
               Cuando la administración registre una cuota o un cargo, lo verás aquí.
             </Text>
           </View>
+        ) : visibleCharges.length === 0 ? (
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Icon
+                source={chargeFilter === 'PAID' ? 'check-circle-outline' : 'check-decagram-outline'}
+                size={28}
+                color={tokens.color.primary}
+              />
+            </View>
+            <Text style={styles.emptyTitle}>
+              {chargeFilter === 'PAID' ? 'Aún no hay cargos pagados' : 'No hay cargos pendientes'}
+            </Text>
+            <Text style={styles.muted}>
+              {chargeFilter === 'PAID'
+                ? 'Cuando se registre un pago, el cargo aparecerá aquí.'
+                : 'Estás al día con tus cargos.'}
+            </Text>
+          </View>
         ) : (
-          charges.map((charge) => <ChargeCard key={charge.id} charge={charge} />)
+          visibleCharges.map((charge) => <ChargeCard key={charge.id} charge={charge} />)
         )
       ) : payments.length === 0 ? (
         <View style={styles.empty}>
@@ -366,6 +417,7 @@ export const PaymentsScreen = () => {
           label="Levantar una queja"
           icon="message-alert-outline"
           variant="outline"
+          style={styles.complaintButton}
           onPress={() => navigation.navigate('COMPLAINTS_STACK', { screen: 'COMPLAINTS_MAIN' })}
         />
       )}
@@ -512,6 +564,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   tabs: { flexDirection: 'row', gap: 8, marginTop: 16, marginBottom: 10 },
+  chargeFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  chargeFilter: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: tokens.radius.pill,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.card,
+  },
+  chargeFilterActive: { backgroundColor: tokens.color.primarySoft, borderColor: tokens.color.primary },
+  chargeFilterText: { fontSize: 10, fontWeight: '800', color: tokens.color.textMuted },
+  chargeFilterTextActive: { color: tokens.color.primary },
   tab: {
     flex: 1,
     alignItems: 'center',
@@ -659,6 +723,7 @@ const styles = StyleSheet.create({
   noteCopy: { flex: 1 },
   noteTitle: { fontSize: 12, fontWeight: '800', color: tokens.color.primary },
   noteText: { marginTop: 2, fontSize: 10.5, fontWeight: '600', color: tokens.color.textBody },
+  complaintButton: { marginTop: 12 },
   refreshError: { marginTop: 10, fontSize: 11, color: tokens.color.dangerStrong, textAlign: 'center' },
   errorIcon: {
     width: 56,

@@ -1,7 +1,7 @@
 # CheckApp APP — Design System
 
 > Fuente de verdad del diseño de la aplicación móvil (React Native + React Native Paper).
-> Última actualización: **2026-10-26 · v2.47**
+> Última actualización: **2026-10-26 · v2.49**
 >
 > Antes de modificar cualquier pantalla, lee este documento. Si introduces un patrón nuevo,
 > actualízalo aquí en el mismo cambio (ver “Cómo mantener este documento”).
@@ -309,8 +309,8 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 - Hero verde con saldo pendiente o a favor, total de cargos, pagado y crédito; el detalle del
   acceso en el home muestra el saldo (“$400.00 pendiente”, “$200.00 a favor” o “Al día”).
 - Pestañas **Cargos / Pagos** con conteo, en pills de 12/800.
-- Cargo: concepto, categoría (incluye **Recargo**), vence, monto, chip de estado, pagado/saldo y “Vencido” si aplica.
-  Estados: Pendiente, Parcial, Pagado, Cancelado.
+- Cargo: concepto, categoría (incluye **Recargo** y **Multa / Infracción**), vence, monto, chip de estado, pagado/saldo y “Vencido” si aplica.
+  Estados: Pendiente, Parcial, Pagado, Cancelado. Sobre la lista, filtros rápidos **Todos / Pendientes / Pagados** con conteo; Pendientes agrupa PENDING y PARTIAL.
 - Pago: método, referencia, fecha, folio, aplicado, crédito y “Reversado” si fue reversado. Acción
   “Recibo” que abre un modal con folio, fecha, propiedad, método, total, aplicado y saldo a favor;
   el botón “Compartir PDF” descarga el recibo con el token de la sesión y lo comparte como data URI.
@@ -445,3 +445,5 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 | 2026-10-25 | 2.45 | “Mi kardex” del residente (accesos, incidencias, cargos y pagos), filtros y paginación; folio consecutivo en pagos y recibo PDF. También reapertura de quejas a 7 días en el detalle. `ResidentKardexScreen`, `ResidentKardexStack`, `residentKardex.service`, `ComplaintDetailScreen`, `payment.service`. |
 | 2026-10-26 | 2.46 | Recibo PDF en la APP: modal de recibo desde el pago, descarga binaria autenticada y “Compartir PDF” con `react-native-share`; codificador base64 propio para Hermes. `PaymentsScreen`, `payment.service`, `core/axios`, `shared/utils/base64`. |
 | 2026-10-26 | 2.47 | Se muestra la categoría **Recargo** en los cargos del residente; los recargos configurados en Cobranza llegan como cargos independientes. `PaymentsScreen`, `payment.service`. |
+| 2026-10-26 | 2.48 | Se agrega **Multa / Infracción** como tipo de cargo manual, visible en los cargos del residente. `payment.service`, `PaymentsScreen`. |
+| 2026-10-26 | 2.49 | Mis pagos: filtros rápidos de cargos (Todos, Pendientes, Pagados) con conteo y estados vacíos por filtro; margen superior para “Levantar una queja”. `PaymentsScreen`, `payments/utils/chargeFilters`. |
