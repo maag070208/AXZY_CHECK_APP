@@ -1,4 +1,4 @@
-package com.checkapp
+package com.axzy.checkapp.barcelona
 
 import android.animation.Animator
 import android.content.Intent

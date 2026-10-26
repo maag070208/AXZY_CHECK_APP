@@ -1,4 +1,4 @@
-appId: com.checkapp
+appId: com.axzy.checkapp.barcelona
 ---
 # Se ejecuta después de volver a encender WiFi/datos.
 - launchApp

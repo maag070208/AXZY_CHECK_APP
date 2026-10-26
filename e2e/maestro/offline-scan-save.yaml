@@ -1,4 +1,4 @@
-appId: com.checkapp
+appId: com.axzy.checkapp.barcelona
 ---
 # Sin red: escanear E2E-06 y guardar el check.
 - tapOn: "E2E: simular escaneo"

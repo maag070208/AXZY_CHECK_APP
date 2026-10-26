@@ -1,4 +1,4 @@
-package com.checkapp
+package com.axzy.checkapp.barcelona
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

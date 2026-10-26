@@ -1,4 +1,4 @@
-appId: com.checkapp
+appId: com.axzy.checkapp.barcelona
 ---
 # Suite E2E guardia marcoh con una foto por reporte
 - runFlow: login.yaml

@@ -1,4 +1,4 @@
-package com.checkapp.speech
+package com.axzy.checkapp.barcelona.speech
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

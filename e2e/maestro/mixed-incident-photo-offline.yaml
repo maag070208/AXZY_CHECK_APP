@@ -1,4 +1,4 @@
-appId: com.checkapp
+appId: com.axzy.checkapp.barcelona
 ---
 # Continúa el formulario abierto: segunda foto sin WiFi y envío offline.
 - tapOn: "Tomar foto"

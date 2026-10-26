@@ -1,4 +1,4 @@
-appId: com.checkapp
+appId: com.axzy.checkapp.barcelona
 ---
 # Mantenimiento sin foto ni video: solo tipo + enviar
 - tapOn: "Mantenimiento"

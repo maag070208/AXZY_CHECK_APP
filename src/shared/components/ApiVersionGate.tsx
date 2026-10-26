@@ -75,7 +75,7 @@ export const ApiVersionGate = ({ children }: { children: React.ReactNode }) => {
           label="Abrir Play Store"
           icon="storefront-outline"
           variant="outline"
-          onPress={() => Linking.openURL('market://details?id=com.checkapp').catch(() => undefined)}
+          onPress={() => Linking.openURL('market://details?id=com.axzy.checkapp.barcelona').catch(() => undefined)}
           style={styles.button}
         />
       </View>

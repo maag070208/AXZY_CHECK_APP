@@ -273,7 +273,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.checkapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.axzy.checkapp.barcelona;
 				PRODUCT_NAME = checkapp;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -300,7 +300,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.checkapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.axzy.checkapp.barcelona;
 				PRODUCT_NAME = checkapp;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";

@@ -1,4 +1,4 @@
-appId: com.checkapp
+appId: com.axzy.checkapp.barcelona
 ---
 # Se ejecuta con WiFi/datos apagados y la app ya logueada.
 - launchApp

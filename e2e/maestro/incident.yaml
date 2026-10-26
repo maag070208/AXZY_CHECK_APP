@@ -1,4 +1,4 @@
-appId: com.checkapp
+appId: com.axzy.checkapp.barcelona
 ---
 # Incidencia sin foto ni video: solo tipo + enviar
 - tapOn: "Incidencia"

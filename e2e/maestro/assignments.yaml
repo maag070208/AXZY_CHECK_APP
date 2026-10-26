@@ -1,4 +1,4 @@
-appId: com.checkapp
+appId: com.axzy.checkapp.barcelona
 ---
 # Mis Asignaciones: navegación desde el drawer, estado de la lista y refresco
 - runFlow: login.yaml

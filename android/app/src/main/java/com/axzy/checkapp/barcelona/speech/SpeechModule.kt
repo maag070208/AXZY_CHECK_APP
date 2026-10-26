@@ -1,4 +1,4 @@
-package com.checkapp.speech
+package com.axzy.checkapp.barcelona.speech
 
 import android.content.Intent
 import android.os.Bundle

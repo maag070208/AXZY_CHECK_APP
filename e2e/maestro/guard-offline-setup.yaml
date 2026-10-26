@@ -1,4 +1,4 @@
-appId: com.checkapp
+appId: com.axzy.checkapp.barcelona
 ---
 # Deja una sesión online y los catálogos/snapshot cacheados antes de apagar WiFi.
 - runFlow: login.yaml
