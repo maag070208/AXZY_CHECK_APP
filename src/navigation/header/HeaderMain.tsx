@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { OfflineHeaderNotice } from '../../shared/components/OfflineHeaderNotice';
 import { useFocusEffect } from '@react-navigation/native';
@@ -120,7 +120,15 @@ export const HeaderMain = ({ navigation }: any) => {
           accessibilityRole="button"
           accessibilityLabel="Abrir perfil"
         >
-          <Text style={styles.avatarText}>{initials}</Text>
+          {user.photoUrl ? (
+            <Image
+              source={{ uri: user.photoUrl }}
+              style={styles.avatarImage}
+              accessibilityLabel="Foto de perfil"
+            />
+          ) : (
+            <Text style={styles.avatarText}>{initials}</Text>
+          )}
         </TouchableOpacity>
       </View>
       <OfflineHeaderNotice />
@@ -193,6 +201,8 @@ const styles = StyleSheet.create({
     borderColor: '#C7F0DF',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  avatarImage: { width: 34, height: 34, borderRadius: 17 },
   avatarText: { color: '#065911', fontSize: 12, fontWeight: '900' },
 });

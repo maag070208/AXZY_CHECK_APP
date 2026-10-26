@@ -12,6 +12,8 @@ export interface ResidentProfile {
     ineBackUrl?: string;
     emergencyContact?: string;
     emergencyPhone?: string;
+    photoUrl?: string | null;
+    photoKey?: string | null;
 }
 
 export interface ResidentUser {

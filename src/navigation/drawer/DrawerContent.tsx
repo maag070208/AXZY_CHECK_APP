@@ -1,7 +1,7 @@
 import type { DrawerContentComponentProps } from '@react-navigation/drawer';
 import dayjs from 'dayjs';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Animated, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppNavigation } from '../hooks/useAppNavigation';
@@ -328,9 +328,17 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
 
           <View style={styles.avatarWrap}>
             <View style={styles.avatarButton}>
-              <Text style={styles.avatarText}>
-                {userState.fullName?.charAt(0).toUpperCase() || 'U'}
-              </Text>
+              {userState.photoUrl ? (
+                <Image
+                  source={{ uri: userState.photoUrl }}
+                  style={styles.avatarImage}
+                  accessibilityLabel="Foto de perfil"
+                />
+              ) : (
+                <Text style={styles.avatarText}>
+                  {userState.fullName?.charAt(0).toUpperCase() || 'U'}
+                </Text>
+              )}
             </View>
             <TouchableOpacity
               onPress={() => navigation.navigate('PROFILE_SCREEN')}
@@ -496,6 +504,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.8)',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 15,
   },
   avatarText: {
     fontSize: 22,

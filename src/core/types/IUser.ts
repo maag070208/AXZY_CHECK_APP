@@ -6,6 +6,7 @@ export interface IAuthToken {
 
   role: string;
   active: boolean;
+  photoUrl?: string | null;
 
   // Metadata
   iat: number;

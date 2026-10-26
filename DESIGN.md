@@ -1,7 +1,7 @@
 # CheckApp APP — Design System
 
 > Fuente de verdad del diseño de la aplicación móvil (React Native + React Native Paper).
-> Última actualización: **2026-10-24 · v2.42**
+> Última actualización: **2026-10-25 · v2.43**
 >
 > Antes de modificar cualquier pantalla, lee este documento. Si introduces un patrón nuevo,
 > actualízalo aquí en el mismo cambio (ver “Cómo mantener este documento”).
@@ -134,10 +134,21 @@ Fuente del sistema (sin fuente custom por ahora). Pesos permitidos: `600`, `700`
 - No agregues títulos gigantes dentro del contenido si el header ya comunica la pantalla.
 
 ### 5.2.1 Perfil
-- Top row: back 40 + “Mi perfil” 18/900.
-- Hero verde con avatar blanco, nombre, rol y pill @usuario.
-- Dos stat cards blancas: Entrada y Cuenta.
-- Form card con segmented Datos/Seguridad, inputs outlined suaves y `AppButton`.
+- Header plano con back 40 + “Mi perfil” 18/900.
+- Hero centrado: foto de perfil 104 en anillo `primarySoft` (o iniciales), botón cámara verde 36
+  sobre la foto, nombre 18/900 y chip de rol + `@usuario`.
+- Foto editable para todos los roles: cámara o galería, se sube y se guarda en el perfil
+  (`residentProfile.photoUrl` para residente, `User.photoUrl` para personal). La misma foto se
+  muestra en header, drawer y listado/detalle de guardias.
+- **Residente**: “1. Mi cuenta” con nombre, usuario, rol y propiedad de solo lectura; “2. Contacto”
+  editable (teléfono, correo y emergencia); “3. Seguridad”.
+- **Personal (GUARD/MAINT/SHIFT/ADMIN)**: perfil de **solo lectura**. “1. Mi cuenta” con nombre,
+  usuario, rol, turno y estado de la cuenta (activa desde dd/mm/aaaa); aviso “La administración
+  gestiona tus datos; si algo no coincide, avísale a tu supervisor”; “2. Seguridad”.
+  No hay inputs de nombre ni de contacto.
+- Estados: loading con indicador; error con “Reintentar” + “Volver” para el residente. Si falla el
+  detalle del personal, el perfil sigue visible con nombre/usuario/rol de la sesión y un aviso
+  discreto (“No pudimos actualizar tu turno”). `AppButton` para acciones.
 
 ### 5.2.2 Drawer
 - Header verde `#065911` con radio inferior 24, logo CheckApp (Check blanco / App mint),
@@ -406,3 +417,4 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 | 2026-10-23 | 2.40 | Estándar aplicado a Invitaciones y Horarios: filas densas con estado, resumen, skeleton y vacío. |
 | 2026-10-24 | 2.41 | Lista de Incidencias con el mismo estándar; fix del home de residente al leer invitaciones (`data.rows`). |
 | 2026-10-24 | 2.42 | Estándar aplicado a Mantenimiento, Casa Club, Recorridos y Kardex; cierre del rollout de listas. |
+| 2026-10-25 | 2.43 | Perfil del guardia/mantenimiento de solo lectura (nombre, usuario, rol y turno) con foto de perfil editable; foto también en header, drawer y guardias. `ProfileScreen`, `user.slice`, `HeaderMain`, `DrawerContent`, `GuardListScreen`, `GuardDetailScreen`. |

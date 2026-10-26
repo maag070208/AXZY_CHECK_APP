@@ -136,12 +136,20 @@ export const GuardListScreen = () => {
         activeOpacity={0.75}
         onPress={() => navigation.navigate('GUARD_DETAIL', { guard: item })}
       >
-        <Avatar.Text
-          size={42}
-          label={item.name ? item.name[0].toUpperCase() : 'G'}
-          style={styles.avatar}
-          labelStyle={styles.avatarLabel}
-        />
+        {item.photoUrl ? (
+          <Avatar.Image
+            size={42}
+            source={{ uri: item.photoUrl }}
+            style={styles.avatar}
+          />
+        ) : (
+          <Avatar.Text
+            size={42}
+            label={item.name ? item.name[0].toUpperCase() : 'G'}
+            style={styles.avatar}
+            labelStyle={styles.avatarLabel}
+          />
+        )}
 
         <View style={styles.copy}>
           <View style={styles.nameLine}>

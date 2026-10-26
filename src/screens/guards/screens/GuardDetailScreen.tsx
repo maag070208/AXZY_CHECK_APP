@@ -129,11 +129,19 @@ export const GuardDetailScreen = () => {
             <View style={{ flex: 1 }}>
                 
                 <View style={styles.header}>
-                    <Avatar.Text 
-                        size={64} 
-                        label={guard.name.charAt(0).toUpperCase()} 
-                        style={{ backgroundColor: theme.colors.primary, marginBottom: 8 }} 
-                    />
+                    {guard.photoUrl ? (
+                        <Avatar.Image
+                            size={64}
+                            source={{ uri: guard.photoUrl }}
+                            style={{ marginBottom: 8 }}
+                        />
+                    ) : (
+                        <Avatar.Text
+                            size={64}
+                            label={guard.name.charAt(0).toUpperCase()}
+                            style={{ backgroundColor: theme.colors.primary, marginBottom: 8 }}
+                        />
+                    )}
                     <Text variant="headlineSmall" style={{ fontWeight: '700' }}>{guard.name} {guard.lastName}</Text>
                     <Text variant="bodyMedium" style={{ color: '#666' }}>Turno: {guard.schedule ? guard.schedule.name : 'Sin asignar'}</Text>
                 </View>
