@@ -4,7 +4,7 @@ import {
   View,
   FlatList,
   TouchableOpacity,
-  Alert,
+  Image,
   Linking,
   RefreshControl,
   StatusBar,
@@ -23,6 +23,7 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { useAppNavigation } from '../../../navigation/hooks/useAppNavigation';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import {
   getResidentContacts,
@@ -32,9 +33,10 @@ import {
 } from '../service/resident.service';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ResidentContactModal } from '../components/ResidentContactModal';
+import { tokens } from '../../../shared/theme/tokens';
 
 const PRIMARY_GREEN = '#1f8a3a';
-const SECONDARY_BG = '#ffffff';
+const SECONDARY_BG = tokens.color.card;
 
 export const ResidentContactsScreen = () => {
     const user = useSelector((state: RootState) => state.userState);
@@ -95,31 +97,28 @@ export const ResidentContactsScreen = () => {
         });
     };
 
-    const handleDelete = (contactId: number) => {
-        Alert.alert(
-            'Eliminar Contacto',
-            '¿Estás seguro de que deseas eliminar este contacto?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                { 
-                    text: 'Eliminar', 
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const res = await deleteResidentContact(Number(user.id), contactId) as any;
-                            if (res.success) {
-                                dispatch(showToast({ type: 'success', message: 'Contacto eliminado' }));
-                                fetchContacts();
-                            } else {
-                                dispatch(showToast({ type: 'error', message: res.messages?.[0] || 'Error al eliminar' }));
-                            }
-                        } catch (error) {
-                            dispatch(showToast({ type: 'error', message: 'Error al eliminar' }));
-                        }
-                    }
-                }
-            ]
-        );
+    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const handleDelete = (contactId: number) => setPendingDeleteId(contactId);
+
+    const confirmDelete = async () => {
+        if (pendingDeleteId === null) return;
+        setDeleting(true);
+        try {
+            const res = await deleteResidentContact(Number(user.id), pendingDeleteId) as any;
+            if (res.success) {
+                dispatch(showToast({ type: 'success', message: 'Contacto eliminado' }));
+                fetchContacts();
+            } else {
+                dispatch(showToast({ type: 'error', message: res.messages?.[0] || 'Error al eliminar' }));
+            }
+        } catch (error) {
+            dispatch(showToast({ type: 'error', message: 'Error al eliminar' }));
+        } finally {
+            setDeleting(false);
+            setPendingDeleteId(null);
+        }
     };
 
     const openForm = (contact?: ResidentContact) => {
@@ -150,6 +149,17 @@ export const ResidentContactsScreen = () => {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={SECONDARY_BG} />
+
+            <ConfirmDialog
+                visible={pendingDeleteId !== null}
+                title="Eliminar contacto"
+                message="¿Estás seguro de que deseas eliminar este contacto? Ya no aparecerá en tu agenda."
+                confirmLabel="Eliminar"
+                tone="danger"
+                loading={deleting}
+                onConfirm={confirmDelete}
+                onCancel={() => setPendingDeleteId(null)}
+            />
             
 
             <View style={styles.searchBox}>
@@ -159,8 +169,8 @@ export const ResidentContactsScreen = () => {
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     style={styles.simpleSearch}
-                    left={<TextInput.Icon icon="magnify" color="#94a3b8" />}
-                    outlineColor="#e2e8f0"
+                    left={<TextInput.Icon icon="magnify" color={tokens.color.textHint} />}
+                    outlineColor={tokens.color.border}
                     activeOutlineColor={PRIMARY_GREEN}
                     theme={{ roundness: 12 }}
                 />
@@ -206,11 +216,15 @@ export const ResidentContactsScreen = () => {
                     >
                         <View style={styles.cardContent}>
                             <View style={styles.avatarSection}>
-                                <View style={styles.avatarContainer}>
-                                    <Text style={styles.avatarText}>
-                                        {item.name.charAt(0).toUpperCase()}
-                                    </Text>
-                                </View>
+                                {(item as any).photoUrl ? (
+                                    <Image source={{ uri: (item as any).photoUrl }} style={styles.avatarPhoto} accessibilityLabel={`Foto de ${item.name}`} />
+                                ) : (
+                                    <View style={styles.avatarContainer}>
+                                        <Text style={styles.avatarText}>
+                                            {item.name.charAt(0).toUpperCase()}
+                                        </Text>
+                                    </View>
+                                )}
                                 {item.phone && (
                                     <View style={styles.whatsappBadge}>
                                         <Icon source="whatsapp" size={12} color="#fff" />
@@ -225,9 +239,11 @@ export const ResidentContactsScreen = () => {
                                 <Text style={styles.contactPhone} numberOfLines={1}>
                                     {item.phone || 'Sin teléfono'}
                                 </Text>
-                                <View style={styles.relationshipBadge}>
-                                    <Text style={styles.relationshipText}>{item.relationship}</Text>
-                                </View>
+                                {item.relationship ? (
+                                    <View style={styles.relationshipBadge}>
+                                        <Text style={styles.relationshipText}>{item.relationship}</Text>
+                                    </View>
+                                ) : null}
                             </View>
 
                             <View style={styles.actionsSection}>
@@ -235,7 +251,7 @@ export const ResidentContactsScreen = () => {
                                     onPress={() => handleGenerateQR(item)} 
                                     style={styles.actionButton}
                                 >
-                                    <Icon source="qrcode" size={20} color="#8b5cf6" />
+                                    <Icon source="qrcode" size={20} color={tokens.color.primary} />
                                 </TouchableOpacity>
                                 {item.phone && (
                                     <TouchableOpacity 
@@ -249,7 +265,7 @@ export const ResidentContactsScreen = () => {
                                     onPress={() => handleDelete(item.id)} 
                                     style={styles.actionButton}
                                 >
-                                    <Icon source="delete-outline" size={20} color="#ef4444" />
+                                    <Icon source="delete-outline" size={20} color={tokens.color.danger} />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -280,45 +296,46 @@ export const ResidentContactsScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: tokens.color.screen,
     },
     center: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f8fafc',
+        backgroundColor: tokens.color.screen,
     },
     loadingText: {
         marginTop: 12,
-        color: '#64748b',
+        color: tokens.color.textMuted,
         fontWeight: '500',
     },
     header: {
         paddingTop: 20,
         paddingHorizontal: 20,
         paddingBottom: 8,
-        backgroundColor: '#ffffff',
+        backgroundColor: tokens.color.card,
     },
     headerTitle: {
         fontSize: 28,
         fontWeight: '700',
-        color: '#0f172a',
+        color: tokens.color.textStrong,
         marginBottom: 4,
     },
     headerSubtitle: {
         fontSize: 14,
-        color: '#64748b',
+        color: tokens.color.textMuted,
         fontWeight: '400',
     },
     searchBox: {
         paddingHorizontal: 20,
+        paddingTop: 16,
         paddingBottom: 16,
-        backgroundColor: '#ffffff',
+        backgroundColor: tokens.color.card,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: tokens.color.screen,
     },
     simpleSearch: {
-        backgroundColor: '#ffffff',
+        backgroundColor: tokens.color.card,
         height: 48,
         fontSize: 15,
     },
@@ -327,7 +344,7 @@ const styles = StyleSheet.create({
         paddingBottom: 100,
     },
     contactCard: {
-        backgroundColor: '#ffffff',
+        backgroundColor: tokens.color.card,
         borderRadius: 16,
         marginBottom: 12,
         shadowColor: '#000',
@@ -344,6 +361,12 @@ const styles = StyleSheet.create({
     avatarSection: {
         position: 'relative',
         marginRight: 14,
+    },
+    avatarPhoto: {
+        width: 56,
+        height: 56,
+        borderRadius: 16,
+        backgroundColor: tokens.color.primarySoft,
     },
     avatarContainer: {
         width: 56,
@@ -369,7 +392,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
-        borderColor: '#ffffff',
+        borderColor: tokens.color.card,
     },
     infoSection: {
         flex: 1,
@@ -378,24 +401,24 @@ const styles = StyleSheet.create({
     contactName: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#0f172a',
+        color: tokens.color.textStrong,
     },
     contactPhone: {
         fontSize: 13,
-        color: '#64748b',
+        color: tokens.color.textMuted,
     },
     relationshipBadge: {
         alignSelf: 'flex-start',
         paddingHorizontal: 10,
         paddingVertical: 4,
-        backgroundColor: '#f1f5f9',
+        backgroundColor: tokens.color.screen,
         borderRadius: 8,
         marginTop: 2,
     },
     relationshipText: {
         fontSize: 11,
         fontWeight: '600',
-        color: '#475569',
+        color: tokens.color.textBody,
         textTransform: 'uppercase',
         letterSpacing: 0.3,
     },
@@ -407,11 +430,11 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: '#f8fafc',
+        backgroundColor: tokens.color.screen,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#e2e8f0',
+        borderColor: tokens.color.border,
     },
     emptyContainer: {
         alignItems: 'center',
@@ -430,12 +453,12 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontSize: 20,
         fontWeight: '700',
-        color: '#0f172a',
+        color: tokens.color.textStrong,
         marginBottom: 8,
     },
     emptySub: {
         fontSize: 14,
-        color: '#64748b',
+        color: tokens.color.textMuted,
         textAlign: 'center',
         lineHeight: 20,
     },

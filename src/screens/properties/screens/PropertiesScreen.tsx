@@ -311,7 +311,7 @@ export const PropertiesScreen = () => {
                             <RadioButton.Android 
                                 value="ALL" 
                                 status={filterStatus === 'ALL' ? 'checked' : 'unchecked'} 
-                                color="#0F4C3A"
+                                color="#065911"
                                 onPress={() => setFilterStatus('ALL')}
                             />
                             <Text style={[styles.statusLabel, filterStatus === 'ALL' && styles.activeStatusLabel]}>Todos</Text>
@@ -325,7 +325,7 @@ export const PropertiesScreen = () => {
                                 <RadioButton.Android 
                                     value={s.id.toString()} 
                                     status={filterStatus === s.id ? 'checked' : 'unchecked'} 
-                                    color="#0F4C3A"
+                                    color="#065911"
                                     onPress={() => setFilterStatus(s.id)}
                                 />
                                 <Text style={[styles.statusLabel, filterStatus === s.id && styles.activeStatusLabel]}>
@@ -337,7 +337,7 @@ export const PropertiesScreen = () => {
 
                     <View style={styles.modalActions}>
                         <Button mode="text" onPress={() => { setFilterType('ALL'); setFilterStatus('ALL'); }} textColor="#64748B">Limpiar</Button>
-                        <Button mode="contained" onPress={() => setFilterVisible(false)} buttonColor="#0F4C3A" textColor="#fff" style={{ borderRadius: 12 }}>Aplicar</Button>
+                        <Button mode="contained" onPress={() => setFilterVisible(false)} buttonColor="#065911" textColor="#fff" style={{ borderRadius: 12 }}>Aplicar</Button>
                     </View>
                 </Modal>
             </Portal>
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         margin: 16,
         right: 0,
-        backgroundColor: '#0F4C3A',
+        backgroundColor: '#065911',
         borderRadius: 28,
     },
     center: {
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     filterLabel: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#0F4C3A',
+        color: '#065911',
         marginBottom: 12,
         textTransform: 'uppercase',
     },
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     activeChip: {
-        backgroundColor: '#0F4C3A',
+        backgroundColor: '#065911',
     },
     optionText: {
         fontSize: 13,
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
         borderColor: '#F1F5F9',
     },
     activeStatusOption: {
-        borderColor: '#0F4C3A',
+        borderColor: '#065911',
         backgroundColor: '#F1F5F9',
     },
     statusLabel: {
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
     activeStatusLabel: {
-        color: '#0F4C3A',
+        color: '#065911',
         fontWeight: 'bold',
     },
     modalActions: {

@@ -172,8 +172,8 @@ export const PropertyDetailScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#0F4C3A']}
-              tintColor="#0F4C3A"
+              colors={['#065911']}
+              tintColor="#065911"
             />
           }
           contentContainerStyle={{ paddingBottom: 40 }}
@@ -190,7 +190,7 @@ export const PropertyDetailScreen = () => {
                       : 'home'
                   }
                   style={styles.avatar}
-                  color="#0F4C3A"
+                  color="#065911"
                 />
                 <View
                   style={[styles.statusDot, { backgroundColor: config.color }]}
@@ -219,7 +219,7 @@ export const PropertyDetailScreen = () => {
             <View style={styles.headerMeta}>
               <View style={styles.metaBox}>
                 <View style={styles.metaIconBg}>
-                  <Icon source="home-city" size={16} color="#0F4C3A" />
+                  <Icon source="home-city" size={16} color="#065911" />
                 </View>
                 <View>
                   <Text style={styles.metaLabel}>IDENTIFICADOR</Text>
@@ -266,7 +266,7 @@ export const PropertyDetailScreen = () => {
                   })
                 }
               >
-                <Icon source="pencil" size={20} color="#0F4C3A" />
+                <Icon source="pencil" size={20} color="#065911" />
                 <Text style={styles.actionButtonText}>Editar</Text>
               </TouchableOpacity>
             )}
@@ -298,7 +298,7 @@ export const PropertyDetailScreen = () => {
           <View style={styles.residentsSectionWrapper}>
             <View style={styles.residentsHeader}>
               <View style={styles.sectionIconContainerSmall}>
-                <Icon source="account-group" size={18} color="#0F4C3A" />
+                <Icon source="account-group" size={18} color="#065911" />
               </View>
               <View>
                 <Text style={styles.sectionTitleSmall}>Residentes</Text>
@@ -400,7 +400,7 @@ export const PropertyDetailScreen = () => {
             <Card.Content>
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionIconContainer}>
-                  <Icon source="map-marker" size={20} color="#0F4C3A" />
+                  <Icon source="map-marker" size={20} color="#065911" />
                 </View>
                 <View>
                   <Text style={styles.cardTitle}>Ubicación</Text>
@@ -444,7 +444,7 @@ export const PropertyDetailScreen = () => {
                         latitude: property.latitude!,
                         longitude: property.longitude!,
                       }}
-                      pinColor="#0F4C3A"
+                      pinColor="#065911"
                     />
                   </MapView>
                   <View style={styles.mapOverlay}>
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
   avatar: {
     backgroundColor: '#F1F5F9',
     borderWidth: 2,
-    borderColor: '#0F4C3A',
+    borderColor: '#065911',
   },
   statusDot: {
     position: 'absolute',
@@ -656,10 +656,10 @@ const styles = StyleSheet.create({
   avatarMini: {
     backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#0F4C3A',
+    borderColor: '#065911',
   },
   avatarMiniLabel: {
-    color: '#0F4C3A',
+    color: '#065911',
     fontWeight: 'bold',
     fontSize: 16,
   },

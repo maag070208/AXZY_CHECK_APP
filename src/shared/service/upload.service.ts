@@ -8,7 +8,7 @@ export const uploadFile = async (
   type: 'video' | 'image',
   locationName: string = 'unknown',
   clientMediaId?: string,
-): Promise<{ success: boolean; url?: string; error?: string }> => {
+): Promise<{ success: boolean; url?: string; key?: string; size?: number; error?: string }> => {
   let uploadUri = uri;
 
   try {
@@ -89,7 +89,8 @@ export const uploadFile = async (
       const result = await response.json().catch(() => ({}));
 
       if (response.ok && (result.success || result.url || result.data?.url)) {
-        return { success: true, url: result.url || result.data?.url };
+        const uploaded = result.data ?? result;
+        return { success: true, url: uploaded.url, key: uploaded.key, size: uploaded.size };
       }
 
       lastError = result.message || `Error del servidor (${response.status})`;

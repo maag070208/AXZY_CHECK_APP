@@ -46,6 +46,9 @@ export const P = {
   INVITATION_VIEW: 'invitation.view',
   INVITATION_CREATE: 'invitation.create',
   INVITATION_REVOKE: 'invitation.revoke',
+  COMPLAINT_VIEW: 'complaint.view',
+  COMPLAINT_CREATE: 'complaint.create',
+  COMPLAINT_MANAGE: 'complaint.manage',
 } as const;
 
 export type PermissionCode = (typeof P)[keyof typeof P];
@@ -80,5 +83,5 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'assignment.view','incident.create','maintenance.view','maintenance.create','maintenance.resolve','maintenance.delete',
     'club.view','club.create','club.resolve','club.delete',
   ],
-  RESDN: ['resident.self','invitation.view','invitation.create','invitation.revoke'],
+  RESDN: ['resident.self','invitation.view','invitation.create','invitation.revoke','complaint.create','complaint.view'],
 };

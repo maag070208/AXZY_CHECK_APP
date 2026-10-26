@@ -19,6 +19,7 @@ import { SchedulesStack } from '../../screens/schedules/stack/SchedulesStack';
 import { PropertiesStack } from '../../screens/properties/stack/PropertiesStack';
 import { InvitationsStack } from '../../screens/invitations/stack/InvitationsStack';
 import { ResidentsStack } from '../../screens/residents/stack/ResidentsStack';
+import { ComplaintsStack } from '../../screens/complaints/stack/ComplaintsStack';
 import { ChatStack } from '../../screens/chat/stack/ChatStack';
 import { ShiftHandoverStack } from '../../screens/shiftHandover/stack/ShiftHandoverStack';
 import { UniformStack } from '../../screens/uniform/stack/UniformStack';
@@ -184,6 +185,14 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="INVITATIONS_STACK"
         component={InvitationsStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="COMPLAINTS_STACK"
+        component={ComplaintsStack}
         options={{
             drawerItemStyle: { display: 'none' }
         }}

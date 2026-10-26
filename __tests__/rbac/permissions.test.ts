@@ -21,6 +21,12 @@ describe('RBAC de la APP', () => {
     expect(hasPermission([P.INCIDENT_CREATE, P.ROUND_VIEW], 'all', permissions, null)).toBe(true);
   });
 
+  it('el residente levanta y ve sus quejas; el personal no las levanta', () => {
+    expect(hasPermission(P.COMPLAINT_CREATE, 'any', null, 'RESDN')).toBe(true);
+    expect(hasPermission(P.COMPLAINT_VIEW, 'any', null, 'RESDN')).toBe(true);
+    expect(hasPermission(P.COMPLAINT_CREATE, 'any', null, 'SHIFT')).toBe(false);
+  });
+
   it('sin permisos ni rol no autoriza', () => {
     expect(effectivePermissions(null, null)).toEqual([]);
     expect(hasPermission(P.CHAT_USE, 'any', null, null)).toBe(false);

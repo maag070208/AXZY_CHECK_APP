@@ -31,7 +31,7 @@ import { P } from '../../../core/permissions/permissions';
 import { showToast } from '../../../core/store/slices/toast.slice';
 
 // Definimos el color primario para reuso local
-const PRIMARY_COLOR = '#0F4C3A';
+const PRIMARY_COLOR = '#065911';
 const SECONDARY_COLOR = '#065911';
 
 export const LocationsScreen = ({ navigation }: any) => {
@@ -367,7 +367,7 @@ export const LocationsScreen = ({ navigation }: any) => {
                 <RadioButton.Android 
                   value={s.id} 
                   status={filterStatus === s.id ? 'checked' : 'unchecked'} 
-                  color="#0F4C3A"
+                  color="#065911"
                   onPress={() => setFilterStatus(s.id)}
                 />
                 <Text style={[styles.statusLabel, filterStatus === s.id && styles.activeStatusLabel]}>
@@ -379,7 +379,7 @@ export const LocationsScreen = ({ navigation }: any) => {
 
           <View style={styles.modalActions}>
             <Button mode="text" onPress={() => setFilterStatus('ALL')} textColor="#64748B">Limpiar</Button>
-            <Button mode="contained" onPress={() => setFilterVisible(false)} buttonColor="#0F4C3A" textColor="#fff" style={{ borderRadius: 12 }}>Aplicar</Button>
+            <Button mode="contained" onPress={() => setFilterVisible(false)} buttonColor="#065911" textColor="#fff" style={{ borderRadius: 12 }}>Aplicar</Button>
           </View>
         </Modal>
       </Portal>
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   filterLabel: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#0F4C3A',
+    color: '#065911',
     marginBottom: 12,
     textTransform: 'uppercase',
   },
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
     borderColor: '#F1F5F9',
   },
   activeStatusOption: {
-    borderColor: '#0F4C3A',
+    borderColor: '#065911',
     backgroundColor: '#F1F5F9',
   },
   statusLabel: {
@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   activeStatusLabel: {
-    color: '#0F4C3A',
+    color: '#065911',
     fontWeight: 'bold',
   },
   modalActions: {

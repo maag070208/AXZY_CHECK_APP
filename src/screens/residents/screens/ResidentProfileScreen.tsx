@@ -157,7 +157,7 @@ export const ResidentProfileScreen = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0F4C3A" />
+        <ActivityIndicator size="large" color="#065911" />
         <Text style={styles.loadingText}>Cargando tu perfil...</Text>
       </View>
     );
@@ -176,12 +176,12 @@ export const ResidentProfileScreen = () => {
       >
         <Surface style={styles.headerCard} elevation={0}>
           <View style={styles.headerIconContainer}>
-            <Icon source="account-circle" size={48} color="#0F4C3A" />
+            <Icon source="account-circle" size={48} color="#065911" />
           </View>
           <Text style={styles.title}>Mi Perfil</Text>
           <Text style={styles.subtitle}>Mantén tus datos de contacto y seguridad actualizados</Text>
           <View style={styles.propertyBadge}>
-            <Icon source="home-city" size={14} color="#0F4C3A" />
+            <Icon source="home-city" size={14} color="#065911" />
             <Text style={styles.propertyText}>Propiedad: {initialValues.propertyIdentifier}</Text>
           </View>
         </Surface>
@@ -307,7 +307,7 @@ export const ResidentProfileScreen = () => {
                       disabled={uploadingFront}
                     >
                       {uploadingFront ? (
-                        <ActivityIndicator color="#0F4C3A" />
+                        <ActivityIndicator color="#065911" />
                       ) : values.ineFrontUrl ? (
                         <Image source={{ uri: values.ineFrontUrl }} style={styles.photoImage} />
                       ) : (
@@ -324,7 +324,7 @@ export const ResidentProfileScreen = () => {
                       disabled={uploadingBack}
                     >
                       {uploadingBack ? (
-                        <ActivityIndicator color="#0F4C3A" />
+                        <ActivityIndicator color="#065911" />
                       ) : values.ineBackUrl ? (
                         <Image source={{ uri: values.ineBackUrl }} style={styles.photoImage} />
                       ) : (
@@ -344,7 +344,7 @@ export const ResidentProfileScreen = () => {
                 loading={saving}
                 disabled={saving || uploadingFront || uploadingBack}
                 style={styles.saveButton}
-                buttonColor="#0F4C3A"
+                buttonColor="#065911"
                 labelStyle={styles.saveButtonLabel}
               >
                 Guardar Cambios
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#0F4C3A',
+    color: '#065911',
   },
   subtitle: {
     fontSize: 14,
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   propertyText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#0F4C3A',
+    color: '#065911',
   },
   formCard: {
     borderRadius: 20,
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     borderRadius: 16,
     paddingVertical: 8,
-    shadowColor: '#0F4C3A',
+    shadowColor: '#065911',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

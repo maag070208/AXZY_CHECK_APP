@@ -250,7 +250,7 @@ export const ResidentsScreen = () => {
                   }}>
                       <View style={styles.modalHeader}>
                         <View style={styles.modalHeaderTitle}>
-                            <Icon source="filter-variant" size={24} color="#0F4C3A" />
+                            <Icon source="filter-variant" size={24} color="#065911" />
                             <Text style={styles.modalTitle}>Filtrar Residentes</Text>
                         </View>
                         <IconButton 
@@ -288,7 +288,7 @@ export const ResidentsScreen = () => {
                             mode="contained" 
                             onPress={() => setFilterVisible(false)}
                             style={styles.applyButton}
-                            buttonColor="#0F4C3A"
+                            buttonColor="#065911"
                         >
                             Ver resultados
                         </Button>
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         margin: 16,
         right: 0,
-        backgroundColor: '#0F4C3A',
+        backgroundColor: '#065911',
         borderRadius: 28,
     },
     itemCard: {

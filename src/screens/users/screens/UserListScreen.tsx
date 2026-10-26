@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         margin: 16,
         right: 0,
-        backgroundColor: '#0F4C3A',
+        backgroundColor: '#065911',
         borderRadius: 28,
     },
 });

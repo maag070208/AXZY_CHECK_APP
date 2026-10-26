@@ -8,7 +8,7 @@ import { ISchedule, getPaginatedSchedules, createSchedule, updateSchedule, delet
 import ModernStyles from '../../../shared/theme/app.styles';
 
 const COLORS = {
-  primary: '#0F4C3A',        // Verde institucional
+  primary: '#065911',        // Verde institucional
   primaryLight: '#F1F5F9',
   background: '#F8FAFC',
   surface: '#FFFFFF',

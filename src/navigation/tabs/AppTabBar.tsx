@@ -64,6 +64,7 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
   const hidden = HIDE_TAB_BAR_ROUTES.includes(nestedRoute);
 
   const isGuard = role === UserRole.GUARD;
+  const isResident = role === UserRole.RESDN;
   const canHistory = role === UserRole.ADMIN || role === UserRole.SHIFT;
   const canChat = role === UserRole.ADMIN || role === UserRole.SHIFT;
   const isHome = focusedRoute.name === 'HOME_STACK';
@@ -190,17 +191,15 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
     }
   };
 
-  const centerIcon = isGuard
-    ? activeRound
-      ? 'map-marker-radius-outline'
-      : 'ticket-confirmation-outline'
-    : 'play';
-  const centerLabel = isGuard ? (activeRound ? 'Ubicaciones' : 'Entradas') : 'Ronda';
-  const centerAccessibility = isGuard
-    ? activeRound
-      ? 'Escanear ubicación de la ronda'
-      : 'Escanear entrada'
-    : 'Iniciar ronda';
+  const centerIcon = isResident ? 'qrcode-plus' : isGuard ? (activeRound ? 'map-marker-radius-outline' : 'ticket-confirmation-outline') : 'play';
+  const centerLabel = isResident ? 'Pase' : isGuard ? (activeRound ? 'Ubicaciones' : 'Entradas') : 'Ronda';
+  const centerAccessibility = isResident
+    ? 'Generar pase para tus visitas'
+    : isGuard
+      ? activeRound
+        ? 'Escanear ubicación de la ronda'
+        : 'Escanear entrada'
+      : 'Iniciar ronda';
 
   return (
     <>
@@ -229,7 +228,9 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
               accessibilityRole="button"
               accessibilityLabel={centerAccessibility}
               onPress={() => {
-                if (isGuard) {
+                if (isResident) {
+                  navigation.navigate('INVITATIONS_STACK', { screen: 'INVITATION_FORM', params: { residentId: Number(user.id) } });
+                } else if (isGuard) {
                   void handleGuardScan();
                 } else {
                   setSheetOpen(true);

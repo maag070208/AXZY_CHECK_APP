@@ -22,13 +22,14 @@ import {
   getPaginatedInvitations,
   Invitation,
 } from '../../invitations/service/invitation.service';
+import { tokens } from '../../../shared/theme/tokens';
 
-const PRIMARY = '#065911';
+const PRIMARY = tokens.color.primary;
 const BRAND = '#12A36F';
-const INK = '#0F172A';
-const MUTED = '#64748B';
-const SOFT = '#94A3B8';
-const LINE = '#E6EEE9';
+const INK = tokens.color.textStrong;
+const MUTED = tokens.color.textMuted;
+const SOFT = tokens.color.textHint;
+const LINE = tokens.color.border;
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: 'En espera',
@@ -40,10 +41,10 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: '#B45309',
-  ENTERED: '#065911',
-  EXITED: '#64748B',
-  CANCELLED: '#B91C1C',
-  EXPIRED: '#B91C1C',
+  ENTERED: tokens.color.primary,
+  EXITED: tokens.color.textMuted,
+  CANCELLED: tokens.color.dangerStrong,
+  EXPIRED: tokens.color.dangerStrong,
 };
 
 export const ResidentHomeScreen = () => {
@@ -124,6 +125,13 @@ export const ResidentHomeScreen = () => {
       icon: 'ticket-confirmation-outline',
       onPress: () => go('INVITATIONS_STACK', 'INVITATIONS_MAIN'),
     },
+    {
+      label: 'Mis quejas',
+      detail: 'Buzón de quejas',
+      permission: P.COMPLAINT_VIEW,
+      icon: 'message-alert-outline',
+      onPress: () => go('COMPLAINTS_STACK', 'COMPLAINTS_MAIN'),
+    },
   ];
 
   return (
@@ -141,7 +149,7 @@ export const ResidentHomeScreen = () => {
         <Text style={styles.heroHint}>Aquí están tus accesos y los pases de tu propiedad.</Text>
 
         <View style={styles.propertyPill}>
-          <Icon source="home-city-outline" size={15} color="#A7F3D0" />
+          <Icon source="home-city-outline" size={15} color={tokens.color.heroAccent} />
           <Text style={styles.propertyText} numberOfLines={1}>
             {property ? `${property.identifier} · ${property.name}` : 'Sin propiedad asignada'}
           </Text>
@@ -231,10 +239,10 @@ export const ResidentHomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F4F9F6' },
+  screen: { flex: 1, backgroundColor: tokens.color.screen },
   content: { padding: 16, paddingBottom: 110 },
   hero: {
-    backgroundColor: '#071A12',
+    backgroundColor: tokens.color.heroDeep,
     borderRadius: 24,
     padding: 20,
     overflow: 'hidden',
@@ -246,11 +254,11 @@ const styles = StyleSheet.create({
     borderRadius: 90,
     right: -60,
     top: -80,
-    backgroundColor: '#0E3B2A',
+    backgroundColor: tokens.color.heroBg,
   },
-  greeting: { color: '#A7F3D0', fontSize: 12, fontWeight: '700' },
-  name: { color: '#FFFFFF', fontSize: 26, fontWeight: '900', marginTop: 2 },
-  heroHint: { color: '#9FB8AC', fontSize: 12, fontWeight: '600', marginTop: 6, maxWidth: 270 },
+  greeting: { color: tokens.color.heroAccent, fontSize: 12, fontWeight: '700' },
+  name: { color: tokens.color.card, fontSize: 26, fontWeight: '900', marginTop: 2 },
+  heroHint: { color: tokens.color.heroMuted, fontSize: 12, fontWeight: '600', marginTop: 6, maxWidth: 270 },
   propertyPill: {
     marginTop: 14,
     flexDirection: 'row',
@@ -262,7 +270,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,.1)',
   },
-  propertyText: { color: '#D1FAE5', fontSize: 11, fontWeight: '700', maxWidth: 230 },
+  propertyText: { color: tokens.color.heroSoft, fontSize: 11, fontWeight: '700', maxWidth: 230 },
   actionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -272,7 +280,7 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     width: '48.5%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.color.card,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: LINE,
@@ -282,7 +290,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#E8F7EF',
+    backgroundColor: tokens.color.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -299,7 +307,7 @@ const styles = StyleSheet.create({
   sectionTitle: { marginTop: 2, fontSize: 17, fontWeight: '900', color: INK },
   link: { fontSize: 11, fontWeight: '800', color: PRIMARY },
   listCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.color.card,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: LINE,
@@ -311,7 +319,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 11,
-    backgroundColor: '#E8F7EF',
+    backgroundColor: tokens.color.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -330,14 +338,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#C7F0DF',
-    backgroundColor: '#E8F7EF',
+    backgroundColor: tokens.color.primarySoft,
     padding: 14,
   },
   tipIcon: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.color.card,
     alignItems: 'center',
     justifyContent: 'center',
   },

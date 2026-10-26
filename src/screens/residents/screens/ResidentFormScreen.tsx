@@ -227,7 +227,7 @@ export const ResidentFormScreen = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0F4C3A" />
+        <ActivityIndicator size="large" color="#065911" />
         <Text style={styles.loadingText}>Cargando información...</Text>
       </View>
     );
@@ -246,7 +246,7 @@ export const ResidentFormScreen = () => {
       >
         <Surface style={styles.headerCard} elevation={0}>
           <View style={styles.headerIconContainer}>
-            <Icon source="account-plus" size={32} color="#0F4C3A" />
+            <Icon source="account-plus" size={32} color="#065911" />
           </View>
           <Text style={styles.title}>{isEdit ? 'Editar Residente' : 'Nuevo Residente'}</Text>
           <Text style={styles.subtitle}>
@@ -411,7 +411,7 @@ export const ResidentFormScreen = () => {
 
                       <Card style={styles.infoCard} elevation={0}>
                         <View style={styles.infoHeader}>
-                          <Icon source="cellphone-key" size={22} color="#0F4C3A" />
+                          <Icon source="cellphone-key" size={22} color="#065911" />
                           <Text style={styles.infoTitle}>Credenciales de acceso</Text>
                         </View>
                         <Text style={styles.infoText}>
@@ -536,7 +536,7 @@ export const ResidentFormScreen = () => {
                             disabled={uploadingFront}
                           >
                             {uploadingFront ? (
-                              <ActivityIndicator color="#0F4C3A" size="large" />
+                              <ActivityIndicator color="#065911" size="large" />
                             ) : values.ineFrontUrl ? (
                               <View style={styles.photoPreview}>
                                 <Image source={{ uri: values.ineFrontUrl }} style={styles.photoImage} />
@@ -564,7 +564,7 @@ export const ResidentFormScreen = () => {
                             disabled={uploadingBack}
                           >
                             {uploadingBack ? (
-                              <ActivityIndicator color="#0F4C3A" size="large" />
+                              <ActivityIndicator color="#065911" size="large" />
                             ) : values.ineBackUrl ? (
                               <View style={styles.photoPreview}>
                                 <Image source={{ uri: values.ineBackUrl }} style={styles.photoImage} />
@@ -620,7 +620,7 @@ export const ResidentFormScreen = () => {
                         mode="contained" 
                         onPress={validateCurrentStep}
                         style={[styles.navButton, styles.nextButton]}
-                        buttonColor="#0F4C3A"
+                        buttonColor="#065911"
                       >
                         Continuar
                       </Button>
@@ -631,7 +631,7 @@ export const ResidentFormScreen = () => {
                         loading={saving || uploadingFront || uploadingBack}
                         disabled={saving || uploadingFront || uploadingBack}
                         style={[styles.navButton, styles.submitButton]}
-                        buttonColor="#0F4C3A"
+                        buttonColor="#065911"
                       >
                         {isEdit ? 'Guardar cambios' : 'Registrar residente'}
                       </Button>
@@ -697,7 +697,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: 'bold',
-    color: '#0F4C3A',
+    color: '#065911',
     marginBottom: 6,
     textAlign: 'center',
   },
@@ -732,7 +732,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   stepCircleActive: {
-    backgroundColor: '#0F4C3A',
+    backgroundColor: '#065911',
   },
   stepCircleCompleted: {
     backgroundColor: '#10B981',
@@ -743,7 +743,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   stepLabelActive: {
-    color: '#0F4C3A',
+    color: '#065911',
     fontWeight: '600',
   },
   stepLine: {

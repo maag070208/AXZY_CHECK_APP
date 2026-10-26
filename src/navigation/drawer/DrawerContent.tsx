@@ -157,6 +157,14 @@ const MENU_ITEMS: MenuItem[] = [
     permission: P.PROPERTIES_VIEW,
   },
   {
+    label: 'Quejas',
+    icon: 'message-alert-outline',
+    route: 'COMPLAINTS_STACK',
+    screen: 'COMPLAINTS_MAIN',
+    permission: P.COMPLAINT_VIEW,
+    roles: ['RESDN'],
+  },
+  {
     label: 'Entrega de turno',
     icon: 'swap-horizontal',
     route: 'SHIFT_HANDOVER_STACK',

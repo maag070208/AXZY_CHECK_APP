@@ -37,6 +37,13 @@ export const createResident = async (data: any) => {
     return await post<ResidentUser>('/residents', data);
 };
 
+export const updateOwnResidentProfile = async (
+    id: number,
+    data: Partial<{ phoneNumber: string | null; email: string | null; emergencyContact: string | null; emergencyPhone: string | null; photoUrl: string | null; photoKey: string | null }>,
+) => {
+    return await put<ResidentUser>(`/residents/${id}/profile`, data);
+};
+
 export const updateResident = async (id: number, data: any) => {
     return await put<ResidentUser>(`/residents/${id}`, data);
 };
@@ -53,6 +60,8 @@ export interface ResidentContact {
     phone?: string;
     email?: string;
     relationship?: string;
+    photoUrl?: string | null;
+    photoKey?: string | null;
 }
 
 export const getResidentContacts = async (residentId: number) => {

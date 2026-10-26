@@ -1,26 +1,45 @@
-
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import dayjs from 'dayjs';
-import React, { useState } from 'react';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { ActivityIndicator, Icon, Text, TextInput } from 'react-native-paper';
+import { HelperText, Icon, Text, TextInput } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from '../../../core/store/hooks';
 import { showToast } from '../../../core/store/slices/toast.slice';
-import { createInvitation } from '../service/invitation.service';
-import { getResidentById } from '../../residents/service/resident.service';
-import { getCatalog } from '../../../shared/service/catalog.service';
 import { UserRole } from '../../../core/types/IUser';
+import { AppButton } from '../../../shared/components/AppButton';
+import { getCatalog } from '../../../shared/service/catalog.service';
+import { tokens } from '../../../shared/theme/tokens';
+import { nameError, textError } from '../../../shared/validation/fields';
+import { getResidentById } from '../../residents/service/resident.service';
+import { createInvitation } from '../service/invitation.service';
+
+/** Sección numerada, igual que en el reporte del guardia: "1. INVITADO" + pista a la derecha. */
+const SectionLabel = ({ index, text, hint }: { index: number; text: string; hint?: string }) => (
+    <View style={styles.labelRow}>
+        <Text style={styles.label}>{`${index}. ${text}`}</Text>
+        {hint ? <Text style={styles.labelHint}>{hint}</Text> : null}
+    </View>
+);
+
+/** Ícono del tipo de acceso según el código del catálogo. */
+const typeIcon = (code: string) => {
+    if (code.includes('PROV')) return 'truck-delivery-outline';
+    if (code.includes('SERV')) return 'tools';
+    if (code.includes('RESD')) return 'home-account';
+    if (code.includes('COMM')) return 'account-multiple';
+    return 'account-group-outline';
+};
 
 export const InvitationFormScreen = () => {
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
     const insets = useSafeAreaInsets();
     const dispatch = useDispatch();
-    const user  = useAppSelector(state => state.userState);
+    const user = useAppSelector(state => state.userState);
 
     // Params from navigation
     const { guestName = '', propertyId = null, residentId = null } = route.params || {};
@@ -42,7 +61,7 @@ export const InvitationFormScreen = () => {
     const [showPicker, setShowPicker] = useState<'from' | 'until' | null>(null);
     const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
 
-    React.useEffect(() => {
+    useEffect(() => {
         const resolveProperty = async () => {
             if (!currentPropertyId && user.role === UserRole.RESDN) {
                 setFetchingProp(true);
@@ -81,9 +100,22 @@ export const InvitationFormScreen = () => {
         loadInvitationTypes();
     }, [user.id, user.role]);
 
+    // Mismas reglas que el API (invitation.schemas.ts): nombre 2-120 letras, notas 2-2000.
+    const guestNameMsg = nameError(name, { required: true, max: 120 });
+    const notesMsg = textError(notes, { min: 2, max: 2000 });
+    const busy = loading || fetchingProp || fetchingTypes;
+
     const handleSave = async () => {
-        if (!name.trim()) {
-            dispatch(showToast({ type: 'error', message: 'El nombre del invitado es requerido' }));
+        if (guestNameMsg) {
+            dispatch(showToast({ type: 'error', message: `Nombre del invitado: ${guestNameMsg.toLowerCase()}` }));
+            return;
+        }
+        if (notesMsg) {
+            dispatch(showToast({ type: 'error', message: `Notas: ${notesMsg.toLowerCase()}` }));
+            return;
+        }
+        if (validUntil.getTime() <= validFrom.getTime()) {
+            dispatch(showToast({ type: 'error', message: 'La fecha final debe ser posterior a la inicial' }));
             return;
         }
 
@@ -106,14 +138,12 @@ export const InvitationFormScreen = () => {
                 typeId: selectedTypeId,
                 validFrom: validFrom.toISOString(),
                 validUntil: validUntil.toISOString(),
-                notes: notes.trim() || undefined,
+                notes: notes.trim() ? notes.trim() : undefined,
                 status: 'PENDING',
                 createdById: user?.id
             };
 
-            console.log('[Invitation] Sending payload:', payload);
-
-            const res:any = await createInvitation(payload);
+            const res: any = await createInvitation(payload);
 
             if (res.success) {
                 dispatch(showToast({ type: 'success', message: 'Invitación creada correctamente' }));
@@ -138,18 +168,17 @@ export const InvitationFormScreen = () => {
 
         if (selectedDate && showPicker) {
             if (pickerMode === 'date') {
-                // If it was date, now show time
+                // Primero la fecha; luego la hora
                 const baseDate = showPicker === 'from' ? validFrom : validUntil;
                 const newDate = new Date(selectedDate);
                 newDate.setHours(baseDate.getHours());
                 newDate.setMinutes(baseDate.getMinutes());
-                
+
                 if (showPicker === 'from') setValidFrom(newDate);
                 else setValidUntil(newDate);
-                
+
                 setPickerMode('time');
             } else {
-                // Time selected, finish
                 const baseDate = showPicker === 'from' ? validFrom : validUntil;
                 const newDate = new Date(baseDate);
                 newDate.setHours(selectedDate.getHours());
@@ -157,7 +186,7 @@ export const InvitationFormScreen = () => {
 
                 if (showPicker === 'from') setValidFrom(newDate);
                 else setValidUntil(newDate);
-                
+
                 setShowPicker(null);
                 setPickerMode('date');
             }
@@ -165,131 +194,137 @@ export const InvitationFormScreen = () => {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <KeyboardAwareScrollView 
-                contentContainerStyle={styles.scrollContent}
-                enableOnAndroid={true}
-                extraScrollHeight={100}
+        <View style={styles.screen}>
+            <KeyboardAwareScrollView
+                contentContainerStyle={styles.content}
+                enableOnAndroid
+                extraScrollHeight={120}
+                keyboardShouldPersistTaps="handled"
             >
+                <SectionLabel index={1} text="INVITADO" hint="Solo letras" />
                 <View style={styles.card}>
-                    <Text style={styles.sectionLabel}>Información del Invitado</Text>
                     <TextInput
-                        label="Nombre Completo"
+                        label="Nombre completo"
                         value={name}
                         onChangeText={setName}
                         mode="outlined"
-                        style={styles.input}
-                        outlineColor="#E2E8F0"
-                        activeOutlineColor="#0F4C3A"
                         placeholder="Ej. Juan Pérez"
+                        maxLength={120}
+                        error={!!guestNameMsg && name.length > 0}
+                        outlineColor={tokens.color.border}
+                        activeOutlineColor={tokens.color.primary}
+                        theme={{ roundness: 14 }}
+                        style={styles.input}
                         left={<TextInput.Icon icon="account-outline" />}
+                        accessibilityLabel="Nombre del invitado"
                     />
-
-                    <View style={styles.typeSelector}>
-                        {invitationTypes.map((t) => {
-                            let iconName = "account-group-outline";
-                            if (t.name.includes('PROV')) iconName = "truck-delivery-outline";
-                            if (t.name.includes('SERV')) iconName = "tools";
-                            if (t.name.includes('RESD')) iconName = "home-account";
-                            if (t.name.includes('COMM')) iconName = "account-multiple";
-
-                            return (
-                                <TouchableOpacity 
-                                    key={t.id}
-                                    style={[styles.typeBtn, selectedTypeId === t.id && styles.typeBtnActive]}
-                                    onPress={() => setSelectedTypeId(t.id)}
-                                >
-                                    <View style={[styles.typeIconCircle, selectedTypeId === t.id && styles.typeIconCircleActive]}>
-                                        <Icon 
-                                            source={iconName} 
-                                            size={22} 
-                                            color={selectedTypeId === t.id ? '#FFFFFF' : '#64748B'} 
-                                        />
-                                    </View>
-                                    <Text style={[styles.typeText, selectedTypeId === t.id && styles.typeTextActive]} numberOfLines={1}>
-                                        {t.value}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                        {fetchingTypes && <ActivityIndicator size="small" color="#0F4C3A" style={{ width: '100%', marginTop: 10 }} />}
-                    </View>
+                    <HelperText type={guestNameMsg && name.length > 0 ? 'error' : 'info'} visible>
+                        {guestNameMsg && name.length > 0 ? guestNameMsg : 'De 2 a 120 caracteres.'}
+                    </HelperText>
                 </View>
 
+                <SectionLabel index={2} text="TIPO DE ACCESO" />
+                <View style={styles.grid}>
+                    {invitationTypes.map((t) => {
+                        const selected = selectedTypeId === t.id;
+                        return (
+                            <TouchableOpacity
+                                key={t.id}
+                                accessibilityRole="radio"
+                                accessibilityState={{ selected }}
+                                accessibilityLabel={t.value}
+                                onPress={() => setSelectedTypeId(t.id)}
+                                style={[styles.tile, selected && styles.tileSelected]}
+                                activeOpacity={0.85}
+                            >
+                                <View style={[styles.radio, selected && styles.radioSelected]}>
+                                    {selected ? <View style={styles.radioDot} /> : null}
+                                </View>
+                                <Icon source={typeIcon(t.name)} size={18} color={selected ? tokens.color.primary : tokens.color.textMuted} />
+                                <Text style={[styles.tileText, selected && styles.tileTextSelected]} numberOfLines={2}>
+                                    {t.value}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                    {fetchingTypes && <ActivityIndicator size="small" color={tokens.color.primary} style={styles.loader} />}
+                </View>
+
+                <SectionLabel index={3} text="VIGENCIA" hint="Inicio y expiración" />
                 <View style={styles.card}>
-                    <Text style={styles.sectionLabel}>Vigencia del Acceso</Text>
-                    
-                    <TouchableOpacity 
-                        style={styles.dateField} 
+                    <TouchableOpacity
+                        style={styles.dateRow}
+                        accessibilityRole="button"
+                        accessibilityLabel="Cambiar fecha de inicio"
                         onPress={() => { setShowPicker('from'); setPickerMode('date'); }}
                     >
-                        <View style={styles.dateIconWrapper}>
-                            <Icon source="calendar-clock" size={20} color="#0F4C3A" />
+                        <View style={styles.dateIcon}>
+                            <Icon source="calendar-clock" size={18} color={tokens.color.primary} />
                         </View>
                         <View style={styles.dateInfo}>
                             <Text style={styles.dateLabel}>Inicia</Text>
-                            <Text style={styles.dateValue}>{dayjs(validFrom).format('DD/MM/YYYY - HH:mm')}</Text>
+                            <Text style={styles.dateValue}>{dayjs(validFrom).format('DD/MM/YYYY · HH:mm')}</Text>
                         </View>
-                        <Icon source="pencil" size={16} color="#CBD5E1" />
+                        <Icon source="chevron-right" size={20} color={tokens.color.textHint} />
                     </TouchableOpacity>
 
                     <View style={styles.divider} />
 
-                    <TouchableOpacity 
-                        style={styles.dateField} 
+                    <TouchableOpacity
+                        style={styles.dateRow}
+                        accessibilityRole="button"
+                        accessibilityLabel="Cambiar fecha de expiración"
                         onPress={() => { setShowPicker('until'); setPickerMode('date'); }}
                     >
-                        <View style={styles.dateIconWrapper}>
-                            <Icon source="calendar-remove" size={20} color="#F87171" />
+                        <View style={[styles.dateIcon, styles.dateIconDanger]}>
+                            <Icon source="calendar-remove" size={18} color={tokens.color.danger} />
                         </View>
                         <View style={styles.dateInfo}>
                             <Text style={styles.dateLabel}>Expira</Text>
-                            <Text style={styles.dateValue}>{dayjs(validUntil).format('DD/MM/YYYY - HH:mm')}</Text>
+                            <Text style={styles.dateValue}>{dayjs(validUntil).format('DD/MM/YYYY · HH:mm')}</Text>
                         </View>
-                        <Icon source="pencil" size={16} color="#CBD5E1" />
+                        <Icon source="chevron-right" size={20} color={tokens.color.textHint} />
                     </TouchableOpacity>
                 </View>
 
+                <SectionLabel index={4} text="NOTAS" hint="Opcional" />
                 <View style={styles.card}>
-                    <Text style={styles.sectionLabel}>Notas Adicionales</Text>
                     <TextInput
-                        placeholder="Ej. Entra en vehículo blanco, trae herramienta..."
+                        placeholder="Ej. Entra en vehículo blanco, trae herramienta…"
                         value={notes}
                         onChangeText={setNotes}
                         mode="outlined"
                         multiline
                         numberOfLines={3}
-                        style={styles.textArea}
-                        outlineColor="#E2E8F0"
-                        activeOutlineColor="#0F4C3A"
+                        maxLength={2000}
+                        error={!!notesMsg && notes.length > 0}
+                        outlineColor={tokens.color.border}
+                        activeOutlineColor={tokens.color.primary}
+                        theme={{ roundness: 14 }}
+                        style={styles.input}
+                        accessibilityLabel="Notas del pase"
                     />
+                    <HelperText type={notesMsg && notes.length > 0 ? 'error' : 'info'} visible>
+                        {notesMsg && notes.length > 0 ? notesMsg : 'De 2 a 2000 caracteres.'}
+                    </HelperText>
                 </View>
 
-                <View style={styles.footerInfo}>
-                    <View style={styles.infoIcon}>
-                        <Icon source="information-outline" size={16} color="#64748B" />
-                    </View>
+                <View style={styles.infoRow}>
+                    <Icon source="information-outline" size={16} color={tokens.color.textMuted} />
                     <Text style={styles.infoText}>
-                        El código QR se generará automáticamente después de guardar y podrá ser compartido por WhatsApp o Email.
+                        El QR se genera al guardar y puedes compartirlo por WhatsApp o correo.
                     </Text>
                 </View>
             </KeyboardAwareScrollView>
 
-            <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-                <TouchableOpacity 
-                    style={[styles.mainBtn, (loading || fetchingProp || fetchingTypes) && styles.mainBtnDisabled]}
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
+                <AppButton
+                    label="Generar pase QR"
+                    icon="qrcode"
                     onPress={handleSave}
-                    disabled={loading || fetchingProp || fetchingTypes}
-                >
-                    {(loading || fetchingProp) ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                        <>
-                            <Icon source="qrcode" size={20} color="#FFFFFF" />
-                            <Text style={styles.mainBtnText}>Generar Pase QR</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
+                    disabled={busy}
+                    loading={loading || fetchingProp}
+                />
             </View>
 
             {showPicker && (
@@ -307,174 +342,69 @@ export const InvitationFormScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#F8FAFC',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingBottom: 16,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    backBtn: {
-        padding: 4,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#1E293B',
-    },
-    scrollContent: {
-        padding: 20,
-    },
+    screen: { flex: 1, backgroundColor: tokens.color.screen },
+    content: { padding: 16, paddingBottom: 24 },
+    labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginBottom: 10 },
+    label: tokens.font.label,
+    labelHint: tokens.font.hint,
     card: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 16,
-        marginBottom: 16,
+        backgroundColor: tokens.color.card,
+        borderRadius: tokens.radius.card,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
-        elevation: 1,
+        borderColor: tokens.color.border,
+        padding: 12,
     },
-    sectionLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#64748B',
-        marginBottom: 12,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    input: {
-        backgroundColor: '#FFFFFF',
-        marginBottom: 16,
-    },
-    typeSelector: {
+    input: { backgroundColor: tokens.color.card, fontSize: 14 },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 8 },
+    tile: {
+        width: '48.5%',
+        minHeight: 48,
+        borderRadius: tokens.radius.tile,
+        borderWidth: 1,
+        borderColor: tokens.color.border,
+        backgroundColor: tokens.color.card,
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 10,
-        justifyContent: 'space-between',
-    },
-    typeBtn: {
-        width: '48%',
-        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        paddingHorizontal: 8,
-        borderRadius: 16,
+        gap: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+    },
+    tileSelected: { borderColor: tokens.color.primary, backgroundColor: tokens.color.primarySoft },
+    radio: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
         borderWidth: 1.5,
-        borderColor: '#F1F5F9',
-        backgroundColor: '#FFFFFF',
-        marginBottom: 4,
-    },
-    typeBtnActive: {
-        backgroundColor: '#0F4C3A',
-        borderColor: '#0F4C3A',
-        elevation: 4,
-        shadowColor: '#0F4C3A',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-    },
-    typeIconCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#F8FAFC',
+        borderColor: tokens.color.borderStrong,
+        alignItems: 'center',
         justifyContent: 'center',
+    },
+    radioSelected: { borderColor: tokens.color.primary },
+    radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: tokens.color.primary },
+    tileText: { ...tokens.font.tileText, flex: 1 },
+    tileTextSelected: { color: tokens.color.primary },
+    loader: { width: '100%', marginTop: 8 },
+    dateRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
+    dateIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: tokens.radius.icon,
+        backgroundColor: tokens.color.primarySoft,
         alignItems: 'center',
-        marginBottom: 8,
-    },
-    typeIconCircleActive: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-    },
-    typeText: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#64748B',
-        textAlign: 'center',
-    },
-    typeTextActive: {
-        color: '#FFFFFF',
-    },
-    dateField: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-    },
-    dateIconWrapper: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: '#F1F5F9',
         justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
     },
-    dateInfo: {
-        flex: 1,
-    },
-    dateLabel: {
-        fontSize: 12,
-        color: '#94A3B8',
-        marginBottom: 2,
-    },
-    dateValue: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#1E293B',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#F1F5F9',
-    },
-    textArea: {
-        backgroundColor: '#FFFFFF',
-        minHeight: 80,
-    },
-    footerInfo: {
-        flexDirection: 'row',
-        gap: 10,
-        paddingHorizontal: 8,
-        marginBottom: 40,
-    },
-    infoIcon: {
-        marginTop: 2,
-    },
-    infoText: {
-        flex: 1,
-        fontSize: 12,
-        color: '#94A3B8',
-        lineHeight: 18,
-    },
-    bottomBar: {
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 20,
-        paddingTop: 16,
+    dateIconDanger: { backgroundColor: tokens.color.dangerSoft },
+    dateInfo: { flex: 1 },
+    dateLabel: { fontSize: 11, fontWeight: '700', color: tokens.color.textMuted, letterSpacing: 0.3 },
+    dateValue: { fontSize: 14, fontWeight: '700', color: tokens.color.textStrong, marginTop: 2 },
+    divider: { height: 1, backgroundColor: tokens.color.border, marginVertical: 6 },
+    infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, paddingHorizontal: 4 },
+    infoText: { flex: 1, fontSize: 12, color: tokens.color.textMuted, lineHeight: 17 },
+    footer: {
+        backgroundColor: tokens.color.card,
+        paddingHorizontal: 16,
+        paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
-    },
-    mainBtn: {
-        backgroundColor: '#0F4C3A',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        height: 54,
-        borderRadius: 16,
-        marginBottom: Platform.OS === 'ios' ? 16 : 12
-    },
-    mainBtnDisabled: {
-        opacity: 0.7,
-    },
-    mainBtnText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '700',
+        borderTopColor: tokens.color.border,
     },
 });

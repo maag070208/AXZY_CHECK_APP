@@ -11,6 +11,7 @@ import { getPropertiesList, Property } from '../../properties/service/property.s
 import { getPaginatedInvitations, Invitation } from '../service/invitation.service';
 import { RootState } from '../../../core/store/redux.config';
 import { useSelector } from 'react-redux';
+import { tokens } from '../../../shared/theme/tokens';
 
 export const InvitationsScreen = () => {
     const insets = useSafeAreaInsets();
@@ -43,12 +44,13 @@ export const InvitationsScreen = () => {
     useEffect(() => {
         const fetchCatalogs = async () => {
             try {
+                // El residente no tiene properties.view: no pedimos el listado de propiedades.
                 const [propsRes, statusRes] = await Promise.all([
-                    getPropertiesList(),
+                    user.role === 'RESDN' ? Promise.resolve(null) : getPropertiesList(),
                     getCatalog('invitation_status')
                 ]);
                 
-                if (propsRes.success && propsRes.data) setProperties(propsRes.data);
+                if (propsRes?.success && propsRes.data) setProperties(propsRes.data);
                 if (statusRes.success && statusRes.data) setStatusCatalog(statusRes.data);
             } catch (e) {
                 console.error('Error fetching catalogs', e);
@@ -138,9 +140,9 @@ export const InvitationsScreen = () => {
         switch(status) {
             case 'PENDING': return { label: 'En Espera', color: '#F59E0B', bg: '#FEF3C7', icon: 'clock-outline' };
             case 'ENTERED': return { label: 'Dentro', color: '#10B981', bg: '#ECFDF5', icon: 'check-circle-outline' };
-            case 'EXITED': return { label: 'Salió', color: '#64748B', bg: '#F1F5F9', icon: 'exit-run' };
-            case 'EXPIRED': return { label: 'Vencido', color: '#EF4444', bg: '#FEE2E2', icon: 'calendar-remove' };
-            default: return { label: status, color: '#64748B', bg: '#F8FAFC', icon: 'help-circle-outline' };
+            case 'EXITED': return { label: 'Salió', color: tokens.color.textMuted, bg: '#F1F5F9', icon: 'exit-run' };
+            case 'EXPIRED': return { label: 'Vencido', color: tokens.color.danger, bg: '#FEE2E2', icon: 'calendar-remove' };
+            default: return { label: status, color: tokens.color.textMuted, bg: tokens.color.screen, icon: 'help-circle-outline' };
         }
     };
 
@@ -156,8 +158,8 @@ export const InvitationsScreen = () => {
                 <Avatar.Icon
                     size={40}
                     icon={isProvider ? 'moped' : 'account-circle'}
-                    style={[styles.iAvatar, { backgroundColor: isProvider ? '#EFF6FF' : '#E8F7EF' }]}
-                    color={isProvider ? '#3B82F6' : '#065911'}
+                    style={[styles.iAvatar, { backgroundColor: isProvider ? '#EFF6FF' : tokens.color.primarySoft }]}
+                    color={isProvider ? '#3B82F6' : tokens.color.primary}
                 />
                 <View style={styles.iCopy}>
                     <View style={styles.iNameLine}>
@@ -192,7 +194,7 @@ export const InvitationsScreen = () => {
     };
 
     return (
-        <SafeAreaView style={[ModernStyles.screenContainer, { backgroundColor: '#f8fafc' }]} edges={['left', 'right', 'bottom']}>
+        <SafeAreaView style={[ModernStyles.screenContainer, { backgroundColor: tokens.color.screen }]} edges={['left', 'right', 'bottom']}>
             <View style={styles.header}>
                 <View style={styles.compactSummary}>
                     <View style={styles.compactChip}>
@@ -216,7 +218,7 @@ export const InvitationsScreen = () => {
                         value={search}
                         style={styles.searchBar}
                         inputStyle={styles.searchInput}
-                        iconColor="#0F4C3A"
+                        iconColor="#065911"
                         placeholderTextColor="#94A3B8"
                         onIconPress={() => fetchInvitationsFromServer(1)}
                         onSubmitEditing={() => fetchInvitationsFromServer(1)}
@@ -251,7 +253,7 @@ export const InvitationsScreen = () => {
 
             {loading && page === 1 && !refreshing ? (
                 <View style={styles.loadingCenter}>
-                    <ActivityIndicator size="large" color="#0F4C3A" />
+                    <ActivityIndicator size="large" color="#065911" />
                     <Text style={styles.loadingText}>Buscando invitaciones...</Text>
                 </View>
             ) : (
@@ -259,10 +261,10 @@ export const InvitationsScreen = () => {
                     data={invitations}
                     renderItem={renderItem}
                     keyExtractor={(item) => item.id.toString()}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#0F4C3A"]} />}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#065911"]} />}
                     onEndReached={handleLoadMore}
                     onEndReachedThreshold={0.5}
-                    ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color="#0F4C3A" /> : null}
+                    ListFooterComponent={() => loadingMore ? <ActivityIndicator style={{ margin: 16 }} color="#065911" /> : null}
                     onScroll={onScroll}
                     contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
                     ListEmptyComponent={
@@ -293,23 +295,23 @@ export const InvitationsScreen = () => {
 
 const styles = StyleSheet.create({
     compactSummary: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-    compactChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EEE9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
-    compactText: { fontSize: 10, fontWeight: '800', color: '#64748B' },
-    iRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 10 },
-    iAvatar: { backgroundColor: '#E8F7EF' },
+    compactChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: tokens.color.card, borderWidth: 1, borderColor: tokens.color.border, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+    compactText: { fontSize: 10, fontWeight: '800', color: tokens.color.textMuted },
+    iRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: tokens.color.card, paddingHorizontal: 12, paddingVertical: 10 },
+    iAvatar: { backgroundColor: tokens.color.primarySoft },
     iCopy: { flex: 1, minWidth: 0 },
     iNameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    iName: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+    iName: { flexShrink: 1, fontSize: 13, fontWeight: '800', color: tokens.color.textStrong },
     iProvider: { backgroundColor: '#EFF6FF', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 999 },
     iProviderText: { fontSize: 7, fontWeight: '900', color: '#3B82F6' },
     iMetaLine: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-    iMeta: { fontSize: 9.5, fontWeight: '600', color: '#94A3B8', flexShrink: 1 },
+    iMeta: { fontSize: 9.5, fontWeight: '600', color: tokens.color.textHint, flexShrink: 1 },
     iStatusCol: { alignItems: 'flex-end', gap: 4 },
     iStatus: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
     iDot: { width: 5, height: 5, borderRadius: 3 },
     iStatusText: { fontSize: 8, fontWeight: '900' },
     header: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: tokens.color.card,
         paddingHorizontal: 20,
         paddingTop: 12,
         paddingBottom: 12, // Adjusted for status filters
@@ -325,11 +327,11 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#1E293B',
+        color: tokens.color.textStrong,
     },
     headerSubtitle: {
         fontSize: 12,
-        color: '#64748B',
+        color: tokens.color.textMuted,
         marginTop: -4,
     },
     searchContainer: {
@@ -358,22 +360,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 12,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: tokens.color.screen,
         borderWidth: 1,
         borderColor: '#F1F5F9',
         gap: 8
     },
     statusTabActive: {
-        backgroundColor: '#0F4C3A',
-        borderColor: '#0F4C3A',
+        backgroundColor: tokens.color.primary,
+        borderColor: tokens.color.primary,
     },
     statusTabText: {
         fontSize: 13,
         fontWeight: '700',
-        color: '#64748B'
+        color: tokens.color.textMuted
     },
     statusTabTextActive: {
-        color: '#FFFFFF'
+        color: tokens.color.card
     },
     dot: {
         width: 6,
@@ -392,7 +394,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 12,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: tokens.color.screen,
         borderWidth: 1,
         borderColor: '#F1F5F9'
     },
@@ -403,7 +405,7 @@ const styles = StyleSheet.create({
     filterText: {
         fontSize: 13,
         fontWeight: '600',
-        color: '#64748B'
+        color: tokens.color.textMuted
     },
     filterTextActive: {
         color: '#10B981'
@@ -411,7 +413,7 @@ const styles = StyleSheet.create({
     verticalDivider: {
         width: 1,
         height: 20,
-        backgroundColor: '#E2E8F0',
+        backgroundColor: tokens.color.border,
         marginHorizontal: 4
     },
     listContent: {
@@ -461,7 +463,7 @@ const styles = StyleSheet.create({
     guestName: {
         fontSize: 16,
         fontWeight: '800',
-        color: '#1E293B',
+        color: tokens.color.textStrong,
         maxWidth: '75%'
     },
     providerBadge: {
@@ -477,11 +479,11 @@ const styles = StyleSheet.create({
     },
     propertyInfo: {
         fontSize: 12,
-        color: '#64748B'
+        color: tokens.color.textMuted
     },
     propertyValue: {
         fontWeight: '700',
-        color: '#0F4C3A'
+        color: tokens.color.primary
     },
     statusBadge: {
         flexDirection: 'row',
@@ -514,18 +516,18 @@ const styles = StyleSheet.create({
     codeText: {
         fontSize: 13,
         fontWeight: '800',
-        color: '#475569',
+        color: tokens.color.textBody,
         fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
         letterSpacing: 0.5
     },
     validityText: {
         fontSize: 12,
-        color: '#1E293B',
+        color: tokens.color.textStrong,
         fontWeight: '700'
     },
     dateLabelCompact: {
         fontSize: 10,
-        color: '#64748B',
+        color: tokens.color.textMuted,
         fontWeight: '400'
     },
     emptyContainer: {
@@ -535,7 +537,7 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 16,
-        color: '#94A3B8',
+        color: tokens.color.textHint,
         marginTop: 16,
         fontWeight: '600',
         textAlign: 'center'
@@ -544,12 +546,12 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f8fafc'
+        backgroundColor: tokens.color.screen
     },
     loadingText: {
         marginTop: 12,
         fontSize: 14,
-        color: '#64748B',
+        color: tokens.color.textMuted,
         fontWeight: '600'
     },
     fab: {

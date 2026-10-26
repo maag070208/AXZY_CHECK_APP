@@ -6,17 +6,16 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import {
-  Text,
-  Icon,
-  ActivityIndicator,
-  Modal,
-  TextInput,
-  Button,
-} from 'react-native-paper';
+import { Text, Icon, ActivityIndicator, Modal, TextInput, Button, HelperText } from 'react-native-paper';
 import { useDispatch } from 'react-redux';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { showToast } from '../../../core/store/slices/toast.slice';
+import { cleanPhone, nameError, phoneError, textError } from '../../../shared/validation/fields';
+import { CameraModal } from '../../check/components/CameraModal';
+import { PhotoSourceDialog } from '../../../shared/components/PhotoSourceDialog';
+import { pickPhotoFromGallery } from '../../../shared/service/photo-picker.service';
+import { uploadFile } from '../../../shared/service/upload.service';
+import { Image } from 'react-native';
 import {
   createResidentContact,
   updateResidentContact,
@@ -24,6 +23,7 @@ import {
   getResidentRelationships,
 } from '../service/resident.service';
 import { SearchComponent } from '../../../shared/components/SearchComponent';
+import { tokens } from '../../../shared/theme/tokens';
 
 interface Props {
   visible: boolean;
@@ -44,6 +44,11 @@ export const ResidentContactModal = ({
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoKey, setPhotoKey] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [relationship, setRelationship] = useState('');
   const [customRelationship, setCustomRelationship] = useState('');
   const [showCustomRelationship, setShowCustomRelationship] = useState(false);
@@ -58,6 +63,8 @@ export const ResidentContactModal = ({
       if (contact) {
         setName(contact.name);
         setPhone(contact.phone || '');
+        setPhotoUrl((contact as any).photoUrl ?? null);
+        setPhotoKey((contact as any).photoKey ?? null);
         setRelationship(contact.relationship || '');
         setCustomRelationship('');
         setShowCustomRelationship(false);
@@ -71,7 +78,8 @@ export const ResidentContactModal = ({
     try {
       const res = await getResidentRelationships() as any;
       if (res.success && res.data) {
-        const options = res.data.map((r: any) => ({ label: r.name, value: r.name }));
+        // La etiqueta visible es `value` ("Padre", "Hijo(a)"); `name` es el código interno en mayúsculas.
+        const options = res.data.map((r: any) => ({ label: r.value, value: r.value }));
         options.push({ label: 'Otro', value: 'Otro' });
         setRelationshipOptions(options);
       }
@@ -83,24 +91,48 @@ export const ResidentContactModal = ({
   const resetForm = () => {
     setName('');
     setPhone('');
+    setPhotoUrl(null);
+    setPhotoKey(null);
     setRelationship('');
     setCustomRelationship('');
     setShowCustomRelationship(false);
   };
 
+  // Errores en vivo: el botón guardar se valida igual que el API.
+  const nameMsg = nameError(name, { required: true, max: 120 });
+  const phoneMsg = phoneError(phone);
+  const customMsg = showCustomRelationship ? textError(customRelationship, { min: 2, max: 60, required: true }) : undefined;
+
   const validate = () => {
-    if (!name.trim()) {
-      dispatch(showToast({ type: 'error', message: 'El nombre es obligatorio' }));
+    if (nameMsg || phoneMsg || customMsg) {
+      dispatch(showToast({ type: 'error', message: nameMsg || phoneMsg || customMsg || 'Revisa los datos del contacto' }));
       return false;
     }
-    if (phone.trim()) {
-      const numbersOnly = phone.replace(/\D/g, '');
-      if (numbersOnly.length !== 10) {
-        dispatch(showToast({ type: 'error', message: 'El teléfono debe ser de 10 dígitos' }));
-        return false;
-      }
-    }
     return true;
+  };
+
+  const onPhotoPicked = async (uri: string) => {
+    setPhotoBusy(true);
+    try {
+      const uploaded = await uploadFile(uri, 'image', 'contact-photo');
+      if (!uploaded.success || !uploaded.url || !uploaded.key) throw new Error(uploaded.error ?? 'No se pudo subir la foto');
+      setPhotoUrl(uploaded.url);
+      setPhotoKey(uploaded.key);
+    } catch (err) {
+      dispatch(showToast({ type: 'error', message: err instanceof Error ? err.message : 'No se pudo subir la foto' }));
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const pickFromGallery = async () => {
+    setSourceOpen(false);
+    try {
+      const uri = await pickPhotoFromGallery();
+      if (uri) await onPhotoPicked(uri);
+    } catch (err) {
+      dispatch(showToast({ type: 'error', message: err instanceof Error ? err.message : 'No se pudo abrir la galería' }));
+    }
   };
 
   const handleSave = async () => {
@@ -111,8 +143,10 @@ export const ResidentContactModal = ({
       const finalRelation = showCustomRelationship ? customRelationship : relationship;
       const payload = {
         name: name.trim(),
-        phone: phone.trim() || null,
+        phone: phone.trim() ? cleanPhone(phone) : null,
         relationship: finalRelation.trim() || null,
+        photoUrl,
+        photoKey,
       };
 
       let res: any;
@@ -151,7 +185,7 @@ export const ResidentContactModal = ({
               {contact ? 'Editar Contacto' : 'Nuevo Contacto'}
             </Text>
             <TouchableOpacity onPress={onDismiss} style={styles.modalClose}>
-              <Icon source="close" size={24} color="#94A3B8" />
+              <Icon source="close" size={24} color={tokens.color.textHint} />
             </TouchableOpacity>
           </View>
 
@@ -162,6 +196,29 @@ export const ResidentContactModal = ({
             contentContainerStyle={{ flexGrow: 1 }}
           >
             <View style={styles.modalBody}>
+              <View style={{ alignItems: 'center', marginBottom: 8 }}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={photoUrl ? 'Cambiar foto del contacto' : 'Agregar foto del contacto'}
+                  onPress={() => setSourceOpen(true)}
+                  disabled={photoBusy}
+                  style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: tokens.color.primarySoft, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}
+                >
+                  {photoUrl ? (
+                    <Image source={{ uri: photoUrl }} style={{ width: 96, height: 96 }} accessibilityLabel="Foto del contacto" />
+                  ) : (
+                    <Icon source="camera-plus-outline" size={32} color={tokens.color.primary} />
+                  )}
+                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
+                  <Text style={{ color: tokens.color.primary, fontWeight: '600' }}>{photoUrl ? 'Cambiar foto' : 'Agregar foto (opcional)'}</Text>
+                  {photoUrl ? (
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Quitar foto" onPress={() => { setPhotoUrl(null); setPhotoKey(null); }}>
+                      <Text style={{ color: tokens.color.danger, fontWeight: '600' }}>Quitar</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Nombre completo</Text>
                 <TextInput
@@ -169,13 +226,18 @@ export const ResidentContactModal = ({
                   value={name}
                   onChangeText={setName}
                   placeholder="Ej. Ana García"
+                  maxLength={120}
+                  error={!!nameMsg && name.length > 0}
                   style={styles.input}
-                  outlineColor="#E2E8F0"
-                  activeOutlineColor="#0F4C3A"
-                  textColor="#1A1C3D"
-                  theme={{ roundness: 12 }}
-                  left={<TextInput.Icon icon="account" color="#64748B" />}
+                  outlineColor={tokens.color.border}
+                  activeOutlineColor={tokens.color.primary}
+                  textColor={tokens.color.textStrong}
+                  theme={{ roundness: 14 }}
+                  left={<TextInput.Icon icon="account" color={tokens.color.textMuted} />}
                 />
+                <HelperText type={nameMsg && name.length > 0 ? 'error' : 'info'} visible>
+                  {nameMsg && name.length > 0 ? nameMsg : 'Solo letras, de 2 a 120 caracteres.'}
+                </HelperText>
               </View>
 
               <View style={styles.inputGroup}>
@@ -201,13 +263,18 @@ export const ResidentContactModal = ({
                     value={customRelationship}
                     onChangeText={setCustomRelationship}
                     placeholder="Ej. Tío, Primo, Vecino"
+                    maxLength={60}
+                    error={!!customMsg && customRelationship.length > 0}
                     style={styles.input}
-                    outlineColor="#E2E8F0"
-                    activeOutlineColor="#0F4C3A"
-                    textColor="#1A1C3D"
-                    theme={{ roundness: 12 }}
-                    left={<TextInput.Icon icon="account-details" color="#64748B" />}
+                    outlineColor={tokens.color.border}
+                    activeOutlineColor={tokens.color.primary}
+                    textColor={tokens.color.textStrong}
+                    theme={{ roundness: 14 }}
+                    left={<TextInput.Icon icon="account-details" color={tokens.color.textMuted} />}
                   />
+                  <HelperText type={customMsg && customRelationship.length > 0 ? 'error' : 'info'} visible>
+                    {customMsg && customRelationship.length > 0 ? customMsg : 'De 2 a 60 caracteres.'}
+                  </HelperText>
                 </View>
               )}
 
@@ -217,27 +284,46 @@ export const ResidentContactModal = ({
                   mode="outlined"
                   value={phone}
                   onChangeText={setPhone}
-                  placeholder="+56 9 1234 5678"
-                  keyboardType="phone-pad"
+                  placeholder="10 dígitos"
+                  keyboardType="number-pad"
                   maxLength={10}
+                  error={!!phoneMsg && phone.length > 0}
                   style={styles.input}
-                  outlineColor="#E2E8F0"
-                  activeOutlineColor="#0F4C3A"
-                  textColor="#1A1C3D"
-                  theme={{ roundness: 12 }}
-                  left={<TextInput.Icon icon="phone" color="#64748B" />}
+                  outlineColor={tokens.color.border}
+                  activeOutlineColor={tokens.color.primary}
+                  textColor={tokens.color.textStrong}
+                  theme={{ roundness: 14 }}
+                  left={<TextInput.Icon icon="phone" color={tokens.color.textMuted} />}
                 />
+                <HelperText type={phoneMsg && phone.length > 0 ? 'error' : 'info'} visible>
+                  {phoneMsg && phone.length > 0 ? phoneMsg : 'Opcional. Exactamente 10 dígitos.'}
+                </HelperText>
               </View>
               {/* Added extra space at bottom of ScrollView */}
               <View style={{ height: 10 }} />
             </View>
 
             {/* Moved Footer INSIDE ScrollView to ensure visibility on small screens / large keyboards */}
+            <PhotoSourceDialog
+              visible={sourceOpen}
+              title="Foto del contacto"
+              message="Elige cómo quieres subir la foto."
+              onCamera={() => { setSourceOpen(false); setCameraOpen(true); }}
+              onGallery={pickFromGallery}
+              onCancel={() => setSourceOpen(false)}
+            />
+            <CameraModal
+              visible={cameraOpen}
+              mode="photo"
+              onDismiss={() => setCameraOpen(false)}
+              onCapture={(file) => { setCameraOpen(false); void onPhotoPicked(file.uri); }}
+            />
+
             <View style={styles.modalFooter}>
               <Button
                 mode="outlined"
                 onPress={onDismiss}
-                textColor="#64748B"
+                textColor={tokens.color.textMuted}
                 style={styles.cancelBtn}
                 contentStyle={{ height: 48 }}
                 labelStyle={{ fontWeight: '700' }}
@@ -248,9 +334,9 @@ export const ResidentContactModal = ({
                 mode="contained"
                 onPress={handleSave}
                 style={styles.saveBtn}
-                buttonColor="#0F4C3A"
+                buttonColor={tokens.color.primary}
                 contentStyle={{ height: 48 }}
-                labelStyle={[styles.saveBtnLabel, { color: '#FFFFFF' }]}
+                labelStyle={[styles.saveBtnLabel, { color: tokens.color.card }]}
                 loading={loading}
                 disabled={loading}
               >
@@ -272,8 +358,10 @@ const styles = StyleSheet.create({
     maxWidth: 500,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.color.card,
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
     overflow: 'hidden',
     width: '100%',
   },
@@ -284,12 +372,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: tokens.color.border,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '800',
-    color: '#1A1C3D',
+    fontWeight: '900',
+    color: tokens.color.textStrong,
   },
   modalClose: {
     width: 36,
@@ -297,7 +385,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: tokens.color.screen,
   },
   modalBody: {
     paddingHorizontal: 24,
@@ -308,13 +396,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
+    ...tokens.font.label,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.color.card,
     fontSize: 15,
     height: 56,
   },
@@ -329,16 +415,16 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: tokens.radius.control,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: tokens.color.border,
   },
   saveBtn: {
     flex: 1,
     height: 48,
     justifyContent: 'center',
-    borderRadius: 12,
-    backgroundColor: '#0F4C3A',
+    borderRadius: tokens.radius.control,
+    backgroundColor: tokens.color.primary,
   },
   saveBtnLabel: {
     fontSize: 16,

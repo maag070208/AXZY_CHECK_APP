@@ -221,7 +221,7 @@ export const ResidentDetailScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0F4C3A" />
+        <ActivityIndicator size="large" color="#065911" />
         <Text style={styles.loadingText}>Cargando...</Text>
       </View>
     );
@@ -235,7 +235,7 @@ export const ResidentDetailScreen = () => {
         <Button
           mode="contained"
           onPress={() => navigation.goBack()}
-          buttonColor="#0F4C3A"
+          buttonColor="#065911"
         >
           Volver
         </Button>
@@ -252,8 +252,8 @@ export const ResidentDetailScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#0F4C3A']}
-              tintColor="#0F4C3A"
+              colors={['#065911']}
+              tintColor="#065911"
             />
           }
           contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
@@ -316,7 +316,7 @@ export const ResidentDetailScreen = () => {
             <View style={styles.headerMeta}>
               <View style={styles.metaBox}>
                 <View style={styles.metaIconBg}>
-                  <Icon source="home-city" size={16} color="#0F4C3A" />
+                  <Icon source="home-city" size={16} color="#065911" />
                 </View>
                 <View>
                   <Text style={styles.metaLabel}>PROPIEDAD</Text>
@@ -345,7 +345,7 @@ export const ResidentDetailScreen = () => {
               onPress={handleEditResident}
               style={styles.editMainButton}
               labelStyle={styles.editMainButtonLabel}
-              buttonColor="#0F4C3A"
+              buttonColor="#065911"
             >
               <Text style={styles.editMainButtonLabel}>Editar Perfil</Text>
             </Button>
@@ -518,7 +518,7 @@ export const ResidentDetailScreen = () => {
                     <Icon
                       source={getRelationIcon(contact.relationship)}
                       size={24}
-                      color="#0F4C3A"
+                      color="#065911"
                     />
                   </View>
                   <View style={styles.contactInfo}>
@@ -767,10 +767,10 @@ const styles = StyleSheet.create({
   avatar: {
     backgroundColor: '#F1F5F9',
     borderWidth: 2,
-    borderColor: '#0F4C3A',
+    borderColor: '#065911',
   },
   avatarLabel: {
-    color: '#0F4C3A',
+    color: '#065911',
     fontWeight: 'bold',
   },
   statusDot: {
@@ -1056,7 +1056,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#0F4C3A',
+    backgroundColor: '#065911',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 40,
@@ -1253,7 +1253,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   emptyButton: {
-    backgroundColor: '#0F4C3A',
+    backgroundColor: '#065911',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 40,
@@ -1285,14 +1285,14 @@ const styles = StyleSheet.create({
   closeTicketText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#0F4C3A',
+    color: '#065911',
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: Platform.OS === 'ios' ? 40 : 20,
-    backgroundColor: '#0F4C3A',
+    backgroundColor: '#065911',
     borderRadius: 28,
   },
   // Modal (Placeholder for legacy if needed, but we keep it empty to match shared component)
