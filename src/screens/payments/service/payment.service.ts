@@ -2,7 +2,7 @@ import { get, getArrayBuffer } from '../../../core/axios';
 import { bytesToBase64 } from '../../../shared/utils/base64';
 import { TResult } from '../../../core/types/TResult';
 
-export type ChargeCategory = 'CUOTA' | 'MANTENIMIENTO' | 'EXTRA';
+export type ChargeCategory = 'CUOTA' | 'MANTENIMIENTO' | 'EXTRA' | 'RECARGO';
 export type ChargeStatus = 'PENDING' | 'PARTIAL' | 'PAID' | 'CANCELLED';
 export type PaymentMethod = 'EFECTIVO' | 'TRANSFERENCIA' | 'TARJETA' | 'AJUSTE';
 
@@ -93,6 +93,7 @@ export const CHARGE_CATEGORY_LABELS: Record<ChargeCategory, string> = {
   CUOTA: 'Cuota',
   MANTENIMIENTO: 'Mantenimiento',
   EXTRA: 'Extra',
+  RECARGO: 'Recargo',
 };
 
 export const CHARGE_STATUS_LABELS: Record<ChargeStatus, string> = {

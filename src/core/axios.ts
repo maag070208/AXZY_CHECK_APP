@@ -111,7 +111,7 @@ export const getArrayBuffer = async (url: string, config?: AxiosRequestConfig): 
   }
 };
 
-export const patch = async <T> (
+export const patch = async <T>(
   url: string,
   data?: unknown,
   config?: AxiosRequestConfig,

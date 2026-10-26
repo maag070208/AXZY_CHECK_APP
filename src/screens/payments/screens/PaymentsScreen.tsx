@@ -40,6 +40,7 @@ const statusTone = (status: ChargeStatus) => {
 const chargeIcon = (category: MyCharge['category']) => {
   if (category === 'CUOTA') return 'calendar-month-outline';
   if (category === 'MANTENIMIENTO') return 'wrench-outline';
+  if (category === 'RECARGO') return 'alert-circle-outline';
   return 'receipt-text-outline';
 };
 
