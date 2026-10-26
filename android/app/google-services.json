@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1009819255841",
+    "project_id": "axzy-checkapp",
+    "storage_bucket": "axzy-checkapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1009819255841:android:7bcdcf4354f35f3c7a4f60",
+        "android_client_info": {
+          "package_name": "com.axzy.checkapp.barcelona"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZ1Tn29CxIqgvgBNGzKP_O3V35E759Lz0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

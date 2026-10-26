@@ -12,6 +12,7 @@ import { useOfflineSync } from '../offline/useOfflineSync';
 import { ApiVersionGate } from '../shared/components/ApiVersionGate';
 import { getMyPermissions } from '../screens/auth/services/permissions.service';
 import { ROLE_PERMISSIONS } from '../core/permissions/permissions';
+import { registerPushNotifications } from '../core/push/push-notifications';
 
 const MainNavigation = () => {
   const { isSignedIn, token, permissions, role } = useAppSelector(state => state.userState);
@@ -22,6 +23,10 @@ const MainNavigation = () => {
   useEffect(() => {
     if (!isSignedIn) setPermissionsAccepted(false);
   }, [isSignedIn]);
+
+  useEffect(() => {
+    if (isSignedIn && permissionsAccepted) void registerPushNotifications();
+  }, [isSignedIn, permissionsAccepted]);
 
   useEffect(() => {
     if (!isSignedIn || !token || permissions != null) return;
