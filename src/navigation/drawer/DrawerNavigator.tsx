@@ -24,6 +24,8 @@ import { PaymentsStack } from '../../screens/payments/stack/PaymentsStack';
 import { ResidentKardexStack } from '../../screens/residentKardex/stack/ResidentKardexStack';
 import { VehiclesStack } from '../../screens/vehicles/stack/VehiclesStack';
 import { VehicleAccessScreen } from '../../screens/vehicles/screens/VehicleAccessScreen';
+import { AccessPinStack } from '../../screens/accessPin/stack/AccessPinStack';
+import { PinAccessScreen } from '../../screens/accessPin/screens/PinAccessScreen';
 import { ChatStack } from '../../screens/chat/stack/ChatStack';
 import { ShiftHandoverStack } from '../../screens/shiftHandover/stack/ShiftHandoverStack';
 import { UniformStack } from '../../screens/uniform/stack/UniformStack';
@@ -232,6 +234,30 @@ const DrawerNavigator = () => {
         options={{
             drawerItemStyle: { display: 'none' }
         }}
+      />
+
+      <Drawer.Screen
+        name="ACCESS_PIN_STACK"
+        component={AccessPinStack}
+        options={{ drawerItemStyle: { display: 'none' } }}
+      />
+
+      <Drawer.Screen
+        name="PIN_ACCESS"
+        component={PinAccessScreen}
+        options={({ navigation }) => ({
+            drawerItemStyle: { display: 'none' },
+            headerShown: true,
+            header: () => (
+              <HeaderBack
+                navigation={navigation}
+                title="Clave peatonal"
+                icon="menu"
+                accessibilityLabel="Abrir menú"
+                onBack={() => navigation.openDrawer()}
+              />
+            ),
+        })}
       />
 
       <Drawer.Screen

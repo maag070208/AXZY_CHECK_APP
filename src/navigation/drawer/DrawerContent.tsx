@@ -165,6 +165,22 @@ const MENU_ITEMS: MenuItem[] = [
     roles: ['RESDN'],
   },
   {
+    label: 'Mis accesos',
+    icon: 'history',
+    route: 'ACCESS_PIN_STACK',
+    screen: 'ACCESS_HISTORY',
+    permission: P.RESIDENT_SELF,
+    roles: ['RESDN'],
+  },
+  {
+    label: 'Mi clave peatonal',
+    icon: 'door-open',
+    route: 'ACCESS_PIN_STACK',
+    screen: 'MY_ACCESS_PIN',
+    permission: P.ACCESS_PIN_MANAGE,
+    roles: ['RESDN'],
+  },
+  {
     label: 'Mis vehículos',
     icon: 'car-outline',
     route: 'VEHICLES_STACK',
@@ -215,6 +231,13 @@ const MENU_ITEMS: MenuItem[] = [
     route: 'VEHICLE_ACCESS',
     screen: 'VEHICLE_ACCESS',
     permission: P.ACCESS_CHECK,
+  },
+  {
+    label: 'Clave peatonal',
+    icon: 'door-open',
+    route: 'PIN_ACCESS',
+    screen: 'PIN_ACCESS',
+    permission: P.ACCESS_PIN_VALIDATE,
   },
 ];
 

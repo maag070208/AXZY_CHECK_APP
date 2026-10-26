@@ -56,6 +56,8 @@ export const P = {
   VEHICLE_VIEW: 'vehicle.view',
   VEHICLE_MANAGE: 'vehicle.manage',
   VEHICLE_SELF: 'vehicle.self',
+  ACCESS_PIN_MANAGE: 'accesspin.manage',
+  ACCESS_PIN_VALIDATE: 'accesspin.validate',
 } as const;
 
 export type PermissionCode = (typeof P)[keyof typeof P];
@@ -73,7 +75,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'round.view','round.start','round.end','round.scan','assignment.view',
     'club.view','club.create','club.resolve','club.delete',
     'complaint.view','complaint.manage','charge.view','charge.manage','payment.view','payment.manage',
-    'vehicle.view','vehicle.manage',
+    'vehicle.view','vehicle.manage','accesspin.validate',
   ],
   SHIFT: [
     'access.check','assignments.manage','properties.view','chat.use','club.manage','dashboard.view',
@@ -82,11 +84,11 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'shift-handover.manage','uniform.manage','users.read','round.view','round.start','round.end','round.scan',
     'assignment.view','maintenance.view','maintenance.create',
     'club.view','club.create','club.resolve','club.delete',
-    'complaint.view','complaint.manage','vehicle.view',
+    'complaint.view','complaint.manage','vehicle.view','accesspin.validate',
   ],
   GUARD: [
     'access.check','chat.use','recurring.operate','round.view','round.start','round.end','round.scan',
-    'assignment.view','incident.create','maintenance.create','club.view','club.create',
+    'assignment.view','incident.create','maintenance.create','club.view','club.create','accesspin.validate',
   ],
   MAINT: [
     'chat.use','maintenance.manage','recurring.operate','round.view','round.start','round.end','round.scan',
@@ -95,6 +97,6 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
   RESDN: [
     'resident.self','invitation.view','invitation.create','invitation.revoke',
-    'complaint.create','complaint.view','charge.view','payment.view','vehicle.self',
+    'complaint.create','complaint.view','charge.view','payment.view','vehicle.self','accesspin.manage',
   ],
 };

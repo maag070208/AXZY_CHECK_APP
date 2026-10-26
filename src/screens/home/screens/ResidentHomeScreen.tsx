@@ -133,6 +133,20 @@ export const ResidentHomeScreen = () => {
       onPress: () => go('INVITATIONS_STACK', 'INVITATIONS_MAIN'),
     },
     {
+      label: 'Mis accesos',
+      detail: 'Historial de la propiedad',
+      permission: P.RESIDENT_SELF,
+      icon: 'history',
+      onPress: () => navigation.navigate('ACCESS_PIN_STACK', { screen: 'ACCESS_HISTORY' }),
+    },
+    {
+      label: 'Mi clave peatonal',
+      detail: 'Acceso a pie',
+      permission: P.ACCESS_PIN_MANAGE,
+      icon: 'door-open',
+      onPress: () => navigation.navigate('ACCESS_PIN_STACK', { screen: 'MY_ACCESS_PIN' }),
+    },
+    {
       label: 'Mis vehículos',
       detail: 'Tus autos y tags',
       permission: P.VEHICLE_SELF,
