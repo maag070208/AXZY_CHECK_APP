@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useMemo } from 'react';
+import { NativeModules, Platform } from 'react-native';
 import { MD3LightTheme, PaperProvider } from 'react-native-paper';
 import { useAppSelector } from '../../core/store/hooks';
 import { getRolePalette, RolePalette } from './role-colors';
@@ -10,6 +11,11 @@ export const useRolePalette = () => useContext(RoleThemeContext);
 export const RoleThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const role = useAppSelector(state => state.userState.role ?? state.userState.lastRole);
   const palette = useMemo(() => getRolePalette(role), [role]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    NativeModules.RoleIcon?.setRole(role ?? 'ADMIN').catch?.(() => undefined);
+  }, [role]);
 
   const paperTheme = useMemo(
     () => ({

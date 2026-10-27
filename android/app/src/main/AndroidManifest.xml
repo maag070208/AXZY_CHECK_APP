@@ -34,12 +34,78 @@
         android:label="@string/app_name"
         android:theme="@style/SplashTheme"
         android:noHistory="true"
-        android:exported="true">
+        android:exported="true" />
+
+      <!-- Launchers por rol. El módulo nativo RoleIcon activa solo uno. -->
+      <activity-alias
+        android:name=".RoleAliasAdmin"
+        android:targetActivity=".SplashActivity"
+        android:enabled="true"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_admin"
+        android:roundIcon="@mipmap/ic_launcher_admin"
+        android:label="@string/app_name">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
-      </activity>
+      </activity-alias>
+
+      <activity-alias
+        android:name=".RoleAliasShift"
+        android:targetActivity=".SplashActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_shift"
+        android:roundIcon="@mipmap/ic_launcher_shift"
+        android:label="@string/app_name">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
+
+      <activity-alias
+        android:name=".RoleAliasGuard"
+        android:targetActivity=".SplashActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_guard"
+        android:roundIcon="@mipmap/ic_launcher_guard"
+        android:label="@string/app_name">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
+
+      <activity-alias
+        android:name=".RoleAliasResdn"
+        android:targetActivity=".SplashActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_resdn"
+        android:roundIcon="@mipmap/ic_launcher_resdn"
+        android:label="@string/app_name">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
+
+      <activity-alias
+        android:name=".RoleAliasMaint"
+        android:targetActivity=".SplashActivity"
+        android:enabled="false"
+        android:exported="true"
+        android:icon="@mipmap/ic_launcher_maint"
+        android:roundIcon="@mipmap/ic_launcher_maint"
+        android:label="@string/app_name">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity-alias>
 
       <activity
         android:name=".MainActivity"

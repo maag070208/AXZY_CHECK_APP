@@ -25,13 +25,25 @@ class SplashActivity : AppCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
-    val green = Color.parseColor("#12A36F")
-    window.statusBarColor = green
-    window.navigationBarColor = green
+    val role = getSharedPreferences(RoleIconModule.PREFS, MODE_PRIVATE)
+      .getString(RoleIconModule.ROLE_KEY, "ADMIN")
+      ?.uppercase()
+      ?.takeIf { it in setOf("ADMIN", "SHIFT", "GUARD", "RESDN", "MAINT") }
+      ?: "ADMIN"
+    val colorHex = when (role) {
+      "SHIFT" -> "#064E4B"
+      "GUARD" -> "#0B2E4F"
+      "RESDN" -> "#3B1D5A"
+      "MAINT" -> "#475569"
+      else -> "#065911"
+    }
+    val color = Color.parseColor(colorHex)
+    window.statusBarColor = color
+    window.navigationBarColor = color
 
-    val root = FrameLayout(this).apply { setBackgroundColor(green) }
+    val root = FrameLayout(this).apply { setBackgroundColor(color) }
     val animation = LottieAnimationView(this).apply {
-      setAnimation("checkapp-icon.json")
+      setAnimation("checkapp-icon-role-${role.lowercase()}.json")
       repeatCount = 0
       speed = 1.8f
       scaleType = ImageView.ScaleType.CENTER_INSIDE

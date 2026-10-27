@@ -21,8 +21,7 @@ import { useDispatch } from 'react-redux';
 import { login } from '../../../core/store/slices/user.slice';
 import { useAppSelector } from '../../../core/store/hooks';
 import { showToast } from '../../../core/store/slices/toast.slice';
-import { SvgXml } from 'react-native-svg';
-import { APP_ICON_SVG } from '../../../shared/assets/appIcon';
+import { RoleLottieIcon } from '../../../shared/components/RoleBrand';
 import { showLoader } from '../../../core/store/slices/loader.slice';
 import LoaderComponent from '../../../shared/components/LoaderComponent';
 import EnvironmentBadge from '../../../shared/components/EnvironmentBadge';
@@ -132,11 +131,7 @@ const LoginScreen: React.FC = () => {
             <View
               style={[styles.iconBadge, keyboardOpen && styles.iconBadgeCompact]}
             >
-              <SvgXml
-                xml={APP_ICON_SVG}
-                width={keyboardOpen ? 60 : 74}
-                height={keyboardOpen ? 60 : 74}
-              />
+              <RoleLottieIcon size={keyboardOpen ? 60 : 74} />
             </View>
 
             <Text style={[styles.heroTitle, keyboardOpen && styles.heroTitleCompact]}>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="checkapp_primary_admin">#065911</color>
+    <color name="checkapp_accent_admin">#12A36F</color>
+    <color name="checkapp_accent_light_admin">#34D399</color>
+    <color name="ic_launcher_background_admin">#065911</color>
+    <color name="checkapp_primary_shift">#064E4B</color>
+    <color name="checkapp_accent_shift">#14B8A6</color>
+    <color name="checkapp_accent_light_shift">#14B8A6</color>
+    <color name="ic_launcher_background_shift">#064E4B</color>
+    <color name="checkapp_primary_guard">#0B2E4F</color>
+    <color name="checkapp_accent_guard">#0369A1</color>
+    <color name="checkapp_accent_light_guard">#38BDF8</color>
+    <color name="ic_launcher_background_guard">#0B2E4F</color>
+    <color name="checkapp_primary_resdn">#3B1D5A</color>
+    <color name="checkapp_accent_resdn">#7E22CE</color>
+    <color name="checkapp_accent_light_resdn">#C084FC</color>
+    <color name="ic_launcher_background_resdn">#3B1D5A</color>
+    <color name="checkapp_primary_maint">#475569</color>
+    <color name="checkapp_accent_maint">#94A3B8</color>
+    <color name="checkapp_accent_light_maint">#94A3B8</color>
+    <color name="ic_launcher_background_maint">#475569</color>
+    <color name="ic_launcher_background_dark">#0F172A</color>
+</resources>

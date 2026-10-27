@@ -11,6 +11,7 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { Icon } from 'react-native-paper';
 import { tokens } from '../../../shared/theme/tokens';
+import { useRolePalette } from '../../../shared/theme/RoleThemeProvider';
 
 export interface LoginFormComponentValues {
   username: string;
@@ -34,6 +35,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
   loading = false,
   compact = false,
 }) => {
+  const palette = useRolePalette();
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
@@ -62,14 +64,14 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
           <View
             style={[
               styles.field,
-              focusedField === 'username' && styles.fieldFocused,
+              focusedField === 'username' && [styles.fieldFocused, { borderColor: palette.primary, backgroundColor: palette.primarySoft }],
               submitCount > 0 && errors.username ? styles.fieldError : null,
             ]}
           >
             <Icon
               source="account-outline"
               size={20}
-              color={focusedField === 'username' ? tokens.color.primary : tokens.color.textHint}
+              color={focusedField === 'username' ? palette.primary : tokens.color.textHint}
             />
             <TextInput
               style={styles.input}
@@ -97,14 +99,14 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
               styles.field,
               styles.fieldSpacing,
               compact && styles.fieldSpacingCompact,
-              focusedField === 'password' && styles.fieldFocused,
+              focusedField === 'password' && [styles.fieldFocused, { borderColor: palette.primary, backgroundColor: palette.primarySoft }],
               submitCount > 0 && errors.password ? styles.fieldError : null,
             ]}
           >
             <Icon
               source="lock-outline"
               size={20}
-              color={focusedField === 'password' ? tokens.color.primary : tokens.color.textHint}
+              color={focusedField === 'password' ? palette.primary : tokens.color.textHint}
             />
             <TextInput
               style={styles.input}
@@ -151,6 +153,7 @@ export const LoginFormComponent: React.FC<LoginFormComponentProps> = ({
               styles.button,
               compact && styles.buttonCompact,
               loading && styles.buttonDisabled,
+              { backgroundColor: palette.primary, shadowColor: palette.primary },
             ]}
             onPress={() => handleSubmit()}
             disabled={loading}

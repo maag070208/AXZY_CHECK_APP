@@ -12,6 +12,7 @@ import { theme } from '../../shared/theme/theme';
 import { useRolePalette } from '../../shared/theme/RoleThemeProvider';
 import EnvironmentBadge from '../../shared/components/EnvironmentBadge';
 import { UserAvatar } from '../../shared/components/UserAvatar';
+import { RoleMark } from '../../shared/components/RoleBrand';
 import { useCan } from '../../core/permissions/useCan';
 import { P, PermissionRequirement } from '../../core/permissions/permissions';
 
@@ -376,7 +377,7 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
 
         <View style={styles.brandRow}>
           <View style={styles.brandIcon}>
-            <Icon source="qrcode-scan" size={18} color="#A7F3D0" />
+            <RoleMark size={22} />
           </View>
           <Text style={styles.brandText}>
             Check<Text style={styles.brandAccent}>App</Text>
