@@ -1,0 +1,44 @@
+10:59:47.308 [ INFO] maestro.cli.report.TestDebugReporter.logSystemInfo: Debug output path: /Users/axzy/DEV/CHECK/BARCELONA/APP/.maestro-home/.maestro/tests/2026-10-27_105947
+10:59:47.310 [ INFO] MAESTRO.logSystemInfo: ---- System Info ----
+10:59:47.310 [ INFO] MAESTRO.logSystemInfo: Maestro Version: 2.5.1
+10:59:47.311 [ INFO] MAESTRO.logSystemInfo: CI: Undefined
+10:59:47.311 [ INFO] MAESTRO.logSystemInfo: OS Name: Mac OS X
+10:59:47.311 [ INFO] MAESTRO.logSystemInfo: OS Version: 26.6.2
+10:59:47.312 [ INFO] MAESTRO.logSystemInfo: Architecture: aarch64
+10:59:47.313 [ INFO] MAESTRO.logSystemInfo: Java Version: 17
+10:59:47.426 [ INFO] MAESTRO.logSystemInfo: Xcode Version: 27.0
+10:59:47.431 [ INFO] MAESTRO.logSystemInfo: Flutter Version: Undefined
+10:59:47.434 [ INFO] MAESTRO.logSystemInfo: Flutter Channel: Undefined
+10:59:47.434 [ INFO] MAESTRO.logSystemInfo: ---------------------
+10:59:47.872 [DEBUG] io.micrometer.common.util.internal.logging.InternalLoggerFactory.newDefaultFactory: Using SLF4J as the default logging framework
+10:59:49.453 [ INFO] maestro.cli.command.TestCommand.runShardSuite: [shard 1] Selected device R58YA0MM1TZ using port 7001 with execution plan ExecutionPlan(flowsToRun=[/Users/axzy/DEV/CHECK/BARCELONA/APP/e2e/landing/guard.yaml], sequence=FlowSequence(flows=[], continueOnFailure=true), workspaceConfig=WorkspaceConfig(flows=null, includeTags=null, excludeTags=null, executionOrder=null, baselineBranch=null, notifications=null, disableRetries=false, platform=PlatformConfiguration(android=AndroidConfiguration(disableAnimations=false), ios=IOSConfiguration(disableAnimations=false, snapshotKeyHonorModalViews=null)), testOutputDir=null))
+10:59:55.453 [ INFO] maestro.cli.runner.TestRunner.runSingle$lambda$0: Running flow guard.yaml...
+10:59:55.469 [ INFO] maestro.Maestro.cachedDeviceInfo_delegate$lambda$0: Getting device info
+10:59:55.616 [ INFO] maestro.Maestro.cachedDeviceInfo_delegate$lambda$0: Got device info: DeviceInfo(platform=ANDROID, widthPixels=1080, heightPixels=2340, widthGrid=1080, heightGrid=2340)
+10:59:55.673 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Define variables RUNNING
+10:59:55.679 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Define variables metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(defineVariablesCommand=DefineVariablesCommand(env={MAESTRO_FILENAME=guard, MAESTRO_DEVICE_UDID=R58YA0MM1TZ, MAESTRO_SHARD_ID=1, MAESTRO_SHARD_INDEX=0}, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+10:59:55.680 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Define variables COMPLETED
+10:59:55.681 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Apply configuration RUNNING
+10:59:55.683 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Apply configuration metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(applyConfigurationCommand=ApplyConfigurationCommand(config=MaestroConfig(appId=com.axzy.checkapp.barcelona, name=null, tags=[], ext={}, onFlowStart=null, onFlowComplete=null, properties={}), label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+10:59:55.683 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Apply configuration COMPLETED
+10:59:55.683 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Launch app "com.axzy.checkapp.barcelona" with clear state RUNNING
+10:59:55.687 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Launch app "com.axzy.checkapp.barcelona" with clear state metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(launchAppCommand=LaunchAppCommand(appId=com.axzy.checkapp.barcelona, clearState=true, clearKeychain=null, stopApp=null, permissions=null, launchArguments=null, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+10:59:55.688 [ INFO] maestro.Maestro.clearAppState$lambda$5: Clearing app state com.axzy.checkapp.barcelona
+10:59:59.364 [ INFO] maestro.Maestro.launchApp$lambda$2: Launching app com.axzy.checkapp.barcelona
+10:59:59.364 [ INFO] maestro.Maestro.launchApp$lambda$2: Stopping com.axzy.checkapp.barcelona app during launch
+10:59:59.552 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$2: Launch app "com.axzy.checkapp.barcelona" with clear state COMPLETED
+10:59:59.552 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Tap on (Optional) "Nunca en esta aplicación o sitio web" RUNNING
+10:59:59.562 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Tap on (Optional) "Nunca en esta aplicación o sitio web" metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(tapOnElementCommand=TapOnElementCommand(selector=ElementSelector(textRegex=Nunca en esta aplicación o sitio web, idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=true, selected=null, checked=null, focused=null, childOf=null, css=null), retryIfNoChange=false, waitUntilVisible=false, longPress=false, repeat=null, waitToSettleTimeoutMs=null, relativePoint=null, label=null, optional=true)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+11:00:06.731 [ INFO] maestro.orchestra.Orchestra.executeCommands: [Command execution] CommandWarned: Element not found: Text matching regex: Nunca en esta aplicación o sitio web
+11:00:06.734 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Tap on (Optional) "Nunca en esta aplicación o sitio web" metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(tapOnElementCommand=TapOnElementCommand(selector=ElementSelector(textRegex=Nunca en esta aplicación o sitio web, idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=true, selected=null, checked=null, focused=null, childOf=null, css=null), retryIfNoChange=false, waitUntilVisible=false, longPress=false, repeat=null, waitToSettleTimeoutMs=null, relativePoint=null, label=null, optional=true)), logMessages=[], insight=Insight(message=Element not found: Text matching regex: Nunca en esta aplicación o sitio web, level=WARNING), aiReasoning=null, labeledCommand=null)
+11:00:06.734 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$6: Tap on (Optional) "Nunca en esta aplicación o sitio web" WARNED
+11:00:06.737 [ INFO] maestro.Maestro.takeScreenshot: Taking screenshot
+11:00:06.738 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+11:00:07.098 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$0: Assert that "Iniciar sesión" is visible RUNNING
+11:00:07.101 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$11: Assert that "Iniciar sesión" is visible metadata CommandMetadata(numberOfRuns=null, evaluatedCommand=MaestroCommand(assertConditionCommand=AssertConditionCommand(condition=Condition(platform=null, visible=ElementSelector(textRegex=Iniciar sesión, idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=false, selected=null, checked=null, focused=null, childOf=null, css=null), notVisible=null, scriptCondition=null, label=null), timeout=30000, label=null, optional=false)), logMessages=[], insight=Insight(message=, level=NONE), aiReasoning=null, labeledCommand=null)
+11:00:30.181 [ERROR] maestro.orchestra.Orchestra.executeCommands: [Command execution] CommandFailed: Assertion is false: "Iniciar sesión" is visible
+11:00:30.184 [ INFO] maestro.Maestro.takeScreenshot: Taking screenshot
+11:00:30.184 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+11:00:31.708 [ INFO] maestro.cli.runner.MaestroCommandRunner.runCommands$lambda$4: Assert that "Iniciar sesión" is visible FAILED
+11:00:32.052 [ INFO] maestro.cli.report.TestDebugReporter.deleteOldFiles: Performing purge of logs older than 14 days from /Users/axzy/DEV/CHECK/BARCELONA/APP/.maestro-home/.maestro/tests
+11:00:32.238 [ INFO] maestro.drivers.AndroidDriver.close: [Start] Uninstall driver from device

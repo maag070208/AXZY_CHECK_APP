@@ -24,6 +24,7 @@ appId: com.axzy.checkapp.barcelona
 - extendedWaitUntil:
     visible: "Mi Agenda"
     timeout: 15000
+- waitForAnimationToEnd
 - takeScreenshot: resident-contacts
 - pressKey: Back
 - extendedWaitUntil:

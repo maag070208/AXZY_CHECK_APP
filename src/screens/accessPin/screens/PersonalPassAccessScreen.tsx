@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text, TextInput } from 'react-native-paper';
 import { Camera, useCameraDevice, useCameraPermission, useCodeScanner } from 'react-native-vision-camera';
-import { HeaderBack } from '../../../navigation/header/HeaderBack';
 import { AppButton } from '../../../shared/components/AppButton';
 import { tokens } from '../../../shared/theme/tokens';
 import { useRolePalette } from '../../../shared/theme/RoleThemeProvider';
@@ -59,7 +58,6 @@ export const PersonalPassAccessScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.screen}>
-      <HeaderBack navigation={navigation} title="Pase QR" icon="menu" accessibilityLabel="Abrir menú" onBack={() => navigation.openDrawer()} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
           <View style={styles.heroIcon}><Icon source="qrcode-scan" size={23} color={palette.primary} /></View>

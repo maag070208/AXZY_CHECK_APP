@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Image, Dimensions } from 'react-native';
 import { Text, Avatar } from 'react-native-paper';
-import QRCode from 'react-native-qrcode-svg';
+import { BrandedQrCode } from '../../../shared/components/BrandedQrCode';
 import dayjs from 'dayjs';
 
 const { width } = Dimensions.get('window');
@@ -29,12 +29,7 @@ export const InvitationTicket = ({ invitation }: Props) => {
             <View style={styles.body}>
                 {/* QR Section */}
                 <View style={styles.qrContainer}>
-                    <QRCode
-                        value={invitation.code}
-                        size={180}
-                        color="#0f172a"
-                        backgroundColor="#fff"
-                    />
+                    <BrandedQrCode value={invitation.code} size={180} />
                 </View>
 
                 {/* Code Section */}

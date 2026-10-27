@@ -36,6 +36,20 @@
         android:noHistory="true"
         android:exported="true" />
 
+      <!-- Actividad técnica para `npx react-native run-android`.
+           En release queda deshabilitada; el launcher real son los alias por rol. -->
+      <activity
+        android:name=".CliLauncher"
+        android:enabled="${cliLauncherEnabled}"
+        android:exported="true"
+        android:noHistory="true"
+        android:theme="@style/AppTheme">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+      </activity>
+
       <!-- Launchers por rol. El módulo nativo RoleIcon activa solo uno. -->
       <activity-alias
         android:name=".RoleAliasAdmin"

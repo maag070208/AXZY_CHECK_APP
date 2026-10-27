@@ -27,6 +27,7 @@ appId: com.axzy.checkapp.barcelona
 - extendedWaitUntil:
     visible: "Consulta de vehículos"
     timeout: 15000
+- waitForAnimationToEnd
 - takeScreenshot: guard-vehicles
 - pressKey: Back
 - extendedWaitUntil:
@@ -39,4 +40,5 @@ appId: com.axzy.checkapp.barcelona
 - extendedWaitUntil:
     visible: "Validar clave peatonal"
     timeout: 15000
+- waitForAnimationToEnd
 - takeScreenshot: guard-pin

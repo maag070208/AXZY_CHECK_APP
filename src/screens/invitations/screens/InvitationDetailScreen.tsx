@@ -4,7 +4,7 @@ import React, { useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, Icon, Text } from 'react-native-paper';
-import QRCode from 'react-native-qrcode-svg';
+import { BrandedQrCode } from '../../../shared/components/BrandedQrCode';
 import Share from 'react-native-share';
 import ViewShot from 'react-native-view-shot';
 import { useDispatch } from 'react-redux';
@@ -104,7 +104,7 @@ export const InvitationDetailScreen = () => {
                 <SectionLabel index={1} text="CÓDIGO DE ACCESO" />
                 <View style={styles.card}>
                     <View style={styles.qrWrap}>
-                        <QRCode value={invitation.code} size={170} color={tokens.color.text} backgroundColor={tokens.color.card} />
+                        <BrandedQrCode value={invitation.code} size={170} />
                     </View>
                     <Text style={styles.code}>{invitation.code}</Text>
                     <Text style={styles.hint}>Escanea este código en la caseta de vigilancia.</Text>

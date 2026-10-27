@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
-import QRCode from 'react-native-qrcode-svg';
+import { BrandedQrCode } from '../../../shared/components/BrandedQrCode';
 import { HeaderBack } from '../../../navigation/header/HeaderBack';
 import { AppButton } from '../../../shared/components/AppButton';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
@@ -138,12 +138,7 @@ export const MyQrPassScreen = ({ navigation }: any) => {
                   <Text style={styles.ticketProperty}>
                     {status?.property ? `${status.property.identifier} · ${status.property.name}` : 'Propiedad'}
                   </Text>
-                  <View style={styles.qrBrand}>
-                    <QRCode value={pass.token} size={210} color="#FFFFFF" backgroundColor="#0B3D2A" ecl="H" quietZone={8} />
-                    <View style={styles.qrPin}>
-                      <Icon source="map-marker" size={22} color="#0B3D2A" />
-                    </View>
-                  </View>
+                  <BrandedQrCode value={pass.token} size={210} />
                   <Text style={styles.ticketCode}>{pass.token}</Text>
                   <View style={styles.timerRow}>
                     <Icon source="refresh" size={14} color={palette.primary} />

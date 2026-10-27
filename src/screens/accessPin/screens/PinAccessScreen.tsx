@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text, TextInput } from 'react-native-paper';
-import { HeaderBack } from '../../../navigation/header/HeaderBack';
 import { AppButton } from '../../../shared/components/AppButton';
 import { tokens } from '../../../shared/theme/tokens';
 import { PinValidation, validateAccessPin } from '../service/access-pin.service';
@@ -35,7 +34,6 @@ export const PinAccessScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.screen}>
-      <HeaderBack navigation={navigation} title="Clave peatonal" icon="menu" accessibilityLabel="Abrir menú" onBack={() => navigation.openDrawer()} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
           <View style={styles.heroIcon}><Icon source="door-open" size={23} color={tokens.color.primary} /></View>
