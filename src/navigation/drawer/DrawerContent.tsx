@@ -173,6 +173,14 @@ const MENU_ITEMS: MenuItem[] = [
     roles: ['RESDN'],
   },
   {
+    label: 'Mi pase QR',
+    icon: 'qrcode',
+    route: 'ACCESS_PIN_STACK',
+    screen: 'MY_QR_PASS',
+    permission: P.ACCESS_PIN_MANAGE,
+    roles: ['RESDN'],
+  },
+  {
     label: 'Mi clave peatonal',
     icon: 'door-open',
     route: 'ACCESS_PIN_STACK',
@@ -231,6 +239,13 @@ const MENU_ITEMS: MenuItem[] = [
     route: 'VEHICLE_ACCESS',
     screen: 'VEHICLE_ACCESS',
     permission: P.ACCESS_CHECK,
+  },
+  {
+    label: 'Pase QR',
+    icon: 'qrcode-scan',
+    route: 'PERSONAL_PASS_ACCESS',
+    screen: 'PERSONAL_PASS_ACCESS',
+    permission: P.ACCESS_PIN_VALIDATE,
   },
   {
     label: 'Clave peatonal',

@@ -140,6 +140,13 @@ export const ResidentHomeScreen = () => {
       onPress: () => navigation.navigate('ACCESS_PIN_STACK', { screen: 'ACCESS_HISTORY' }),
     },
     {
+      label: 'Mi pase QR',
+      detail: 'Muéstralo en caseta',
+      permission: P.ACCESS_PIN_MANAGE,
+      icon: 'qrcode',
+      onPress: () => navigation.navigate('ACCESS_PIN_STACK', { screen: 'MY_QR_PASS' }),
+    },
+    {
       label: 'Mi clave peatonal',
       detail: 'Acceso a pie',
       permission: P.ACCESS_PIN_MANAGE,

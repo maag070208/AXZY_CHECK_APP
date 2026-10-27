@@ -21,6 +21,7 @@ export interface PinValidation {
 }
 
 export const getMyAccessPin = (): Promise<TResult<AccessPinStatus>> => get('/access-pins/me');
-export const generateMyAccessPin = (): Promise<TResult<GeneratedAccessPin>> => post('/access-pins/me', {});
+export const generateMyAccessPin = (pin?: string): Promise<TResult<GeneratedAccessPin>> =>
+  post('/access-pins/me', pin ? { pin } : {});
 export const revokeMyAccessPin = (): Promise<TResult<{ active: boolean }>> => remove('/access-pins/me');
 export const validateAccessPin = (pin: string): Promise<TResult<PinValidation>> => post('/access-pins/validate', { pin });

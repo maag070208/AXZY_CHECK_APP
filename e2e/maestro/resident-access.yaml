@@ -44,9 +44,13 @@ appId: com.axzy.checkapp.barcelona
     visible: "Mi clave peatonal"
     timeout: 15000
 - tapOn:
-    text: "Generar.*"
+    text: "Crear mi clave|Cambiar mi clave"
 - extendedWaitUntil:
-    visible: "Tu nueva clave"
+    visible: "Nueva clave peatonal"
+    timeout: 15000
+- tapOn: "Crear clave"
+- extendedWaitUntil:
+    visible: "Guarda tus 6 dígitos"
     timeout: 15000
 - tapOn: "Entendido"
 - pressKey: Back

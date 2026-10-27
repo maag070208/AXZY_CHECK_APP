@@ -33,6 +33,13 @@ describe('servicio de clave peatonal (APP)', () => {
     expect(result.data?.pin).toBe('123456');
   });
 
+  it('permite elegir una clave de 6 dígitos', async () => {
+    mockPost.mockResolvedValue({ success: true, data: { id: 2, pin: '246810', createdAt: '2026-10-26T00:00:00.000Z' } });
+    const result = await generateMyAccessPin('246810');
+    expect(mockPost).toHaveBeenCalledWith('/access-pins/me', { pin: '246810' });
+    expect(result.data?.pin).toBe('246810');
+  });
+
   it('revoca la clave activa', async () => {
     mockRemove.mockResolvedValue({ success: true, data: { active: false } });
     await revokeMyAccessPin();

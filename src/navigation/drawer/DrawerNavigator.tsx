@@ -26,6 +26,7 @@ import { VehiclesStack } from '../../screens/vehicles/stack/VehiclesStack';
 import { VehicleAccessScreen } from '../../screens/vehicles/screens/VehicleAccessScreen';
 import { AccessPinStack } from '../../screens/accessPin/stack/AccessPinStack';
 import { PinAccessScreen } from '../../screens/accessPin/screens/PinAccessScreen';
+import { PersonalPassAccessScreen } from '../../screens/accessPin/screens/PersonalPassAccessScreen';
 import { ChatStack } from '../../screens/chat/stack/ChatStack';
 import { ShiftHandoverStack } from '../../screens/shiftHandover/stack/ShiftHandoverStack';
 import { UniformStack } from '../../screens/uniform/stack/UniformStack';
@@ -240,6 +241,24 @@ const DrawerNavigator = () => {
         name="ACCESS_PIN_STACK"
         component={AccessPinStack}
         options={{ drawerItemStyle: { display: 'none' } }}
+      />
+
+      <Drawer.Screen
+        name="PERSONAL_PASS_ACCESS"
+        component={PersonalPassAccessScreen}
+        options={({ navigation }) => ({
+            drawerItemStyle: { display: 'none' },
+            headerShown: true,
+            header: () => (
+              <HeaderBack
+                navigation={navigation}
+                title="Pase QR"
+                icon="menu"
+                accessibilityLabel="Abrir menú"
+                onBack={() => navigation.openDrawer()}
+              />
+            ),
+        })}
       />
 
       <Drawer.Screen
