@@ -79,3 +79,13 @@ export const getRolePalette = (role?: string | null): RolePalette =>
 
 export const ROLE_PALETTES = PALETTES;
 export const ROLE_KEYS = Object.keys(PALETTES) as UserRole[];
+
+
+let activePalette: RolePalette = PALETTES.ADMIN;
+
+/** Paleta activa para la capa de compatibilidad de colores legacy. */
+export const setActiveRolePalette = (palette: RolePalette) => {
+  activePalette = palette;
+};
+
+export const getActiveRolePalette = (): RolePalette => activePalette;

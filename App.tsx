@@ -6,6 +6,9 @@ import { store } from './src/core/store/redux.config';
 import { persistStore } from 'redux-persist';
 import { PersistGate } from 'redux-persist/integration/react';
 import { RoleThemeProvider } from './src/shared/theme/RoleThemeProvider';
+import { installBrandColorPreprocessor } from './src/shared/theme/brand-color-preprocessor';
+
+installBrandColorPreprocessor();
 import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/shared/components/CustomToast';
 import { ToastHandler } from './src/core/store/hooks/toast';

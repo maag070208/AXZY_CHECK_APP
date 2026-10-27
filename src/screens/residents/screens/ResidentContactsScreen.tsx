@@ -34,12 +34,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ResidentContactModal } from '../components/ResidentContactModal';
 import { tokens } from '../../../shared/theme/tokens';
+import { useRolePalette } from '../../../shared/theme/RoleThemeProvider';
 import { ListAvatar, ListRowCard, ListSearch, ListSectionHeader, StatusChip } from '../../../shared/components/ListComponents';
 
 const PRIMARY_GREEN = '#1f8a3a';
 const SECONDARY_BG = tokens.color.card;
 
 export const ResidentContactsScreen = () => {
+    const palette = useRolePalette();
     const user = useSelector((state: RootState) => state.userState);
     const dispatch = useDispatch();
     const { navigateToScreen } = useAppNavigation();
@@ -141,7 +143,7 @@ export const ResidentContactsScreen = () => {
     if (loading && !refreshing) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color={PRIMARY_GREEN} />
+                <ActivityIndicator size="large" color={palette.primary} />
                 <Text style={styles.loadingText}>Cargando agenda...</Text>
             </View>
         );
@@ -179,15 +181,15 @@ export const ResidentContactsScreen = () => {
                     <RefreshControl 
                         refreshing={refreshing} 
                         onRefresh={() => {setRefreshing(true); fetchContacts();}} 
-                        colors={[PRIMARY_GREEN]}
-                        tintColor={PRIMARY_GREEN}
+                        colors={[palette.primary]}
+                        tintColor={palette.primary}
                     />
                 }
                 ListHeaderComponent={<ListSectionHeader index={1} text="CONTACTOS" hint={`${filteredContacts.length} en total`} />}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <View style={styles.emptyIconContainer}>
-                            <Icon source="account-multiple-outline" size={40} color={PRIMARY_GREEN} />
+                            <Icon source="account-multiple-outline" size={40} color={palette.primary} />
                         </View>
                         <Text style={styles.emptyTitle}>Agenda vacía</Text>
                         <Text style={styles.emptySub}>
@@ -197,7 +199,7 @@ export const ResidentContactsScreen = () => {
                             mode="contained" 
                             onPress={() => openForm()} 
                             style={styles.emptyBtn} 
-                            buttonColor={PRIMARY_GREEN}
+                            buttonColor={palette.primary}
                             labelStyle={styles.emptyBtnLabel}
                         >
                             Agregar contacto
@@ -211,17 +213,17 @@ export const ResidentContactsScreen = () => {
                         subtitle={item.phone || 'Sin teléfono'}
                         meta={item.relationship ? (
                             <View style={styles.relationRow}>
-                                <StatusChip label={item.relationship} color={tokens.color.primary} background={tokens.color.primarySoft} />
+                                <StatusChip label={item.relationship} color={palette.primary} background={palette.primarySoft} />
                             </View>
                         ) : undefined}
                         actions={
                             <>
                                 <TouchableOpacity onPress={() => handleGenerateQR(item)} style={styles.actionButton} accessibilityRole="button" accessibilityLabel={`Generar pase para ${item.name}`}>
-                                    <Icon source="qrcode" size={20} color={tokens.color.primary} />
+                                    <Icon source="qrcode" size={20} color={palette.primary} />
                                 </TouchableOpacity>
                                 {item.phone && (
                                     <TouchableOpacity onPress={() => handleCall(item.phone)} style={styles.actionButton} accessibilityRole="button" accessibilityLabel={`Llamar a ${item.name}`}>
-                                        <Icon source="phone" size={20} color={tokens.color.primary} />
+                                        <Icon source="phone" size={20} color={palette.primary} />
                                     </TouchableOpacity>
                                 )}
                                 <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton} accessibilityRole="button" accessibilityLabel={`Eliminar ${item.name}`}>
@@ -247,7 +249,7 @@ export const ResidentContactsScreen = () => {
             <FAB 
                 icon="plus"
                 onPress={() => openForm()}
-                style={[styles.fab, { bottom: insets.bottom + 20 }]}
+                style={[styles.fab, { bottom: insets.bottom + 20, backgroundColor: palette.primary, shadowColor: palette.primary }]}
                 color="white"
             />
         </View>

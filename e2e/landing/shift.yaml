@@ -1,0 +1,27 @@
+appId: com.axzy.checkapp.barcelona
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    text: "Nunca en esta aplicación o sitio web"
+    optional: true
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "e2e_shift"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- extendedWaitUntil:
+    visible: ".*E2E.*"
+    timeout: 30000
+- takeScreenshot: shift-home
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "Guardias"
+    timeout: 15000
+- takeScreenshot: shift-menu

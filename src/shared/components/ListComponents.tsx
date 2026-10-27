@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Icon, Searchbar } from 'react-native-paper';
 import { tokens } from '../theme/tokens';
+import { useRolePalette } from '../theme/RoleThemeProvider';
 
 /** Encabezado de sección numerado: "1. CONTACTOS" con pista a la derecha. Igual en todas las listas. */
 export const ListSectionHeader = ({ index, text, hint }: { index: number; text: string; hint?: string }) => (
@@ -17,7 +18,9 @@ export const ListSearch = ({ placeholder, value, onChangeText, onSubmitEditing }
   value: string;
   onChangeText: (text: string) => void;
   onSubmitEditing?: () => void;
-}) => (
+}) => {
+  const palette = useRolePalette();
+  return (
   <Searchbar
     placeholder={placeholder}
     value={value}
@@ -25,18 +28,20 @@ export const ListSearch = ({ placeholder, value, onChangeText, onSubmitEditing }
     onSubmitEditing={onSubmitEditing}
     style={styles.search}
     inputStyle={styles.searchInput}
-    iconColor={tokens.color.primary}
+    iconColor={palette.primary}
     placeholderTextColor={tokens.color.textHint}
     elevation={0}
   />
-);
+  );
+};
 
 /** Avatar de la fila: foto si existe; si no, ícono o inicial. */
 export const ListAvatar = ({ photoUrl, icon, initial }: { photoUrl?: string | null; icon?: string; initial?: string }) => {
-  if (photoUrl) return <Image source={{ uri: photoUrl }} style={styles.avatarImg} accessibilityLabel="Foto" />;
+  const palette = useRolePalette();
+  if (photoUrl) return <Image source={{ uri: photoUrl }} style={[styles.avatarImg, { backgroundColor: palette.primarySoft }]} accessibilityLabel="Foto" />;
   return (
-    <View style={styles.avatar}>
-      {icon ? <Icon source={icon as any} size={22} color={tokens.color.primary} /> : <Text style={styles.avatarText}>{initial ?? '?'}</Text>}
+    <View style={[styles.avatar, { backgroundColor: palette.primarySoft }]}>
+      {icon ? <Icon source={icon as any} size={22} color={palette.primary} /> : <Text style={[styles.avatarText, { color: palette.primary }]}>{initial ?? '?'}</Text>}
     </View>
   );
 };

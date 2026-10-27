@@ -377,10 +377,10 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
 
         <View style={styles.brandRow}>
           <View style={styles.brandIcon}>
-            <RoleMark size={22} />
+            <RoleMark size={22} variant="white" />
           </View>
           <Text style={styles.brandText}>
-            Check<Text style={styles.brandAccent}>App</Text>
+            Check<Text style={[styles.brandAccent, { color: "#FFFFFF" }]}>App</Text>
           </Text>
         </View>
 

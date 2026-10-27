@@ -13,10 +13,11 @@ const ROLE_LOTTIE: Record<string, any> = {
 };
 
 /** Marca CheckApp del rol, en SVG (para headers/drawer). */
-export const RoleMark = ({ size = 22 }: { size?: number }) => {
+export const RoleMark = ({ size = 22, variant = 'color' }: { size?: number; variant?: 'color' | 'white' }) => {
   const { role } = useRolePalette();
   const xml = ROLE_MARKS[role] ?? ROLE_MARKS.ADMIN;
-  return <SvgXml xml={xml} width={size} height={size} />;
+  const whiteXml = variant === 'white' ? xml.replace(/(fill=")#[0-9A-Fa-f]{6}(")/g, '$1#FFFFFF$2') : xml;
+  return <SvgXml xml={whiteXml} width={size} height={size} />;
 };
 
 /** Icono animado del rol para el login. */
