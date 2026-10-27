@@ -7,6 +7,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Icon } from 'react-native-paper';
+import { useRolePalette } from '../theme/RoleThemeProvider';
 
 type ButtonVariant = 'primary' | 'outline' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md';
@@ -39,10 +40,11 @@ export const AppButton = ({
   loading = false,
   style,
 }: AppButtonProps) => {
+  const palette = useRolePalette();
   const isPrimary = variant === 'primary';
   const isDanger = variant === 'danger';
   const isOutline = variant === 'outline';
-  const textColor = isPrimary || isDanger ? '#FFFFFF' : '#065911';
+  const textColor = isPrimary || isDanger ? '#FFFFFF' : palette.primary;
 
   return (
     <TouchableOpacity
@@ -54,9 +56,9 @@ export const AppButton = ({
       style={[
         styles.base,
         { height: HEIGHTS[size] },
-        isPrimary && styles.primary,
+        isPrimary && [styles.primary, { backgroundColor: palette.primary }],
         isDanger && styles.danger,
-        isOutline && styles.outline,
+        isOutline && [styles.outline, { borderColor: palette.primarySoft }],
         variant === 'ghost' && styles.ghost,
         (disabled || loading) && styles.disabled,
         style,

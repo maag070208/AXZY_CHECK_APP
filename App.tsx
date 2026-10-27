@@ -5,11 +5,7 @@ import { Provider } from 'react-redux';
 import { store } from './src/core/store/redux.config';
 import { persistStore } from 'redux-persist';
 import { PersistGate } from 'redux-persist/integration/react';
-import {
-  MD3LightTheme as DefaultTheme,
-  PaperProvider,
-} from 'react-native-paper';
-import { theme } from './src/shared/theme/theme';
+import { RoleThemeProvider } from './src/shared/theme/RoleThemeProvider';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/shared/components/CustomToast';
 import { ToastHandler } from './src/core/store/hooks/toast';
@@ -25,11 +21,6 @@ import { StatusBar } from 'react-native';
 function App() {
   const persistored = persistStore(store);
 
-  const themePaper = {
-    ...DefaultTheme,
-    colors: theme.colors,
-  };
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -42,11 +33,11 @@ function App() {
           />
           <Provider store={store}>
             <PersistGate persistor={persistored} loading={null}>
-              <PaperProvider theme={themePaper}>
+              <RoleThemeProvider>
                 <MainNavigator />
                 <ToastHandler />
                 <Toast config={toastConfig} />
-              </PaperProvider>
+              </RoleThemeProvider>
             </PersistGate>
           </Provider>
         </SafeAreaView>

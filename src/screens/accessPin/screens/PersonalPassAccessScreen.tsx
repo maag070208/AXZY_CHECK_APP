@@ -6,6 +6,7 @@ import { Camera, useCameraDevice, useCameraPermission, useCodeScanner } from 're
 import { HeaderBack } from '../../../navigation/header/HeaderBack';
 import { AppButton } from '../../../shared/components/AppButton';
 import { tokens } from '../../../shared/theme/tokens';
+import { useRolePalette } from '../../../shared/theme/RoleThemeProvider';
 import { QrPassValidation, validatePersonalQrPass } from '../service/personal-qr.service';
 
 const REASON: Record<string, string> = {
@@ -15,6 +16,7 @@ const REASON: Record<string, string> = {
 };
 
 export const PersonalPassAccessScreen = ({ navigation }: any) => {
+  const palette = useRolePalette();
   const isFocused = useIsFocused();
   const device = useCameraDevice('back');
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -60,7 +62,7 @@ export const PersonalPassAccessScreen = ({ navigation }: any) => {
       <HeaderBack navigation={navigation} title="Pase QR" icon="menu" accessibilityLabel="Abrir menú" onBack={() => navigation.openDrawer()} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
-          <View style={styles.heroIcon}><Icon source="qrcode-scan" size={23} color={tokens.color.primary} /></View>
+          <View style={styles.heroIcon}><Icon source="qrcode-scan" size={23} color={palette.primary} /></View>
           <View style={{ flex: 1 }}>
             <Text style={styles.heroTitle}>Pase personal del residente</Text>
             <Text style={styles.heroText}>Escanea el QR rotativo. El pase de visita se sigue validando en “Escanear pase”.</Text>
@@ -69,7 +71,7 @@ export const PersonalPassAccessScreen = ({ navigation }: any) => {
 
         {!hasPermission ? (
           <View style={styles.permission}>
-            <Icon source="camera-outline" size={28} color={tokens.color.primary} />
+            <Icon source="camera-outline" size={28} color={palette.primary} />
             <Text style={styles.permissionTitle}>Activa la cámara</Text>
             <Text style={styles.permissionText}>Toca para escanear el QR del residente.</Text>
             <AppButton label="Permitir cámara" onPress={requestPermission} />
@@ -92,13 +94,13 @@ export const PersonalPassAccessScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {loading && <ActivityIndicator color={tokens.color.primary} style={{ marginTop: 6 }} />}
+        {loading && <ActivityIndicator color={palette.primary} style={{ marginTop: 6 }} />}
 
         {result && (
           <View style={[styles.result, result.valid ? styles.resultOk : styles.resultDeny]}>
-            <Icon source={result.valid ? 'check-circle-outline' : 'close-circle-outline'} size={28} color={result.valid ? tokens.color.primary : tokens.color.dangerStrong} />
+            <Icon source={result.valid ? 'check-circle-outline' : 'close-circle-outline'} size={28} color={result.valid ? palette.primary : tokens.color.dangerStrong} />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.resultTitle, { color: result.valid ? tokens.color.primary : tokens.color.dangerStrong }]}>
+              <Text style={[styles.resultTitle, { color: result.valid ? palette.primary : tokens.color.dangerStrong }]}>
                 {result.valid ? 'Pase válido' : 'No puede entrar'}
               </Text>
               {result.valid ? (

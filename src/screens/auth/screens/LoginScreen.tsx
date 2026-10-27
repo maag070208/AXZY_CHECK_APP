@@ -26,9 +26,10 @@ import { APP_ICON_SVG } from '../../../shared/assets/appIcon';
 import { showLoader } from '../../../core/store/slices/loader.slice';
 import LoaderComponent from '../../../shared/components/LoaderComponent';
 import EnvironmentBadge from '../../../shared/components/EnvironmentBadge';
+import { useRolePalette } from '../../../shared/theme/RoleThemeProvider';
 import { tokens } from '../../../shared/theme/tokens';
 
-const BRAND = tokens.color.primary;
+const BRAND = '#065911';
 
 // Animación de layout al abrir/cerrar el teclado (Android la requiere explícita).
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -36,6 +37,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const LoginScreen: React.FC = () => {
+  const palette = useRolePalette();
   const dispatch = useDispatch();
   const { loading } = useAppSelector(state => state.loaderState);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -118,12 +120,12 @@ const LoginScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={BRAND} />
+      <StatusBar barStyle="light-content" backgroundColor={palette.hero} />
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={[styles.hero, keyboardOpen && styles.heroCompact]}>
+        <View style={[styles.hero, { backgroundColor: palette.hero }, keyboardOpen && styles.heroCompact]}>
             <View style={[styles.blob, styles.blobTop]} />
             <View style={[styles.blob, styles.blobBottom]} />
 
@@ -178,7 +180,7 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: tokens.color.card,
+    backgroundColor: "#FFFFFF",
   },
   keyboardView: {
     flex: 1,
@@ -221,7 +223,7 @@ const styles = StyleSheet.create({
     width: 104,
     height: 104,
     borderRadius: 30,
-    backgroundColor: tokens.color.card,
+    backgroundColor: "#FFFFFF",
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: tokens.color.primary,
@@ -238,7 +240,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     fontSize: 30,
     fontWeight: '800',
-    color: tokens.color.card,
+    color: "#FFFFFF",
     letterSpacing: -0.6,
     textAlign: 'center',
   },
@@ -255,7 +257,7 @@ const styles = StyleSheet.create({
   sheet: {
     marginTop: -36,
     flex: 1,
-    backgroundColor: tokens.color.card,
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 24,

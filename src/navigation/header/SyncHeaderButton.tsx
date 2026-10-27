@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
+import { useRolePalette } from '../../shared/theme/RoleThemeProvider';
 import NetInfo from '@react-native-community/netinfo';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAppSelector } from '../../core/store/hooks';
@@ -10,6 +11,7 @@ import { getPendingCount } from '../../offline/sync/engine';
 /** Abre la pantalla de sincronización y muestra pendientes. */
 export const SyncHeaderButton = ({ onPress }: { onPress: () => void }) => {
   const user = useAppSelector(state => state.userState);
+  const palette = useRolePalette();
   const [pending, setPending] = useState(0);
   const [online, setOnline] = useState<boolean | null>(null);
 
@@ -47,9 +49,9 @@ export const SyncHeaderButton = ({ onPress }: { onPress: () => void }) => {
       <Icon
           source={online === false ? 'cloud-off-outline' : pending > 0 ? 'cloud-upload-outline' : 'cloud-check-outline'}
           size={21}
-          color={online === false ? '#B45309' : '#065911'}
+          color={online === false ? '#B45309' : palette.primary}
         />
-      <Text style={[styles.label, online === false && styles.labelOffline]}>Sync</Text>
+      <Text style={[styles.label, { color: online === false ? '#B45309' : palette.primary }]}>Sync</Text>
       {pending > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{pending > 99 ? '99+' : pending}</Text>
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 12,
   },
-  label: { fontSize: 8, fontWeight: '800', color: '#065911', marginTop: -1 },
+  label: { fontSize: 8, fontWeight: '800', marginTop: -1 },
   labelOffline: { color: '#B45309' },
   badge: {
     position: 'absolute',

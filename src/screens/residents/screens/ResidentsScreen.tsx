@@ -1,7 +1,8 @@
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Linking, Modal, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Avatar, FAB, IconButton, Portal, Searchbar, Surface, Text, Card, Icon, RadioButton, Button } from 'react-native-paper';
+import { FAB, IconButton, Portal, Searchbar, Surface, Text, Card, Icon, RadioButton, Button } from 'react-native-paper';
+import { UserAvatar } from '../../../shared/components/UserAvatar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ModernStyles from '../../../shared/theme/app.styles';
 import { getPaginatedResidents, ResidentUser } from '../service/resident.service';
@@ -134,11 +135,10 @@ export const ResidentsScreen = () => {
                 activeOpacity={0.75}
                 onPress={() => handleDetail(item)}
             >
-                <Avatar.Text
+                <UserAvatar
+                    name={`${item.name ?? ''} ${item.lastName ?? ''}`.trim() || item.username}
+                    photoUrl={(item as any).photoUrl}
                     size={42}
-                    label={item.name ? item.name[0].toUpperCase() : 'R'}
-                    style={styles.avatar}
-                    labelStyle={styles.avatarLabel}
                 />
                 <View style={styles.copy}>
                     <View style={styles.nameLine}>

@@ -58,6 +58,7 @@ import { endLocalRound, getLocalActiveRound, getLocalChecksForRound, startLocalR
 import { mergeLocalRoundStatus } from '../../../offline/roundStatus';
 import { E2E_MODE } from '../../../core/constants/test-mode';
 import { tokens } from '../../../shared/theme/tokens';
+import { useRolePalette } from '../../../shared/theme/RoleThemeProvider';
 
 const { width } = Dimensions.get('window');
 
@@ -93,6 +94,7 @@ const LOCATION_STATUS = {
 } as const;
 
 export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = {}) => {
+  const palette = useRolePalette();
   const navigation = useNavigation<any>();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.userState);
@@ -627,7 +629,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
     const available = !showContent && !isCompleted;
 
     const status = showContent
-      ? { label: 'En curso', bg: tokens.color.primarySoft, color: tokens.color.primary, icon: 'play-circle-outline' }
+      ? { label: 'En curso', bg: palette.primarySoft, color: palette.primary, icon: 'play-circle-outline' }
       : isCompleted
       ? { label: 'Completado', bg: '#EFF6FF', color: '#1D4ED8', icon: 'check-circle-outline' }
       : { label: 'Asignado', bg: tokens.color.screen, color: tokens.color.textBody, icon: 'map-marker-path' };
@@ -638,13 +640,13 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
           <View
             style={[
               styles.configIconBox,
-              { backgroundColor: showContent ? tokens.color.primarySoft : isCompleted ? '#EFF6FF' : tokens.color.screen },
+              { backgroundColor: showContent ? palette.primarySoft : isCompleted ? '#EFF6FF' : tokens.color.screen },
             ]}
           >
             <Icon
               source={status.icon as any}
               size={18}
-              color={showContent ? tokens.color.primary : isCompleted ? '#1D4ED8' : tokens.color.textMuted}
+              color={showContent ? palette.primary : isCompleted ? '#1D4ED8' : tokens.color.textMuted}
             />
           </View>
 
@@ -680,7 +682,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
                   styles.progressFill,
                   {
                     width: `${Math.min(100, Math.max(0, pct))}%`,
-                    backgroundColor: showContent ? '#12A36F' : tokens.color.textHint,
+                    backgroundColor: showContent ? palette.accent : tokens.color.textHint,
                   },
                 ]}
               />
@@ -717,8 +719,8 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             </View>
 
             <View style={styles.startHint}>
-              <Icon source="play-circle-outline" size={15} color={tokens.color.primary} />
-              <Text style={styles.startHintText}>Toca para iniciar esta ruta</Text>
+              <Icon source="play-circle-outline" size={15} color={palette.primary} />
+              <Text style={[styles.startHintText, { color: palette.primary }]}>Toca para iniciar esta ruta</Text>
               <Icon source="chevron-right" size={17} color={tokens.color.borderStrong} />
             </View>
           </>
@@ -755,7 +757,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
       ? tokens.color.dangerSoft
       : color === tokens.color.warning
         ? tokens.color.warningSoft
-        : tokens.color.primarySoft;
+        : palette.primarySoft;
     return (
       <TouchableOpacity
         style={styles.actionCard}
@@ -809,7 +811,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             mode="contained"
             onPress={closeScanDialog}
             style={styles.modalBtn}
-            buttonColor={tokens.color.primary}
+            buttonColor={palette.primary}
             textColor={tokens.color.card}
           >
             Volver a escanear
@@ -827,7 +829,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
         contentContainerStyle={styles.modernModalContent}
       >
         <View style={styles.modalIconContainer}>
-          <View style={[styles.iconCircle, { backgroundColor: tokens.color.primarySoft }]}>
+          <View style={[styles.iconCircle, { backgroundColor: palette.primarySoft }]}>
             <Icon source="check-circle" size={44} color="#12A36F" />
           </View>
         </View>
@@ -899,7 +901,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
         >
             <View style={styles.modalIconContainer}>
                 <View style={[styles.iconCircle, { backgroundColor: '#F0FDF4' }]}>
-                    <Icon source="map-marker-path" size={40} color={theme.colors.primary} />
+                    <Icon source="map-marker-path" size={40} color={palette.primary} />
                 </View>
             </View>
 
@@ -923,7 +925,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
                         }}
                     >
                         <View style={styles.optionIconBox}>
-                            <Icon source="navigation-variant-outline" size={20} color={theme.colors.primary} />
+                            <Icon source="navigation-variant-outline" size={20} color={palette.primary} />
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={styles.optionTitle}>{item.title}</Text>
@@ -1004,7 +1006,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
       >
         <View style={styles.modalIconContainer}>
           <View style={[styles.iconCircle, { backgroundColor: '#F0FDF4' }]}>
-            <Icon source="play-circle-outline" size={40} color={theme.colors.primary} />
+            <Icon source="play-circle-outline" size={40} color={palette.primary} />
           </View>
         </View>
 
@@ -1045,7 +1047,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
                 onStartRoundConfirmed(configId);
               }
             }}
-            style={[styles.modalBtn, { backgroundColor: theme.colors.primary }]}
+            style={[styles.modalBtn, { backgroundColor: palette.primary }]}
             textColor="white"
           >
             Iniciar
@@ -1209,8 +1211,17 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
                   {renderAction('Mantenimiento', 'wrench', tokens.color.warning, () =>
                     navigation.navigate('MAINTENANCE_REPORT'),
                   )}
-                  {renderAction('Casa Club', 'home-modern', tokens.color.primary, () =>
+                  {renderAction('Casa Club', 'home-modern', palette.primary, () =>
                     navigation.navigate('CLUB_REPORT'),
+                  )}
+                  {renderAction('Vehículos', 'car-search', palette.primary, () =>
+                    navigation.navigate('VEHICLE_ACCESS'),
+                  )}
+                  {renderAction('Clave peatonal', 'door-open', palette.primary, () =>
+                    navigation.navigate('PIN_ACCESS'),
+                  )}
+                  {renderAction('Pase QR', 'qrcode-scan', palette.primary, () =>
+                    navigation.navigate('PERSONAL_PASS_ACCESS'),
                   )}
                 </View>
               </View>
@@ -1315,7 +1326,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
                           <Icon
                             source="clipboard-text-clock-outline"
                             size={14}
-                            color={theme.colors.primary}
+                            color={palette.primary}
                           />
                           <Text style={styles.sectionTitle}>MIS RECORRIDOS</Text>
                         </View>

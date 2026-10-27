@@ -1,6 +1,6 @@
 appId: com.axzy.checkapp.barcelona
 ---
-# Fase 2A: consulta de vehículos y clave peatonal en caseta.
+# Fase 2A: accesos de caseta desde las acciones rápidas del guardia.
 - launchApp:
     clearState: true
 - tapOn:
@@ -25,26 +25,42 @@ appId: com.axzy.checkapp.barcelona
     timeout: 30000
 
 # Vehículos
-- tapOn: "Abrir menú"
-- extendedWaitUntil:
-    visible: "Vehículos"
-    timeout: 10000
-- tapOn:
-    text: "Vehículos"
-    retryTapIfNoChange: true
+- scrollUntilVisible:
+    element:
+      text: "Vehículos"
+- tapOn: "Vehículos"
 - extendedWaitUntil:
     visible: "Consulta de vehículos"
     timeout: 15000
 - assertVisible: "Busca por placa o tag y registra el acceso manual. Sin lector físico todavía."
 - pressKey: Back
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 15000
 
 # Clave peatonal
-- tapOn: "Abrir menú"
-- tapOn:
-    text: "Clave peatonal"
-    retryTapIfNoChange: true
+- scrollUntilVisible:
+    element:
+      text: "Clave peatonal"
+- tapOn: "Clave peatonal"
 - extendedWaitUntil:
     visible: "Validar clave peatonal"
     timeout: 15000
-- assertVisible: "La puerta se abre manualmente."
+- assertVisible: ".*La puerta se abre manualmente.*"
 - pressKey: Back
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 15000
+
+# Pase QR personal
+- scrollUntilVisible:
+    element:
+      text: "Pase QR"
+- tapOn: "Pase QR"
+- extendedWaitUntil:
+    visible: "Pase personal del residente"
+    timeout: 15000
+- pressKey: Back
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 15000

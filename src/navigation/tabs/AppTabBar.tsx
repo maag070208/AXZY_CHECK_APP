@@ -19,6 +19,7 @@ import { getMyRecurringAssignments } from '../../screens/recurring/service/recur
 import { RootState } from '../../core/store/redux.config';
 import { UserRole } from '../../core/types/IUser';
 import { showToast } from '../../core/store/slices/toast.slice';
+import { useRolePalette } from '../../shared/theme/RoleThemeProvider';
 
 /** Rutas del HomeStack que ocupan toda la pantalla y esconden la tab bar. */
 const HIDE_TAB_BAR_ROUTES = ['INCIDENT_REPORT', 'MAINTENANCE_REPORT', 'CLUB_REPORT', 'GUARD_TRACKING', 'PASS_SCANNER'];
@@ -44,20 +45,25 @@ const TabItem = ({
   label: string;
   active: boolean;
   onPress: () => void;
-}) => (
-  <TouchableOpacity style={styles.item} activeOpacity={0.75} onPress={onPress}>
-    <Icon source={icon as any} size={22} color={active ? GREEN : GRAY} />
-    <Text style={[styles.itemLabel, { color: active ? GREEN : GRAY }]} numberOfLines={1}>
-      {label}
-    </Text>
-  </TouchableOpacity>
-);
+}) => {
+  const palette = useRolePalette();
+  const activeColor = active ? palette.primary : GRAY;
+  return (
+    <TouchableOpacity style={styles.item} activeOpacity={0.75} onPress={onPress}>
+      <Icon source={icon as any} size={22} color={activeColor} />
+      <Text style={[styles.itemLabel, { color: activeColor }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+};
 
 export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.userState);
   const role = user.role;
+  const palette = useRolePalette();
 
   const focusedRoute = state.routes[state.index];
   const nestedRoute = getFocusedRouteNameFromRoute(focusedRoute) ?? 'HOME_MAIN';
@@ -223,7 +229,7 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
 
           <View style={styles.centerSlot}>
             <TouchableOpacity
-              style={styles.fab}
+              style={[styles.fab, { backgroundColor: palette.primary, shadowColor: palette.primary }]}
               activeOpacity={0.9}
               accessibilityRole="button"
               accessibilityLabel={centerAccessibility}
@@ -244,7 +250,7 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
                   <Icon source={centerIcon as any} size={22} color="#FFFFFF" />
                 </View>
               )}
-              {!checkingScan && <Text style={styles.fabLabel}>{centerLabel}</Text>}
+              {!checkingScan && <Text style={[styles.fabLabel, { color: palette.primary }]}>{centerLabel}</Text>}
             </TouchableOpacity>
           </View>
 
@@ -282,8 +288,8 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
 
             {activeRound && (
               <View style={styles.activeBanner}>
-                <Icon source="information-outline" size={18} color={GREEN} />
-                <Text style={styles.activeBannerText}>
+                <Icon source="information-outline" size={18} color={palette.primary} />
+                <Text style={[styles.activeBannerText, { color: palette.primary }]}>
                   Ya tienes una ronda en curso. Termínala antes de iniciar otra.
                 </Text>
               </View>
@@ -291,7 +297,7 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
 
             {loading ? (
               <View style={styles.loadingBox}>
-                <ActivityIndicator color={GREEN} />
+                <ActivityIndicator color={palette.primary} />
                 <Text style={styles.loadingText}>Buscando tus rutas…</Text>
               </View>
             ) : error ? (
@@ -322,7 +328,7 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
                     onPress={() => void handleStart(route)}
                   >
                     <View style={styles.routeIcon}>
-                      <Icon source="map-marker-path" size={20} color={GREEN_SOFT} />
+                      <Icon source="map-marker-path" size={20} color={palette.accent} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.routeTitle} numberOfLines={1}>
@@ -333,9 +339,9 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
                       </Text>
                     </View>
                     {startingId === route.id ? (
-                      <ActivityIndicator color={GREEN} />
+                      <ActivityIndicator color={palette.primary} />
                     ) : (
-                      <Icon source="play-circle" size={26} color={GREEN} />
+                      <Icon source="play-circle" size={26} color={palette.primary} />
                     )}
                   </TouchableOpacity>
                 ))}

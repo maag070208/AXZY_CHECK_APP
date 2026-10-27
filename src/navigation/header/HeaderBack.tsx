@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { OfflineHeaderNotice } from '../../shared/components/OfflineHeaderNotice';
+import { useRolePalette } from '../../shared/theme/RoleThemeProvider';
 
 export const HeaderBack = ({
   navigation,
@@ -10,17 +11,19 @@ export const HeaderBack = ({
   icon = 'arrow-left',
   accessibilityLabel = 'Volver',
 }: any) => {
+  const palette = useRolePalette();
+
   return (
     <View style={styles.outer}>
       <View style={styles.card}>
         <TouchableOpacity
           onPress={onBack ?? (() => navigation.goBack())}
-          style={styles.backBtn}
+          style={[styles.backBtn, { backgroundColor: palette.primarySoft }]}
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Icon source={icon} size={21} color="#065911" />
+          <Icon source={icon} size={21} color={palette.primary} />
         </TouchableOpacity>
 
         <Text style={styles.title} numberOfLines={1}>

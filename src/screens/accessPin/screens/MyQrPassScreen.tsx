@@ -6,9 +6,11 @@ import { HeaderBack } from '../../../navigation/header/HeaderBack';
 import { AppButton } from '../../../shared/components/AppButton';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { tokens } from '../../../shared/theme/tokens';
+import { useRolePalette } from '../../../shared/theme/RoleThemeProvider';
 import { QrPassStatus, QrPassToken, getMyQrPass, issueMyQrPassToken, revokeMyQrPass } from '../service/personal-qr.service';
 
 export const MyQrPassScreen = ({ navigation }: any) => {
+  const palette = useRolePalette();
   const [status, setStatus] = useState<QrPassStatus | null>(null);
   const [pass, setPass] = useState<QrPassToken | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,11 +100,11 @@ export const MyQrPassScreen = ({ navigation }: any) => {
       <HeaderBack navigation={navigation} title="Mi pase QR" />
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void issue()} colors={[tokens.color.primary]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void issue()} colors={[palette.primary]} />}
       >
-        <View style={styles.hero}>
+        <View style={[styles.hero, { backgroundColor: palette.hero }]}>
           <View style={styles.heroTop}>
-            <View style={styles.heroIcon}><Icon source="qrcode" size={26} color="#D1FAE5" /></View>
+            <View style={[styles.heroIcon, { backgroundColor: 'rgba(255,255,255,0.12)' }]}><Icon source="qrcode" size={26} color="#D1FAE5" /></View>
             <View style={[styles.statusPill, active ? styles.statusOn : styles.statusOff]}>
               <View style={[styles.dot, active ? styles.dotOn : styles.dotOff]} />
               <Text style={styles.statusText}>{active ? 'Pase activo' : 'Sin pase'}</Text>
@@ -144,11 +146,11 @@ export const MyQrPassScreen = ({ navigation }: any) => {
                   </View>
                   <Text style={styles.ticketCode}>{pass.token}</Text>
                   <View style={styles.timerRow}>
-                    <Icon source="refresh" size={14} color={tokens.color.primary} />
+                    <Icon source="refresh" size={14} color={palette.primary} />
                     <Text style={styles.timerText}>Se renueva en {timerLabel}</Text>
                   </View>
                   <View style={styles.protected}>
-                    <Icon source="shield-check-outline" size={15} color={tokens.color.primary} />
+                    <Icon source="shield-check-outline" size={15} color={palette.primary} />
                     <Text style={styles.protectedText}>Pase personal · solo para tu propiedad</Text>
                   </View>
                 </View>
@@ -163,7 +165,7 @@ export const MyQrPassScreen = ({ navigation }: any) => {
             </>
           ) : (
             <View style={styles.empty}>
-              <View style={styles.emptyIcon}><Icon source="qrcode-scan" size={28} color={tokens.color.primary} /></View>
+              <View style={styles.emptyIcon}><Icon source="qrcode-scan" size={28} color={palette.primary} /></View>
               <Text style={styles.emptyTitle}>Activa tu pase personal</Text>
               <Text style={styles.emptyText}>Después podrás mostrarlo al guardia desde tu teléfono. No tiene fecha de caducidad, pero puedes desactivarlo cuando quieras.</Text>
               <AppButton label="Activar mi pase QR" icon="qrcode" size="md" onPress={() => void activate()} disabled={refreshing} />
@@ -174,21 +176,21 @@ export const MyQrPassScreen = ({ navigation }: any) => {
 
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Icon source="clock-fast" size={18} color={tokens.color.primary} />
+            <Icon source="clock-fast" size={18} color={palette.primary} />
             <View style={{ flex: 1 }}>
               <Text style={styles.infoTitle}>Cambia cada 60 segundos</Text>
               <Text style={styles.infoText}>Una foto o captura deja de servir. Mantén la pantalla abierta al llegar a caseta.</Text>
             </View>
           </View>
           <View style={styles.infoRow}>
-            <Icon source="account-check-outline" size={18} color={tokens.color.primary} />
+            <Icon source="account-check-outline" size={18} color={palette.primary} />
             <View style={{ flex: 1 }}>
               <Text style={styles.infoTitle}>El guardia ve tus datos</Text>
               <Text style={styles.infoText}>Antes de abrir, confirma tu nombre, foto y propiedad. Abre la puerta manualmente.</Text>
             </View>
           </View>
           <View style={styles.infoRow}>
-            <Icon source="alert-circle-outline" size={18} color={tokens.color.primary} />
+            <Icon source="alert-circle-outline" size={18} color={palette.primary} />
             <View style={{ flex: 1 }}>
               <Text style={styles.infoTitle}>Si hay adeudo, no entra</Text>
               <Text style={styles.infoText}>La regla de morosos aplica igual que con el PIN. Solo administración puede autorizar.</Text>

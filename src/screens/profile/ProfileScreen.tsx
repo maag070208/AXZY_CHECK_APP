@@ -34,6 +34,7 @@ import { PhotoSourceDialog } from '../../shared/components/PhotoSourceDialog';
 import { pickPhotoFromGallery } from '../../shared/service/photo-picker.service';
 import { uploadFile } from '../../shared/service/upload.service';
 import { tokens } from '../../shared/theme/tokens';
+import { UserAvatar } from '../../shared/components/UserAvatar';
 import { emailError, phoneError } from '../../shared/validation/fields';
 import { CameraModal } from '../check/components/CameraModal';
 import {
@@ -426,17 +427,11 @@ export const ProfileScreen = () => {
             disabled={photoBusy}
             style={styles.avatarWrap}
           >
-            {photoUrl ? (
-              <Image
-                source={{ uri: photoUrl }}
-                style={styles.avatar}
-                accessibilityLabel="Foto de perfil"
-              />
-            ) : (
-              <View style={[styles.avatar, styles.avatarFallback]}>
-                <Text style={styles.avatarInitials}>{initialsOf(name, lastName)}</Text>
-              </View>
-            )}
+            <UserAvatar
+              name={fullName || `${name ?? ''} ${lastName ?? ''}`.trim()}
+              photoUrl={photoUrl}
+              size={104}
+            />
             <View style={styles.cameraBadge}>
               {photoBusy ? (
                 <ActivityIndicator size="small" color={tokens.color.card} />

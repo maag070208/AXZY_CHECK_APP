@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@babel/runtime": "7.28.4",
+    "@blobatar/react-native": "2.7.0",
     "@op-engineering/op-sqlite": "18.2.5",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.5.0",
@@ -31,6 +32,7 @@
     "@reduxjs/toolkit": "2.9.2",
     "ably": "^2.6.5",
     "axios": "1.13.0",
+    "blobatar": "2.7.0",
     "dayjs": "1.11.18",
     "formik": "2.4.9",
     "jwt-decode": "4.0.0",

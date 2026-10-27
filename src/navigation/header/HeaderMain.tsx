@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { OfflineHeaderNotice } from '../../shared/components/OfflineHeaderNotice';
 import { useFocusEffect } from '@react-navigation/native';
@@ -13,6 +13,8 @@ import { UserRole } from '../../core/types/IUser';
 import { useCan } from '../../core/permissions/useCan';
 import { P } from '../../core/permissions/permissions';
 import { SyncHeaderButton } from './SyncHeaderButton';
+import { UserAvatar } from '../../shared/components/UserAvatar';
+import { useRolePalette } from '../../shared/theme/RoleThemeProvider';
 
 /**
  * Header principal de la APP (HomeStack). Tarjeta blanca flotante con menú,
@@ -20,6 +22,7 @@ import { SyncHeaderButton } from './SyncHeaderButton';
  */
 export const HeaderMain = ({ navigation }: any) => {
   const user = useSelector((state: RootState) => state.userState);
+  const palette = useRolePalette();
   const [alertCount, setAlertCount] = useState(0);
   const can = useCan();
 
@@ -93,7 +96,7 @@ export const HeaderMain = ({ navigation }: any) => {
           accessibilityLabel="Abrir menú"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Icon source="menu" size={25} color="#065911" />
+          <Icon source="menu" size={25} color={palette.primary} />
         </TouchableOpacity>
 
         <View style={styles.spacer} />
@@ -135,15 +138,11 @@ export const HeaderMain = ({ navigation }: any) => {
           accessibilityRole="button"
           accessibilityLabel="Abrir perfil"
         >
-          {user.photoUrl ? (
-            <Image
-              source={{ uri: user.photoUrl }}
-              style={styles.avatarImage}
-              accessibilityLabel="Foto de perfil"
-            />
-          ) : (
-            <Text style={styles.avatarText}>{initials}</Text>
-          )}
+          <UserAvatar
+            name={name}
+            photoUrl={user.photoUrl}
+            size={34}
+          />
         </TouchableOpacity>
       </View>
       <OfflineHeaderNotice />

@@ -8,6 +8,7 @@ export interface IUserState {
 
   fullName: string | null;
   role: string | null;
+  lastRole: string | null;
   photoUrl: string | null;
   token: string | null;
   isSignedIn: boolean;
@@ -21,6 +22,7 @@ const initialState: IUserState = {
 
   fullName: null,
   role: null,
+  lastRole: null,
   photoUrl: null,
   token: null,
   isSignedIn: false,
@@ -42,6 +44,7 @@ export const userSlice = createSlice({
       state.username = decoded.username;
       state.fullName = `${decoded.name} ${decoded.lastName}`;
       state.role = decoded.role;
+      state.lastRole = decoded.role;
       state.photoUrl = decoded.photoUrl ?? null;
 
       state.isSignedIn = true;
@@ -50,7 +53,7 @@ export const userSlice = createSlice({
       state.permissions = null;
     },
 
-    logout: () => initialState,
+    logout: state => ({ ...initialState, lastRole: state.role ?? state.lastRole }),
 
     setPermissions: (state, action: PayloadAction<string[]>) => {
       state.permissions = action.payload;

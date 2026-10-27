@@ -21,6 +21,7 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { theme } from '../../../shared/theme/theme';
+import { useRolePalette } from '../../../shared/theme/RoleThemeProvider';
 import { getMyRecurringAssignments } from '../../recurring/service/recurring.service';
 import { getLiveDashboard, ILiveDashboard } from '../../admin/service/dashboard.service';
 import {
@@ -46,6 +47,7 @@ const formatElapsed = (minutes?: number) => {
 };
 
 export const ShiftDashboard = () => {
+  const palette = useRolePalette();
   const navigation = useNavigation<any>();
   const user = useSelector((state: RootState) => state.userState);
   const isFocused = useIsFocused();
@@ -262,7 +264,7 @@ export const ShiftDashboard = () => {
       <Surface style={styles.roundCard} elevation={1}>
         <View style={styles.roundHeader}>
           <View style={styles.roundIconBox}>
-            <Icon source="map-marker-path" size={20} color={theme.colors.primary} />
+            <Icon source="map-marker-path" size={20} color={palette.primary} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.roundTitle}>Mi Ronda</Text>
@@ -295,7 +297,7 @@ export const ShiftDashboard = () => {
           <>
             {total > 0 && (
               <View style={styles.roundProgressRow}>
-                <ProgressBar progress={progress} color={theme.colors.primary} style={styles.roundProgress} />
+                <ProgressBar progress={progress} color={palette.primary} style={styles.roundProgress} />
                 <Text style={styles.roundProgressText}>
                   {completed}/{total} · {Math.round(progress * 100)}%
                 </Text>
@@ -311,7 +313,7 @@ export const ShiftDashboard = () => {
                   setCameraActive(true);
                 }}
                 style={styles.roundBtn}
-                buttonColor={theme.colors.primary}
+                buttonColor={palette.primary}
                 contentStyle={{ height: 44 }}
               >
                 ESCANEAR QR

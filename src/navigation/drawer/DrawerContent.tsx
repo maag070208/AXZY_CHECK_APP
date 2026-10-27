@@ -1,7 +1,7 @@
 import type { DrawerContentComponentProps } from '@react-navigation/drawer';
 import dayjs from 'dayjs';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Animated, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppNavigation } from '../hooks/useAppNavigation';
@@ -9,7 +9,9 @@ import { useAppDispatch, useAppSelector } from '../../core/store/hooks';
 import { logout } from '../../core/store/slices/user.slice';
 import { RootState } from '../../core/store/redux.config';
 import { theme } from '../../shared/theme/theme';
+import { useRolePalette } from '../../shared/theme/RoleThemeProvider';
 import EnvironmentBadge from '../../shared/components/EnvironmentBadge';
+import { UserAvatar } from '../../shared/components/UserAvatar';
 import { useCan } from '../../core/permissions/useCan';
 import { P, PermissionRequirement } from '../../core/permissions/permissions';
 
@@ -319,6 +321,7 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
   const { resetToModule } = useAppNavigation();
 
   const userState = useAppSelector((state: RootState) => state.userState);
+  const palette = useRolePalette();
   const userRole = userState.role;
   const can = useCan();
   const focusedPath = getFocusedRoutePath(state);
@@ -365,7 +368,7 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
       <Animated.View
         style={[
           styles.header,
-          { paddingTop: insets.top + 16, opacity: fadeIn },
+          { paddingTop: insets.top + 16, opacity: fadeIn, backgroundColor: palette.hero },
         ]}
       >
         <View style={styles.decoCircleLarge} />
@@ -383,13 +386,13 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
             <View style={styles.greetingPill}>
-              <Icon source={clock.icon} size={15} color="#A7F3D0" />
+              <Icon source={clock.icon} size={15} color={palette.heroAccent} />
               <Text style={styles.greeting}>{clock.greeting}</Text>
             </View>
             <Text style={styles.userName} numberOfLines={1}>
               {userState.fullName || 'Usuario'}
             </Text>
-            <Text style={styles.headerMeta} numberOfLines={1}>
+            <Text style={[styles.headerMeta, { color: palette.heroAccent }]} numberOfLines={1}>
               Entrada {userState.loggedInAt ? dayjs(userState.loggedInAt).format('HH:mm') : '—'} ·{' '}
               {ROLE_TRANSLATIONS[userRole || ''] || userRole || ''}
             </Text>
@@ -397,24 +400,18 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
 
           <View style={styles.avatarWrap}>
             <View style={styles.avatarButton}>
-              {userState.photoUrl ? (
-                <Image
-                  source={{ uri: userState.photoUrl }}
-                  style={styles.avatarImage}
-                  accessibilityLabel="Foto de perfil"
-                />
-              ) : (
-                <Text style={styles.avatarText}>
-                  {userState.fullName?.charAt(0).toUpperCase() || 'U'}
-                </Text>
-              )}
+              <UserAvatar
+                name={userState.fullName || userState.username}
+                photoUrl={userState.photoUrl}
+                size={48}
+              />
             </View>
             <TouchableOpacity
               onPress={() => navigation.navigate('PROFILE_SCREEN')}
-              style={styles.editButton}
+              style={[styles.editButton, { backgroundColor: palette.accent, borderColor: palette.primary }]}
               activeOpacity={0.8}
             >
-              <Icon source="pencil-outline" size={13} color={theme.colors.onPrimary} />
+              <Icon source="pencil-outline" size={13} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -433,7 +430,7 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
           return (
             <TouchableOpacity
               key={index}
-              style={[styles.menuItem, isActive && styles.menuItemActive]}
+              style={[styles.menuItem, isActive && { backgroundColor: palette.primarySoft }]}
               activeOpacity={0.7}
               onPress={() => {
                 const params =
@@ -447,17 +444,17 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
               <Icon
                 source={item.icon}
                 size={20}
-                color={isActive ? theme.colors.primary : '#64748B'}
+                color={isActive ? palette.primary : '#64748B'}
               />
 
-              <Text style={[styles.menuLabel, isActive && styles.menuLabelActive]}>
+              <Text style={[styles.menuLabel, isActive && { color: palette.primary, fontWeight: '800' }]}>
                 {item.label}
               </Text>
 
               <Icon
                 source="chevron-right"
                 size={15}
-                color={isActive ? theme.colors.primary : '#CBD5E1'}
+                color={isActive ? palette.primary : '#CBD5E1'}
               />
             </TouchableOpacity>
           );

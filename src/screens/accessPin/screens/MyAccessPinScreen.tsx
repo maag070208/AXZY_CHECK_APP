@@ -5,11 +5,13 @@ import { HeaderBack } from '../../../navigation/header/HeaderBack';
 import { AppButton } from '../../../shared/components/AppButton';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { tokens } from '../../../shared/theme/tokens';
+import { useRolePalette } from '../../../shared/theme/RoleThemeProvider';
 import { AccessPinStatus, generateMyAccessPin, getMyAccessPin, revokeMyAccessPin } from '../service/access-pin.service';
 
 type PinMode = 'AUTO' | 'CUSTOM';
 
 export const MyAccessPinScreen = ({ navigation }: any) => {
+  const palette = useRolePalette();
   const [status, setStatus] = useState<AccessPinStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -94,9 +96,9 @@ export const MyAccessPinScreen = ({ navigation }: any) => {
       <HeaderBack navigation={navigation} title="Mi clave peatonal" />
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} colors={[tokens.color.primary]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} colors={[palette.primary]} />}
       >
-        <View style={styles.hero}>
+        <View style={[styles.hero, { backgroundColor: palette.hero }]}>
           <View style={styles.heroTop}>
             <View style={styles.heroIcon}><Icon source="shield-key-outline" size={26} color="#D1FAE5" /></View>
             <View style={[styles.statusPill, active ? styles.statusOn : styles.statusOff]}>
@@ -119,7 +121,7 @@ export const MyAccessPinScreen = ({ navigation }: any) => {
         {loading ? <Text style={styles.muted}>Cargando tu clave…</Text> : (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <View style={styles.cardIcon}><Icon source="door-open" size={20} color={tokens.color.primary} /></View>
+              <View style={styles.cardIcon}><Icon source="door-open" size={20} color={palette.primary} /></View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{active ? 'Tu clave está lista' : 'Aún no tienes clave'}</Text>
                 <Text style={styles.cardText}>{active ? 'Puedes cambiarla cuando quieras.' : 'Se muestra una sola vez al crearla.'}</Text>
@@ -149,7 +151,7 @@ export const MyAccessPinScreen = ({ navigation }: any) => {
             ['alert-circle-outline', '5 intentos', 'Tras 5 intentos fallidos, la validación se bloquea 15 minutos.'],
           ].map(([icon, title, text]) => (
             <View key={title} style={styles.rule}>
-              <Icon source={icon as any} size={18} color={tokens.color.primary} />
+              <Icon source={icon as any} size={18} color={palette.primary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.ruleTitle}>{title}</Text>
                 <Text style={styles.ruleText}>{text}</Text>
@@ -180,7 +182,7 @@ export const MyAccessPinScreen = ({ navigation }: any) => {
                 accessibilityState={{ selected: mode === 'AUTO' }}
               >
                 <View style={[styles.modeIcon, mode === 'AUTO' && styles.modeIconSelected]}>
-                  <Icon source="auto-fix" size={20} color={mode === 'AUTO' ? '#FFFFFF' : tokens.color.primary} />
+                  <Icon source="auto-fix" size={20} color={mode === 'AUTO' ? '#FFFFFF' : palette.primary} />
                 </View>
                 <Text style={[styles.modeTitle, mode === 'AUTO' && styles.modeTitleSelected]}>Generar por mí</Text>
                 <Text style={styles.modeText}>El sistema crea una clave segura.</Text>
@@ -192,7 +194,7 @@ export const MyAccessPinScreen = ({ navigation }: any) => {
                 accessibilityState={{ selected: mode === 'CUSTOM' }}
               >
                 <View style={[styles.modeIcon, mode === 'CUSTOM' && styles.modeIconSelected]}>
-                  <Icon source="dialpad" size={20} color={mode === 'CUSTOM' ? '#FFFFFF' : tokens.color.primary} />
+                  <Icon source="dialpad" size={20} color={mode === 'CUSTOM' ? '#FFFFFF' : palette.primary} />
                 </View>
                 <Text style={[styles.modeTitle, mode === 'CUSTOM' && styles.modeTitleSelected]}>Elegir la mía</Text>
                 <Text style={styles.modeText}>Tú decides los 6 dígitos.</Text>

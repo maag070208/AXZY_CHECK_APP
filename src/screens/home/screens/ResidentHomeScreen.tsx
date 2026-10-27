@@ -25,6 +25,7 @@ import {
 } from '../../invitations/service/invitation.service';
 import { getMyBalance } from '../../payments/service/payment.service';
 import { tokens } from '../../../shared/theme/tokens';
+import { useRolePalette } from '../../../shared/theme/RoleThemeProvider';
 import { formatMoney } from '../../../shared/utils/money';
 
 const PRIMARY = tokens.color.primary;
@@ -51,6 +52,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export const ResidentHomeScreen = () => {
+  const palette = useRolePalette();
   const navigation = useNavigation<any>();
   const { resetToModule } = useAppNavigation();
   const user = useAppSelector((state: RootState) => state.userState);
@@ -190,11 +192,11 @@ export const ResidentHomeScreen = () => {
       style={styles.screen}
       contentContainerStyle={styles.content}
       refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={load} colors={[PRIMARY]} tintColor={PRIMARY} />
+        <RefreshControl refreshing={loading} onRefresh={load} colors={[palette.primary]} tintColor={palette.primary} />
       }
     >
-      <View style={styles.hero}>
-        <View style={styles.heroGlow} />
+      <View style={[styles.hero, { backgroundColor: palette.heroDeep }]}>
+        <View style={[styles.heroGlow, { backgroundColor: palette.hero }]} />
         <Text style={styles.greeting}>{greeting},</Text>
         <Text style={styles.name}>{firstName}</Text>
         <Text style={styles.heroHint}>Aquí están tus accesos y los pases de tu propiedad.</Text>
@@ -215,8 +217,8 @@ export const ResidentHomeScreen = () => {
             activeOpacity={0.85}
             onPress={action.onPress}
           >
-            <View style={styles.actionIcon}>
-              <Icon source={action.icon} size={22} color={PRIMARY} />
+            <View style={[styles.actionIcon, { backgroundColor: palette.primarySoft }]}>
+              <Icon source={action.icon} size={22} color={palette.primary} />
             </View>
             <Text style={styles.actionLabel}>{action.label}</Text>
             <Text style={styles.actionDetail}>{action.detail}</Text>
@@ -230,7 +232,7 @@ export const ResidentHomeScreen = () => {
           <Text style={styles.sectionTitle}>Últimos accesos</Text>
         </View>
         <TouchableOpacity onPress={() => go('INVITATIONS_STACK', 'INVITATIONS_MAIN')}>
-          <Text style={styles.link}>Ver todos</Text>
+          <Text style={[styles.link, { color: palette.primary }]}>Ver todos</Text>
         </TouchableOpacity>
       </View>
 
@@ -248,8 +250,8 @@ export const ResidentHomeScreen = () => {
               style={[styles.passRow, index < invitations.slice(0, 4).length - 1 && styles.passBorder]}
               onPress={() => go('INVITATIONS_STACK', 'INVITATION_DETAIL', { invitation })}
             >
-              <View style={styles.passIcon}>
-                <Icon source="qrcode" size={18} color={PRIMARY} />
+              <View style={[styles.passIcon, { backgroundColor: palette.primarySoft }]}>
+                <Icon source="qrcode" size={18} color={palette.primary} />
               </View>
               <View style={styles.passCopy}>
                 <Text style={styles.passName} numberOfLines={1}>
@@ -274,12 +276,12 @@ export const ResidentHomeScreen = () => {
         )}
       </View>
 
-      <View style={styles.tipCard}>
-        <View style={styles.tipIcon}>
-          <Icon source="shield-check-outline" size={18} color={PRIMARY} />
+      <View style={[styles.tipCard, { backgroundColor: palette.primarySoft, borderColor: palette.primarySoft }]}>
+        <View style={[styles.tipIcon, { backgroundColor: palette.primarySoft }]}>
+          <Icon source="shield-check-outline" size={18} color={palette.primary} />
         </View>
         <View style={styles.tipCopy}>
-          <Text style={styles.tipTitle}>Tus pases son personales</Text>
+          <Text style={[styles.tipTitle, { color: palette.primary }]}>Tus pases son personales</Text>
           <Text style={styles.tipText}>
             Comparte el QR solo con la visita. Puedes revocarlo desde “Mis pases”.
           </Text>
