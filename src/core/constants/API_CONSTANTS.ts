@@ -4,7 +4,7 @@ export const ENVIRONMENTS: Record<Environment, string> = {
   // BARCELONA: pendiente de publicar; reemplazar por la URL real cuando exista.
   DEV: 'https://api-barcerlona-residencial-checkapp-dev.up.railway.app/api/v1',
   PROD: 'https://pendiente-barcelona-prod.invalid/api/v1',
-  LOCAL: 'http://localhost:4444/api/v1',
+  LOCAL: 'http://192.168.1.90:4444/api/v1',
 };
 
 export const ENVIRONMENT_LABELS: Record<Environment, string> = {

@@ -38,7 +38,8 @@ appId: com.axzy.checkapp.barcelona
     visible: "Mi clave peatonal"
     timeout: 10000
 - tapOn:
-    point: "50%,74%"
+    text: "Mi clave peatonal"
+    retryTapIfNoChange: true
 - extendedWaitUntil:
     visible: "Mi clave peatonal"
     timeout: 15000
