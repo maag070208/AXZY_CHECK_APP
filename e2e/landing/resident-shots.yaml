@@ -1,0 +1,43 @@
+appId: com.axzy.checkapp.barcelona
+---
+- pressKey: Back
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "Cerrar Sesión"
+    timeout: 10000
+- tapOn: "Cerrar Sesión"
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 15000
+- tapOn: "Usuario"
+- inputText: "e2e_resident"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: resident-home-new
+- tapOn: "Contactos"
+- extendedWaitUntil:
+    visible: "Mi Agenda"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: resident-contacts-new
+- pressKey: Back
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "Mis accesos"
+- tapOn: "Mis accesos"
+- extendedWaitUntil:
+    visible: "Mis accesos"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: resident-access-new

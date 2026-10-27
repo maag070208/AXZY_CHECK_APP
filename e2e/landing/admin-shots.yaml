@@ -1,0 +1,29 @@
+appId: com.axzy.checkapp.barcelona
+---
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "Cerrar Sesión"
+    timeout: 10000
+- tapOn: "Cerrar Sesión"
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 15000
+- tapOn: "Usuario"
+- inputText: "isabel"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- extendedWaitUntil:
+    visible: ".*Isabel.*"
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: admin-home-new
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "Residentes"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: admin-menu-new

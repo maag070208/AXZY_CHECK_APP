@@ -1,0 +1,39 @@
+appId: com.axzy.checkapp.barcelona
+---
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "marcoh"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 30000
+- takeScreenshot: guard-home-new
+- scrollUntilVisible:
+    element:
+      text: "Vehículos"
+- tapOn: "Vehículos"
+- extendedWaitUntil:
+    visible: "Consulta de vehículos"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: guard-vehicles-new
+- pressKey: Back
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "Clave peatonal"
+- tapOn: "Clave peatonal"
+- extendedWaitUntil:
+    visible: "Validar clave peatonal"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: guard-pin-new

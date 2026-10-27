@@ -1,0 +1,22 @@
+appId: com.axzy.checkapp.barcelona
+---
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 30000
+- takeScreenshot: guard-home-new
+- tapOn: "Vehículos"
+- extendedWaitUntil:
+    visible: "Consulta de vehículos"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: guard-vehicles-new
+- pressKey: Back
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 15000
+- tapOn: "Clave peatonal"
+- extendedWaitUntil:
+    visible: "Validar clave peatonal"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: guard-pin-new
