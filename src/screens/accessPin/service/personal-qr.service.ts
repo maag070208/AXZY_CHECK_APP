@@ -5,6 +5,8 @@ export interface QrPassStatus {
   active: boolean;
   createdAt: string | null;
   lastUsedAt: string | null;
+  property?: { id: number; identifier: string; name: string } | null;
+  person?: { firstName: string; lastName: string | null } | null;
   expiresIn: number;
 }
 

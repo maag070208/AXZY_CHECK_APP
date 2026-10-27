@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../../../navigation/hooks/useAppNavigation';
 import { useAppSelector } from '../../../core/store/hooks';
 import { useCan } from '../../../core/permissions/useCan';
 import { P } from '../../../core/permissions/permissions';
@@ -51,6 +52,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export const ResidentHomeScreen = () => {
   const navigation = useNavigation<any>();
+  const { resetToModule } = useAppNavigation();
   const user = useAppSelector((state: RootState) => state.userState);
   const can = useCan();
   const [resident, setResident] = useState<ResidentUser | null>(null);
@@ -137,28 +139,28 @@ export const ResidentHomeScreen = () => {
       detail: 'Historial de la propiedad',
       permission: P.RESIDENT_SELF,
       icon: 'history',
-      onPress: () => navigation.navigate('ACCESS_PIN_STACK', { screen: 'ACCESS_HISTORY' }),
+      onPress: () => resetToModule('ACCESS_PIN_STACK' as any, 'ACCESS_HISTORY'),
     },
     {
       label: 'Mi pase QR',
       detail: 'Muéstralo en caseta',
       permission: P.ACCESS_PIN_MANAGE,
       icon: 'qrcode',
-      onPress: () => navigation.navigate('ACCESS_PIN_STACK', { screen: 'MY_QR_PASS' }),
+      onPress: () => resetToModule('ACCESS_PIN_STACK' as any, 'MY_QR_PASS'),
     },
     {
       label: 'Mi clave peatonal',
       detail: 'Acceso a pie',
       permission: P.ACCESS_PIN_MANAGE,
       icon: 'door-open',
-      onPress: () => navigation.navigate('ACCESS_PIN_STACK', { screen: 'MY_ACCESS_PIN' }),
+      onPress: () => resetToModule('ACCESS_PIN_STACK' as any, 'MY_ACCESS_PIN'),
     },
     {
       label: 'Mis vehículos',
       detail: 'Tus autos y tags',
       permission: P.VEHICLE_SELF,
       icon: 'car-outline',
-      onPress: () => go('VEHICLES_STACK', 'MY_VEHICLES'),
+      onPress: () => resetToModule('VEHICLES_STACK' as any, 'MY_VEHICLES'),
     },
     {
       label: 'Mis pagos',

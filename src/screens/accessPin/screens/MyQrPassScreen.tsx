@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import QRCode from 'react-native-qrcode-svg';
 import { HeaderBack } from '../../../navigation/header/HeaderBack';
 import { AppButton } from '../../../shared/components/AppButton';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { tokens } from '../../../shared/theme/tokens';
 import { QrPassStatus, QrPassToken, getMyQrPass, issueMyQrPassToken, revokeMyQrPass } from '../service/personal-qr.service';
 
@@ -14,6 +15,7 @@ export const MyQrPassScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const [remaining, setRemaining] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const refreshingRef = useRef(false);
 
   const issue = useCallback(async (silent = false) => {
@@ -74,27 +76,18 @@ export const MyQrPassScreen = ({ navigation }: any) => {
     if (res.success && res.data) setStatus(res.data);
   };
 
-  const revoke = () => {
-    Alert.alert(
-      'Desactivar mi pase QR',
-      'El pase dejará de funcionar para el guardia. Puedes activarlo de nuevo cuando quieras.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Desactivar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await revokeMyQrPass();
-              setPass(null);
-              setStatus(current => current ? { ...current, active: false } : current);
-            } catch (e: any) {
-              setError(e?.messages?.[0] ?? 'No se pudo desactivar el pase.');
-            }
-          },
-        },
-      ],
-    );
+  const revoke = () => setConfirming(true);
+
+  const confirmRevoke = async () => {
+    try {
+      await revokeMyQrPass();
+      setPass(null);
+      setStatus(current => current ? { ...current, active: false } : current);
+    } catch (e: any) {
+      setError(e?.messages?.[0] ?? 'No se pudo desactivar el pase.');
+    } finally {
+      setConfirming(false);
+    }
   };
 
   const active = status?.active === true || !!pass;
@@ -127,16 +120,41 @@ export const MyQrPassScreen = ({ navigation }: any) => {
             <Text style={styles.muted}>Preparando tu pase…</Text>
           ) : active && pass ? (
             <>
-              <View style={styles.qrFrame}>
-                <QRCode value={pass.token} size={214} color="#0F172A" backgroundColor="#FFFFFF" ecl="M" />
-              </View>
-              <View style={styles.timerRow}>
-                <Icon source="refresh" size={14} color={tokens.color.primary} />
-                <Text style={styles.timerText}>Se renueva en {timerLabel}</Text>
-              </View>
-              <View style={styles.protected}>
-                <Icon source="shield-check-outline" size={16} color={tokens.color.primary} />
-                <Text style={styles.protectedText}>Pase personal · solo para tu propiedad</Text>
+              <View style={styles.ticket}>
+                <View style={styles.ticketHeader}>
+                  <View style={styles.brandRow}>
+                    <View style={styles.brandIcon}><Icon source="shield-check-outline" size={18} color="#FFFFFF" /></View>
+                    <Text style={styles.brandName}>CheckApp</Text>
+                  </View>
+                  <View style={styles.ticketBadge}><Text style={styles.ticketBadgeText}>PUNTO DE ESCANEO</Text></View>
+                </View>
+                <View style={styles.ticketBody}>
+                  <Text style={styles.ticketLabel}>TITULAR</Text>
+                  <Text style={styles.ticketName}>
+                    {status?.person ? `${status.person.firstName} ${status.person.lastName ?? ''}`.trim() : 'Residente'}
+                  </Text>
+                  <Text style={styles.ticketProperty}>
+                    {status?.property ? `${status.property.identifier} · ${status.property.name}` : 'Propiedad'}
+                  </Text>
+                  <View style={styles.qrBrand}>
+                    <QRCode value={pass.token} size={210} color="#FFFFFF" backgroundColor="#0B3D2A" ecl="H" quietZone={8} />
+                    <View style={styles.qrPin}>
+                      <Icon source="map-marker" size={22} color="#0B3D2A" />
+                    </View>
+                  </View>
+                  <Text style={styles.ticketCode}>{pass.token}</Text>
+                  <View style={styles.timerRow}>
+                    <Icon source="refresh" size={14} color={tokens.color.primary} />
+                    <Text style={styles.timerText}>Se renueva en {timerLabel}</Text>
+                  </View>
+                  <View style={styles.protected}>
+                    <Icon source="shield-check-outline" size={15} color={tokens.color.primary} />
+                    <Text style={styles.protectedText}>Pase personal · solo para tu propiedad</Text>
+                  </View>
+                </View>
+                <View style={styles.ticketFooter}>
+                  <Text style={styles.ticketFooterText}>Presenta este QR en caseta de seguridad</Text>
+                </View>
               </View>
               <View style={styles.actions}>
                 <AppButton label="Renovar ahora" variant="outline" icon="refresh" onPress={() => void issue()} disabled={refreshing} />
@@ -178,6 +196,17 @@ export const MyQrPassScreen = ({ navigation }: any) => {
           </View>
         </View>
       </ScrollView>
+
+      <ConfirmDialog
+        visible={confirming}
+        title="Desactivar mi pase QR"
+        message="El pase dejará de funcionar para el guardia. Puedes activarlo de nuevo cuando quieras."
+        confirmLabel="Desactivar"
+        tone="danger"
+        icon="qrcode-remove"
+        onConfirm={() => void confirmRevoke()}
+        onCancel={() => setConfirming(false)}
+      />
     </View>
   );
 };
@@ -215,4 +244,21 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   infoTitle: { fontSize: 12, fontWeight: '800', color: tokens.color.textStrong },
   infoText: { marginTop: 2, fontSize: 10, lineHeight: 15, color: tokens.color.textMuted },
+  ticket: { width: '100%', backgroundColor: '#FFFFFF', borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: '#E2E8F0' },
+  ticketHeader: { backgroundColor: '#12A36F', paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  brandIcon: { width: 30, height: 30, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  brandName: { fontSize: 15, fontWeight: '900', color: '#FFFFFF' },
+  ticketBadge: { backgroundColor: 'rgba(255,255,255,0.20)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  ticketBadgeText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8, color: '#FFFFFF' },
+  ticketBody: { padding: 18, alignItems: 'center', gap: 5 },
+  ticketLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1.6, color: tokens.color.textHint },
+  ticketName: { fontSize: 20, fontWeight: '900', color: tokens.color.textStrong, textAlign: 'center' },
+  ticketProperty: { fontSize: 10.5, color: tokens.color.textMuted, marginBottom: 8 },
+  qrBrand: { width: 226, height: 226, borderRadius: 24, backgroundColor: '#0B3D2A', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginVertical: 4 },
+  qrPin: { position: 'absolute', width: 46, height: 46, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  ticketCode: { marginTop: 8, fontSize: 13, fontWeight: '900', letterSpacing: 1.4, color: tokens.color.textStrong },
+  ticketFooter: { borderTopWidth: 1, borderTopColor: '#F1F5F9', backgroundColor: '#F8FAFC', paddingVertical: 10, alignItems: 'center' },
+  ticketFooterText: { fontSize: 9, fontWeight: '700', color: tokens.color.textHint },
+
 });

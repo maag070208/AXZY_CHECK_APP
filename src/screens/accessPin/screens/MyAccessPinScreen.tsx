@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text, TextInput } from 'react-native-paper';
 import { HeaderBack } from '../../../navigation/header/HeaderBack';
 import { AppButton } from '../../../shared/components/AppButton';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { tokens } from '../../../shared/theme/tokens';
 import { AccessPinStatus, generateMyAccessPin, getMyAccessPin, revokeMyAccessPin } from '../service/access-pin.service';
 
@@ -19,6 +20,7 @@ export const MyAccessPinScreen = ({ navigation }: any) => {
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [generated, setGenerated] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const load = useCallback(async (refresh = false) => {
     refresh ? setRefreshing(true) : setLoading(true);
@@ -68,29 +70,20 @@ export const MyAccessPinScreen = ({ navigation }: any) => {
     }
   };
 
-  const revoke = () => {
-    Alert.alert(
-      'Revocar clave',
-      'La clave actual dejará de funcionar inmediatamente.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Revocar',
-          style: 'destructive',
-          onPress: async () => {
-            setSaving(true);
-            try {
-              await revokeMyAccessPin();
-              await load();
-            } catch (e: any) {
-              setError(e?.messages?.[0] ?? 'No se pudo revocar la clave.');
-            } finally {
-              setSaving(false);
-            }
-          },
-        },
-      ],
-    );
+  const revoke = () => setConfirming(true);
+
+  const confirmRevoke = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      await revokeMyAccessPin();
+      await load();
+    } catch (e: any) {
+      setError(e?.messages?.[0] ?? 'No se pudo revocar la clave.');
+    } finally {
+      setSaving(false);
+      setConfirming(false);
+    }
   };
 
   const pinLabel = generated ? generated.split('').join('  ') : '';
@@ -249,6 +242,18 @@ export const MyAccessPinScreen = ({ navigation }: any) => {
           </View>
         </View>
       </Modal>
+
+      <ConfirmDialog
+        visible={confirming}
+        title="Revocar clave"
+        message="La clave actual dejará de funcionar inmediatamente."
+        confirmLabel="Revocar"
+        tone="danger"
+        icon="shield-key-outline"
+        loading={saving}
+        onConfirm={() => void confirmRevoke()}
+        onCancel={() => setConfirming(false)}
+      />
     </View>
   );
 };

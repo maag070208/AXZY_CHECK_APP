@@ -88,9 +88,15 @@ Usuarios de prueba creados en dev:
 - `caseta-access.yaml` — consulta de vehículos y validación de PIN en caseta.
 - `admin-access.yaml` — avisos, padrón de vehículos y bitácora.
 
-Requieren que la migración `20261026160000_rbac_guard_report_views` esté aplicada y que el usuario de prueba tenga los permisos nuevos.
+Requieren que las migraciones `20261026200000_personal_qr_pass` y `20261026201000_personal_qr_code` estén aplicadas y que el usuario de prueba tenga los permisos nuevos.
 
 ```bash
 JAVA_OPTS="-Duser.home=$PWD/.maestro-home" \
   ~/.maestro/bin/maestro test e2e/maestro/resident-access.yaml
 ```
+
+
+## Navegación / regresión
+
+- `navigation-access.yaml` — entra a Mi clave peatonal, vuelve al home, entra a Mi pase QR y comprueba que el back regresa al home (no a la clave).
+- `qr-pass.yaml` — activa/abre el QR, revisa la tarjeta y abre el ConfirmDialog de desactivación.

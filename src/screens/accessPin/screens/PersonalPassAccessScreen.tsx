@@ -25,8 +25,8 @@ export const PersonalPassAccessScreen = ({ navigation }: any) => {
 
   const validate = async (value: string) => {
     const clean = value.trim();
-    if (clean.length < 20) {
-      setError('Escanea el QR del pase o pega el token completo.');
+    if (clean.length < 8) {
+      setError('Escanea el QR del pase o pega el código completo.');
       return;
     }
     setLoading(true);

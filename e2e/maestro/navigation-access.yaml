@@ -1,0 +1,54 @@
+appId: com.axzy.checkapp.barcelona
+---
+# Regresión: al volver de Mi pase QR debe regresar al home, no a Mi clave peatonal.
+- launchApp:
+    clearState: true
+- tapOn:
+    text: "Nunca en esta aplicación o sitio web"
+    optional: true
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 30000
+- tapOn: "Usuario"
+- inputText: "e2e_resident"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+- tapOn:
+    text: "Nunca en esta aplicación o sitio web"
+    optional: true
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 30000
+
+# Entrar a clave peatonal desde el home
+- scrollUntilVisible:
+    element:
+      text: "Mi clave peatonal"
+- tapOn: "Mi clave peatonal"
+- extendedWaitUntil:
+    visible: "Mi clave peatonal"
+    timeout: 15000
+- pressKey: Back
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 15000
+
+# Entrar a pase QR desde el home
+- scrollUntilVisible:
+    element:
+      text: "Mi pase QR"
+- tapOn: "Mi pase QR"
+- extendedWaitUntil:
+    visible: "Mi pase QR"
+    timeout: 15000
+- pressKey: Back
+
+# Debe volver al home, no a la pantalla de clave peatonal
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 15000
+- assertNotVisible: "Tu llave de entrada"

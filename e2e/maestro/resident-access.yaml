@@ -1,6 +1,6 @@
 appId: com.axzy.checkapp.barcelona
 ---
-# Fase 2A: avisos, clave peatonal, vehículos e historial del residente.
+# Fase 2A: avisos, clave peatonal, vehículos, accesos y pase QR desde el home.
 - launchApp:
     clearState: true
 - tapOn:
@@ -31,15 +31,15 @@ appId: com.axzy.checkapp.barcelona
     timeout: 15000
 - assertVisible: "Comunicados de la administración."
 - pressKey: Back
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 15000
 
 # Mi clave peatonal
-- tapOn: "Abrir menú"
-- extendedWaitUntil:
-    visible: "Mi clave peatonal"
-    timeout: 10000
-- tapOn:
-    text: "Mi clave peatonal"
-    retryTapIfNoChange: true
+- scrollUntilVisible:
+    element:
+      text: "Mi clave peatonal"
+- tapOn: "Mi clave peatonal"
 - extendedWaitUntil:
     visible: "Mi clave peatonal"
     timeout: 15000
@@ -54,25 +54,47 @@ appId: com.axzy.checkapp.barcelona
     timeout: 15000
 - tapOn: "Entendido"
 - pressKey: Back
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 15000
 
 # Mis vehículos
-- tapOn: "Abrir menú"
-- tapOn:
-    text: "Mis vehículos"
-    retryTapIfNoChange: true
+- scrollUntilVisible:
+    element:
+      text: "Mis vehículos"
+- tapOn: "Mis vehículos"
 - extendedWaitUntil:
     visible: "Mis vehículos"
     timeout: 15000
 - assertVisible: "Agregar"
 - pressKey: Back
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 15000
 
 # Mis accesos
-- tapOn: "Abrir menú"
-- tapOn:
-    text: "Mis accesos"
-    retryTapIfNoChange: true
+- scrollUntilVisible:
+    element:
+      text: "Mis accesos"
+- tapOn: "Mis accesos"
 - extendedWaitUntil:
     visible: "Mis accesos"
     timeout: 15000
 - assertVisible: "Entradas y salidas de tu propiedad."
 - pressKey: Back
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 15000
+
+# Mi pase QR
+- scrollUntilVisible:
+    element:
+      text: "Mi pase QR"
+- tapOn: "Mi pase QR"
+- extendedWaitUntil:
+    visible: "Mi pase QR"
+    timeout: 15000
+- pressKey: Back
+- extendedWaitUntil:
+    visible: ".*tus accesos.*"
+    timeout: 15000
