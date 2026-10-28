@@ -317,7 +317,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
       if (!hasLoaded) {
         const remaining = 600 - (Date.now() - startedAt);
         if (remaining > 0) {
-          await new Promise(resolve => setTimeout(resolve, remaining));
+          await new Promise<void>(resolve => setTimeout(resolve, remaining));
         }
       }
       animateLayout();
@@ -737,34 +737,37 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
     );
   };
 
+  /** Acceso rápido a un reporte de campo: ícono con su color, nombre y una línea de ayuda. */
   const renderAction = (
     label: string,
+    hint: string,
     icon: string,
     color: string,
+    soft: string,
     onPress: () => void,
-  ) => {
-    const soft = color === tokens.color.danger
-      ? tokens.color.dangerSoft
-      : color === tokens.color.warning
-        ? tokens.color.warningSoft
-        : palette.primarySoft;
-    return (
-      <TouchableOpacity
-        style={styles.actionCard}
-        activeOpacity={0.85}
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-      >
+  ) => (
+    <TouchableOpacity
+      style={[styles.actionCard, { borderColor: `${color}26` }]}
+      activeOpacity={0.8}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}. ${hint}`}
+    >
+      <View style={styles.actionCardTop}>
         <View style={[styles.actionChip, { backgroundColor: soft }]}>
-          <Icon source={icon as any} size={18} color={color} />
+          <Icon source={icon as any} size={22} color={color} />
         </View>
-        <Text style={styles.actionCardText} numberOfLines={1} adjustsFontSizeToFit>
-          {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+        <Icon source="arrow-top-right" size={16} color={tokens.color.textHint} />
+      </View>
+      <Text style={styles.actionCardText} numberOfLines={1} adjustsFontSizeToFit>
+        {label}
+      </Text>
+      <Text style={styles.actionCardHint} numberOfLines={1}>
+        {hint}
+      </Text>
+      <View style={[styles.actionCardAccent, { backgroundColor: color }]} />
+    </TouchableOpacity>
+  );
 
   const closeScanDialog = () => {
     setScanDialog(null);
@@ -1057,7 +1060,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             <Skeleton height={190} radius={24} />
             <View style={styles.skeletonActions}>
               {[0, 1, 2].map(i => (
-                <Skeleton key={i} height={44} radius={12} style={{ flex: 1 }} />
+                <Skeleton key={i} height={108} radius={16} style={{ flex: 1 }} />
               ))}
             </View>
             <Skeleton width={150} height={10} radius={5} style={{ marginTop: 22 }} />
@@ -1193,25 +1196,18 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
               <View style={styles.dragIndicator} />
 
               {/* BOTONES DE ACCIÓN */}
+              {/* Vehículos, clave peatonal y pase QR siguen en el menú lateral. */}
               <View style={styles.actionSection}>
+                <Text style={styles.actionSectionLabel}>REPORTAR</Text>
                 <View style={styles.actionGrid}>
-                  {renderAction('Incidencia', 'alert-circle', tokens.color.danger, () =>
+                  {renderAction('Incidencia', 'Algo fuera de lo normal', 'alert-circle', tokens.color.danger, tokens.color.dangerSoft, () =>
                     navigation.navigate('INCIDENT_REPORT', { initialCategory: 'FALTAS' }),
                   )}
-                  {renderAction('Mantenimiento', 'wrench', tokens.color.warning, () =>
+                  {renderAction('Mantenimiento', 'Daño o desperfecto', 'wrench', tokens.color.warning, tokens.color.warningSoft, () =>
                     navigation.navigate('MAINTENANCE_REPORT'),
                   )}
-                  {renderAction('Casa Club', 'home-modern', palette.primary, () =>
+                  {renderAction('Casa Club', 'Amenidades', 'home-modern', palette.primary, palette.primarySoft, () =>
                     navigation.navigate('CLUB_REPORT'),
-                  )}
-                  {renderAction('Vehículos', 'car-search', palette.primary, () =>
-                    navigation.navigate('VEHICLE_ACCESS'),
-                  )}
-                  {renderAction('Clave peatonal', 'door-open', palette.primary, () =>
-                    navigation.navigate('PIN_ACCESS'),
-                  )}
-                  {renderAction('Pase QR', 'qrcode-scan', palette.primary, () =>
-                    navigation.navigate('PERSONAL_PASS_ACCESS'),
                   )}
                 </View>
               </View>
@@ -1345,16 +1341,24 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
 const styles = StyleSheet.create({
   actionCard: {
     flex: 1,
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
+    overflow: 'hidden',
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 14,
     borderRadius: tokens.radius.card,
     borderWidth: 1,
-    borderColor: tokens.color.border,
     backgroundColor: tokens.color.card,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
-  actionChip: { width: 38, height: 38, borderRadius: tokens.radius.icon, alignItems: 'center', justifyContent: 'center' },
-  actionCardText: { fontSize: 12, fontWeight: '800', color: tokens.color.textStrong },
+  actionCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
+  actionChip: { width: 44, height: 44, borderRadius: tokens.radius.control, alignItems: 'center', justifyContent: 'center' },
+  actionCardText: { fontSize: 14, fontWeight: '900', color: tokens.color.textStrong, letterSpacing: -0.2 },
+  actionCardHint: { ...tokens.font.hint, marginTop: 2 },
+  actionCardAccent: { position: 'absolute', left: 12, right: 12, bottom: 0, height: 3, borderTopLeftRadius: 3, borderTopRightRadius: 3, opacity: 0.85 },
   container: { flex: 1, backgroundColor: '#F4F9F6' },
   skeletonWrap: { flex: 1, paddingHorizontal: 16, paddingTop: 8 },
   skeletonActions: { flexDirection: 'row', gap: 8, marginTop: 16 },
@@ -1469,36 +1473,13 @@ const styles = StyleSheet.create({
   },
 
   actionSection: {
-    marginBottom: 14,
+    marginBottom: 18,
     marginTop: 10,
   },
+  actionSectionLabel: { ...tokens.font.label, marginBottom: 10 },
   actionGrid: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  actionTile: {
-    flex: 1,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderRadius: 12,
-    paddingHorizontal: 6,
-  },
-  actionIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionTileText: {
-    color: tokens.color.card,
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.2,
-    textAlign: 'center',
+    gap: 10,
   },
 
   // Controles de ronda dentro del escáner
