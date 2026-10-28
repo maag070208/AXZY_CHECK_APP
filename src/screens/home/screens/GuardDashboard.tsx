@@ -134,16 +134,6 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
   const isSingleRoute = configs.length === 1;
   const isSameRoute = isSingleRoute && activeRound?.recurringConfigurationId === configs[0].id;
   
-  console.log('DEBUG DASHBOARD:', {
-      configsLen: configs.length,
-      configId: configs[0]?.id,
-      activeRoundConfigId: activeRound?.recurringConfigurationId,
-      status: activeRound?.status,
-      isSingleRoute,
-      isSameRoute,
-      cooldownMinutes,
-      activeRound
-  });
 
   const isLocked = false;
 

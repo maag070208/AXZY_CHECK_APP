@@ -23,7 +23,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { UserRole } from '../../core/types/IUser';
 import { RootState } from '../../core/store/redux.config';
 import { showToast } from '../../core/store/slices/toast.slice';
-import { setPhotoUrl as setUserPhoto } from '../../core/store/slices/user.slice';
+import { login, setPhotoUrl as setUserPhoto } from '../../core/store/slices/user.slice';
 import {
   changePassword,
   getUserById,
@@ -35,7 +35,7 @@ import { pickPhotoFromGallery } from '../../shared/service/photo-picker.service'
 import { uploadFile } from '../../shared/service/upload.service';
 import { tokens } from '../../shared/theme/tokens';
 import { UserAvatar } from '../../shared/components/UserAvatar';
-import { emailError, phoneError } from '../../shared/validation/fields';
+import { emailError, passwordError, phoneError } from '../../shared/validation/fields';
 import { CameraModal } from '../check/components/CameraModal';
 import {
   getResidentById,
@@ -344,6 +344,8 @@ export const ProfileScreen = () => {
           res.messages?.[0] ?? 'Contraseña incorrecta o error al actualizar.',
         );
       }
+      // El cambio revoca el token anterior; la API entrega uno nuevo para seguir con la sesión abierta.
+      if (res.data?.token) dispatch(login(res.data.token));
       resetForm();
       setPasswordOpen(false);
       dispatch(
@@ -674,11 +676,9 @@ export const ProfileScreen = () => {
               }}
               validate={v => {
                 const errors: Partial<Record<keyof PasswordValues, string>> = {};
-                if (v.newPassword && v.newPassword.length < 6) {
-                  errors.newPassword = 'Debe tener al menos 6 caracteres';
-                }
-                if (v.newPassword.length > 100) {
-                  errors.newPassword = 'No puede pasar de 100 caracteres';
+                if (v.newPassword) {
+                  const problem = passwordError(v.newPassword);
+                  if (problem) errors.newPassword = problem;
                 }
                 if (v.confirmPassword && v.confirmPassword !== v.newPassword) {
                   errors.confirmPassword = 'Las contraseñas no coinciden';
@@ -738,7 +738,7 @@ export const ProfileScreen = () => {
                   >
                     {touched.newPassword && errors.newPassword
                       ? errors.newPassword
-                      : 'De 6 a 100 caracteres.'}
+                      : 'De 10 a 100 caracteres, con letras y números.'}
                   </HelperText>
                   <TextInput
                     mode="outlined"

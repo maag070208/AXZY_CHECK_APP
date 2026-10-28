@@ -77,7 +77,6 @@ export const ResidentDetailScreen = () => {
       withPhone: contacts.filter(c => c.phone).length,
     };
   }, [contacts]);
-  console.log(resident);
   const fetchData = useCallback(async () => {
     try {
       const [residentRes, contactsRes, relationshipsRes]: any[] =

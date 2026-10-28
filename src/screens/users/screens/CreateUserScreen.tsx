@@ -19,7 +19,12 @@ const UserSchema = Yup.object().shape({
     .required('El usuario es requerido')
     .min(4, 'Mínimo 4 caracteres')
     .matches(/^[a-zA-Z0-9_]+$/, 'Solo letras, números y guión bajo'),
-  password: Yup.string().required('La contraseña es requerida').min(6, 'Mínimo 6 caracteres'),
+  password: Yup.string()
+    .required('La contraseña es requerida')
+    .min(10, 'Mínimo 10 caracteres')
+    .max(100, 'Máximo 100 caracteres')
+    .matches(/[A-Za-z]/, 'Debe incluir al menos una letra')
+    .matches(/\d/, 'Debe incluir al menos un número'),
   role: Yup.string().required('El rol es requerido'),
   scheduleId: Yup.number().when('role', {
     is: (val: string) => val === UserRole.GUARD || val === UserRole.SHIFT || val === UserRole.MAINT,

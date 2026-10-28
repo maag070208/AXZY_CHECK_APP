@@ -27,6 +27,16 @@ export const nameError = (value: string | null | undefined, { required = true, m
   return undefined;
 };
 
+/** Misma política que la API (S-25): 10 a 100 caracteres, con al menos una letra y un número. */
+export const passwordError = (value: string | null | undefined): string | undefined => {
+  const v = value ?? '';
+  if (v.length < 10) return 'Debe tener al menos 10 caracteres';
+  if (v.length > 100) return 'No puede pasar de 100 caracteres';
+  if (!/[A-Za-z]/.test(v)) return 'Debe incluir al menos una letra';
+  if (!/\d/.test(v)) return 'Debe incluir al menos un número';
+  return undefined;
+};
+
 /** Vacío = válido (opcional). Si hay algo: entre 6 y 120 caracteres con formato de correo. */
 export const emailError = (value: string | null | undefined): string | undefined => {
   const v = (value ?? '').trim();

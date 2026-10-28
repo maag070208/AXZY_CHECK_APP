@@ -1,5 +1,5 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import storage from '@react-native-async-storage/async-storage';
+import { secureSessionStorage as storage } from './secureSessionStorage';
 import {
   persistReducer,
   FLUSH,

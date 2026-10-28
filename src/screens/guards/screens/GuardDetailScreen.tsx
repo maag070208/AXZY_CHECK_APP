@@ -27,7 +27,6 @@ export const GuardDetailScreen = () => {
             const response = await getAllAssignments({ guardId: guard.id });
             const filtered = (response.data ?? []).filter((a) => a.status !== 'REVIEWED');
             setAssignments(filtered);
-            console.log(response.data);
         } catch (error) {
             console.error(error);
         } finally {

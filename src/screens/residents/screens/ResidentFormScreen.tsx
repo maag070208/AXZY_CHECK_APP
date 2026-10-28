@@ -29,7 +29,12 @@ const ResidentSchema = Yup.object().shape({
   propertyId: Yup.number().nullable(),
   password: Yup.string().when('isNew', {
     is: true,
-    then: (schema) => schema.required('La contraseña es requerida').min(6, 'Mínimo 6 caracteres'),
+    then: (schema) => schema
+        .required('La contraseña es requerida')
+        .min(10, 'Mínimo 10 caracteres')
+        .max(100, 'Máximo 100 caracteres')
+        .matches(/[A-Za-z]/, 'Debe incluir al menos una letra')
+        .matches(/\d/, 'Debe incluir al menos un número'),
     otherwise: (schema) => schema.optional(),
   }),
   emergencyPhone: Yup.string()

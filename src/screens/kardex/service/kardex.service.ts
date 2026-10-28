@@ -53,7 +53,6 @@ export const getKardex = async (filters: IKardexFilter) => {
 
 export const getPaginatedKardex = async (params: { page: number, limit: number, search?: string, filters?: any }) => {
     const response = await post<any>(`/kardex/datatable`, params);
-    console.log('response', response);
     return response;
 };
 

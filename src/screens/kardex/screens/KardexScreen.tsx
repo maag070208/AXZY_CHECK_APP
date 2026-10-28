@@ -117,7 +117,6 @@ export const KardexScreen = () => {
           search: debouncedSearch,
           filters: finalFilters
       });
-      console.log('res', res);
       if (res.success && res.data) {
           const data = res.data;
           // Soporta tanto .rows como .data (visto en logs)

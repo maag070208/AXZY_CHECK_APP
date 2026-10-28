@@ -111,12 +111,6 @@ export const AssignmentModal = ({ visible, onDismiss, guardId, onSuccess }: Prop
         setSubmitting(true);
         try {
 
-            console.log({
-                guardId,
-                locationId: selectedLocationId,
-                notes,
-                tasks: tasks.length > 0 ? tasks : undefined
-            });
 
             await createAssignment({
                 guardId,

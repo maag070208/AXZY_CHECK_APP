@@ -162,8 +162,7 @@ export const IncidentDetailScreen = () => {
 
   const renderMediaItem = (media: any, index: number) => {
     const isVideo = media?.type?.toUpperCase() === 'VIDEO';
-    console.log(media);
-    return (
+      return (
       <TouchableOpacity 
         key={index} 
         style={styles.mediaCard}
