@@ -157,7 +157,7 @@ const MENU_ITEMS: MenuItem[] = [
     icon: 'ticket-confirmation-outline',
     route: 'INVITATIONS_STACK',
     screen: 'INVITATIONS_MAIN',
-    permission: P.PROPERTIES_VIEW,
+    permission: P.INVITATION_MANAGE,
   },
   {
     label: 'Quejas',

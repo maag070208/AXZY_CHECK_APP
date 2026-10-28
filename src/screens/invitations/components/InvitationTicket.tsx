@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Image, Dimensions } from 'react-native';
 import { Text, Avatar } from 'react-native-paper';
 import { BrandedQrCode } from '../../../shared/components/BrandedQrCode';
+import { invitationTypeLabel } from '../../../shared/utils/invitationTypeLabel';
 import dayjs from 'dayjs';
 
 const { width } = Dimensions.get('window');
@@ -18,7 +19,7 @@ export const InvitationTicket = ({ invitation }: Props) => {
                 <View style={styles.logoRow}>
                     <Avatar.Icon size={40} icon="shield-check-outline" style={styles.logo} color="#fff" />
                     <View style={styles.typeBadge}>
-                        <Text style={styles.typeText}>{invitation.type?.value?.toUpperCase() || 'VISITA'}</Text>
+                        <Text style={styles.typeText}>{invitationTypeLabel(invitation.type)}</Text>
                     </View>
                 </View>
                 <Text style={styles.headerTitle}>PASE DE ACCESO</Text>

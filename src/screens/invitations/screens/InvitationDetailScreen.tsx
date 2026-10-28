@@ -5,6 +5,7 @@ import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, Icon, Text } from 'react-native-paper';
 import { BrandedQrCode } from '../../../shared/components/BrandedQrCode';
+import { invitationTypeLabel } from '../../../shared/utils/invitationTypeLabel';
 import Share from 'react-native-share';
 import ViewShot from 'react-native-view-shot';
 import { useDispatch } from 'react-redux';
@@ -122,7 +123,7 @@ export const InvitationDetailScreen = () => {
                     <Text style={styles.guestName}>{invitation.guestName}</Text>
                     <View style={styles.typeChip}>
                         <Icon source={typeIcon as any} size={14} color={tokens.color.primary} />
-                        <Text style={styles.typeText}>{invitation.type?.value || 'Invitado particular'}</Text>
+                        <Text style={styles.typeText}>{invitationTypeLabel(invitation.type)}</Text>
                     </View>
                 </View>
 

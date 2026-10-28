@@ -46,6 +46,7 @@ export const P = {
   INVITATION_VIEW: 'invitation.view',
   INVITATION_CREATE: 'invitation.create',
   INVITATION_REVOKE: 'invitation.revoke',
+  INVITATION_MANAGE: 'invitation.manage',
   COMPLAINT_VIEW: 'complaint.view',
   COMPLAINT_CREATE: 'complaint.create',
   COMPLAINT_MANAGE: 'complaint.manage',
