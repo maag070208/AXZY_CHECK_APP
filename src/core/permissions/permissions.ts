@@ -85,11 +85,11 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'shift-handover.manage','uniform.manage','users.read','round.view','round.start','round.end','round.scan',
     'assignment.view','maintenance.view','maintenance.create',
     'club.view','club.create','club.resolve','club.delete',
-    'complaint.view','complaint.manage','vehicle.view','accesspin.validate',
+    'complaint.view','complaint.manage','vehicle.view','accesspin.validate','invitation.manage',
   ],
   GUARD: [
     'access.check','chat.use','recurring.operate','round.view','round.start','round.end','round.scan',
-    'assignment.view','incident.create','maintenance.create','club.view','club.create','accesspin.validate',
+    'assignment.view','incident.create','incident.view','maintenance.create','maintenance.view','club.view','club.create','accesspin.validate','invitation.manage',
   ],
   MAINT: [
     'chat.use','maintenance.manage','recurring.operate','round.view','round.start','round.end','round.scan',

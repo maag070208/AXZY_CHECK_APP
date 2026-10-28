@@ -13,5 +13,6 @@ const LABELS: Record<string, string> = {
 export const invitationTypeLabel = (type?: { name?: string | null; value?: string | null } | string | null): string => {
   const raw = typeof type === 'string' ? type : (type?.name ?? type?.value ?? '');
   const key = raw.trim().toUpperCase();
-  return LABELS[key] ?? (typeof type === 'string' ? raw : type?.value ?? raw) ?? 'Visita';
+  const fallback = typeof type === 'string' ? raw : type?.value ?? raw;
+  return LABELS[key] ?? (fallback || 'Visita');
 };

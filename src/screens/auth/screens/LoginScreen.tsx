@@ -9,6 +9,7 @@ import {
   StatusBar,
   Text,
   UIManager,
+  Linking,
 } from 'react-native';
 import {
   LoginFormComponent,
@@ -29,6 +30,7 @@ import { useRolePalette } from '../../../shared/theme/RoleThemeProvider';
 import { tokens } from '../../../shared/theme/tokens';
 
 const BRAND = '#065911';
+const LEGAL_BASE = 'https://checkapp.axzy.dev/#/legal';
 
 // Animación de layout al abrir/cerrar el teclado (Android la requiere explícita).
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -160,6 +162,18 @@ const LoginScreen: React.FC = () => {
               />
             </View>
 
+            <Text style={styles.legalText}>
+              Al iniciar sesión aceptas nuestros{' '}
+              <Text style={styles.legalLink} onPress={() => void Linking.openURL(`${LEGAL_BASE}/terminos`)}>
+                Términos y condiciones
+              </Text>{' '}
+              y el{' '}
+              <Text style={styles.legalLink} onPress={() => void Linking.openURL(`${LEGAL_BASE}/simplificado`)}>
+                Aviso de privacidad
+              </Text>
+              .
+            </Text>
+
             {!keyboardOpen && (
               <View style={styles.badgeContainer}>
                 <EnvironmentBadge />
@@ -275,6 +289,18 @@ const styles = StyleSheet.create({
   },
   formCompact: {
     marginTop: 14,
+  },
+  legalText: {
+    marginTop: 12,
+    paddingHorizontal: 8,
+    textAlign: 'center',
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#64748B',
+  },
+  legalLink: {
+    color: BRAND,
+    fontWeight: '700',
   },
   badgeContainer: {
     alignItems: 'center',

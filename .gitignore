@@ -77,3 +77,8 @@ android/.gradle-home/
 .pnpm-cache/
 .pnpm-home/
 .npm-cache/
+
+# Variables locales (nunca commitear credenciales)
+.env
+.env.*
+!.env.example

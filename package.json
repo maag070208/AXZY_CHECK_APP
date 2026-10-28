@@ -32,7 +32,7 @@
     "@react-navigation/native-stack": "7.6.0",
     "@reduxjs/toolkit": "2.9.2",
     "ably": "^2.6.5",
-    "axios": "1.13.0",
+    "axios": "1.21.0",
     "blobatar": "2.7.0",
     "dayjs": "1.11.18",
     "formik": "2.4.9",
