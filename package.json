@@ -46,6 +46,7 @@
     "react-native-compressor": "^1.16.0",
     "react-native-file-access": "4.0.4",
     "react-native-gesture-handler": "2.30.0",
+    "react-native-get-random-values": "2.1.0",
     "react-native-image-picker": "8.3.0",
     "react-native-keyboard-aware-scroll-view": "0.9.5",
     "react-native-keychain": "10.0.0",

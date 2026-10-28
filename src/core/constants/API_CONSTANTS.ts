@@ -3,7 +3,8 @@ export type Environment = 'DEV' | 'PROD' | 'LOCAL';
 export const ENVIRONMENTS: Record<Environment, string> = {
   // BARCELONA: pendiente de publicar; reemplazar por la URL real cuando exista.
   DEV: 'https://api-barcerlona-residencial-checkapp-dev.up.railway.app/api/v1',
-  PROD: 'https://pendiente-barcelona-prod.invalid/api/v1',
+  // Reemplazar por el dominio real si Railway asigna otro; debe ser HTTPS.
+  PROD: 'https://api-barcelona-residencial-checkapp-prod.up.railway.app/api/v1',
   LOCAL: 'http://192.168.10.107:4444/api/v1',
 };
 

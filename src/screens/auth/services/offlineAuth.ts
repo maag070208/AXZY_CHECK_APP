@@ -1,5 +1,6 @@
 import * as Keychain from 'react-native-keychain';
 import { pbkdf2 } from '@noble/hashes/pbkdf2.js';
+import { randomBytes } from '@noble/hashes/utils.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import { jwtDecode } from 'jwt-decode';
@@ -15,8 +16,7 @@ const serviceFor = (username: string) =>
 const PBKDF2_ROUNDS = 60_000;
 const textBytes = utf8ToBytes;
 
-const makeSalt = () =>
-  Array.from({ length: 4 }, () => Math.random().toString(16).slice(2, 10)).join('') + Date.now().toString(16);
+const makeSalt = () => bytesToHex(randomBytes(16));
 
 export const derivePasswordHash = (password: string, salt: string) =>
   bytesToHex(pbkdf2(sha256, textBytes(password), textBytes(salt), { c: PBKDF2_ROUNDS, dkLen: 32 }));

@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import { AppRegistry } from 'react-native';
 import App from './App';
 import { getMessaging, setBackgroundMessageHandler } from '@react-native-firebase/messaging';
