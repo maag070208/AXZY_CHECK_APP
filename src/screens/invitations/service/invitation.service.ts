@@ -59,3 +59,12 @@ export const getPendingApprovals = async (): Promise<TResult<Invitation[]>> => {
 export const decideApproval = async (id: number, decision: 'APPROVE' | 'REJECT', reason?: string): Promise<TResult<Invitation>> => {
     return await put<Invitation>(`/invitations/${id}/approval`, { decision, ...(reason ? { reason } : {}) });
 };
+
+/** Preferencia del residente: recibir avisos cuando sus visitas entran o salen. */
+export const getVisitAlerts = async (): Promise<TResult<{ enabled: boolean }>> => {
+    return await get<{ enabled: boolean }>('/invitations/visit-alerts');
+};
+
+export const setVisitAlerts = async (enabled: boolean): Promise<TResult<{ enabled: boolean }>> => {
+    return await put<{ enabled: boolean }>('/invitations/visit-alerts', { enabled });
+};

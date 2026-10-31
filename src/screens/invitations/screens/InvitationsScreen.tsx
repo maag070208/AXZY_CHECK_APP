@@ -14,6 +14,7 @@ import { useSelector } from 'react-redux';
 import { tokens } from '../../../shared/theme/tokens';
 import { ListAvatar, ListRowCard, ListSearch, ListSectionHeader, StatusChip } from '../../../shared/components/ListComponents';
 import { PendingApprovalsSection } from '../components/PendingApprovalsSection';
+import { VisitAlertsToggle } from '../components/VisitAlertsToggle';
 
 export const InvitationsScreen = () => {
     const insets = useSafeAreaInsets();
@@ -231,6 +232,7 @@ export const InvitationsScreen = () => {
                     ListHeaderComponent={
                         <>
                             <PendingApprovalsSection />
+                            {user.role === 'RESDN' && <VisitAlertsToggle />}
                             <ListSectionHeader index={1} text="PASES" hint={`${total} en total`} />
                         </>
                     }
