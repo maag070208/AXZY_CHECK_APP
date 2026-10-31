@@ -13,6 +13,7 @@ import { RootState } from '../../../core/store/redux.config';
 import { useSelector } from 'react-redux';
 import { tokens } from '../../../shared/theme/tokens';
 import { ListAvatar, ListRowCard, ListSearch, ListSectionHeader, StatusChip } from '../../../shared/components/ListComponents';
+import { PendingApprovalsSection } from '../components/PendingApprovalsSection';
 
 export const InvitationsScreen = () => {
     const insets = useSafeAreaInsets();
@@ -228,7 +229,10 @@ export const InvitationsScreen = () => {
                     data={invitations}
                     renderItem={renderItem}
                     ListHeaderComponent={
-                        <ListSectionHeader index={1} text="PASES" hint={`${total} en total`} />
+                        <>
+                            <PendingApprovalsSection />
+                            <ListSectionHeader index={1} text="PASES" hint={`${total} en total`} />
+                        </>
                     }
                     keyExtractor={(item) => item.id.toString()}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[tokens.color.primary]} />}

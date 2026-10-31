@@ -5,7 +5,7 @@ export const ENVIRONMENTS: Record<Environment, string> = {
   DEV: 'https://api-barcerlona-residencial-checkapp-dev.up.railway.app/api/v1',
   // Reemplazar por el dominio real si Railway asigna otro; debe ser HTTPS.
   PROD: 'https://api-barcelona-residencial-checkapp-prod.up.railway.app/api/v1',
-  LOCAL: 'http://192.168.10.107:4444/api/v1',
+  LOCAL: 'http://192.168.10.100:4444/api/v1',
 };
 
 export const ENVIRONMENT_LABELS: Record<Environment, string> = {

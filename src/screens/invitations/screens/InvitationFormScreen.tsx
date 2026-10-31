@@ -52,6 +52,7 @@ export const InvitationFormScreen = () => {
     const [validFrom, setValidFrom] = useState(new Date());
     const [validUntil, setValidUntil] = useState(new Date(Date.now() + 86400000)); // Default +24h
     const [notes, setNotes] = useState('');
+    const [plate, setPlate] = useState('');
     const [loading, setLoading] = useState(false);
     const [fetchingProp, setFetchingProp] = useState(false);
     const [fetchingTypes, setFetchingTypes] = useState(true);
@@ -151,6 +152,7 @@ export const InvitationFormScreen = () => {
                 validFrom: validFrom.toISOString(),
                 validUntil: validUntil.toISOString(),
                 notes: notes.trim() ? notes.trim() : undefined,
+                expectedPlate: plate.trim() ? plate.trim() : undefined,
                 status: 'PENDING',
                 createdById: user?.id
             };
@@ -232,6 +234,21 @@ export const InvitationFormScreen = () => {
                     />
                     <HelperText type={guestNameMsg && name.length > 0 ? 'error' : 'info'} visible>
                         {guestNameMsg && name.length > 0 ? guestNameMsg : 'De 2 a 120 caracteres.'}
+                    </HelperText>
+
+                    <TextInput
+                        mode="outlined"
+                        label="Placa del vehículo (opcional)"
+                        value={plate}
+                        onChangeText={(value) => setPlate(value.toUpperCase())}
+                        maxLength={12}
+                        autoCapitalize="characters"
+                        style={styles.input}
+                        left={<TextInput.Icon icon="car-outline" />}
+                        accessibilityLabel="Placa del vehículo"
+                    />
+                    <HelperText type="info" visible>
+                        Si la llevas, la caseta la compara al recibir a la visita.
                     </HelperText>
 
                     <TouchableOpacity

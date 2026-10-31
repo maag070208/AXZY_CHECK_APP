@@ -30,6 +30,8 @@ interface PermissionDef {
 const SUPPORTS_ANDROID_CHECK = Platform.OS === 'android';
 const ANDROID_13 = SUPPORTS_ANDROID_CHECK && Number(Platform.Version) >= 33;
 const AP = SUPPORTS_ANDROID_CHECK ? PermissionsAndroid.PERMISSIONS : ({} as typeof PermissionsAndroid.PERMISSIONS);
+// En algunas versiones de RN el mapa no expone POST_NOTIFICATIONS, aunque Android 13+ sí lo acepta.
+const POST_NOTIFICATIONS = 'android.permission.POST_NOTIFICATIONS';
 
 const PERMISSIONS: PermissionDef[] = [
   {
@@ -58,7 +60,7 @@ const PERMISSIONS: PermissionDef[] = [
     title: 'Notificaciones',
     description: 'Para avisarte de incidencias, reportes y cambios importantes.',
     icon: 'bell-outline',
-    android: ANDROID_13 ? (AP as any).POST_NOTIFICATIONS : undefined,
+    android: ANDROID_13 ? POST_NOTIFICATIONS : undefined,
   },
 ];
 
