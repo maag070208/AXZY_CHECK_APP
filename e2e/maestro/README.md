@@ -86,7 +86,7 @@ Usuarios de prueba creados en dev:
 
 - `resident-access.yaml` — avisos, clave peatonal, vehículos e historial del residente.
 - `caseta-access.yaml` — consulta de vehículos y validación de PIN en caseta.
-- `admin-access.yaml` — avisos, padrón de vehículos y bitácora.
+- `admin-access.yaml` — padrón de vehículos desde el menú (avisos y bitácora del admin viven en WEB).
 
 Requieren que las migraciones `20261026200000_personal_qr_pass` y `20261026201000_personal_qr_code` estén aplicadas y que el usuario de prueba tenga los permisos nuevos.
 

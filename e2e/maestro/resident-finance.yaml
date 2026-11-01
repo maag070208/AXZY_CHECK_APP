@@ -18,7 +18,9 @@ appId: com.axzy.checkapp.barcelona
     timeout: 30000
 
 # Mis pagos desde el home
-- assertVisible: "Mis pagos"
+- scrollUntilVisible:
+    element:
+      text: "Mis pagos"
 - tapOn: "Mis pagos"
 - extendedWaitUntil:
     visible: "Mis pagos"

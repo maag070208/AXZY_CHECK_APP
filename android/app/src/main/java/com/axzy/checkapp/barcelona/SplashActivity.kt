@@ -1,6 +1,7 @@
 package com.axzy.checkapp.barcelona
 
 import android.animation.Animator
+import android.app.ActivityManager
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -24,6 +25,12 @@ class SplashActivity : AppCompatActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+
+    // Tocar el icono con la app abierta solo la trae al frente.
+    if (isMainActivityTaskOpen()) {
+      goToApp()
+      return
+    }
 
     val role = getSharedPreferences(RoleIconModule.PREFS, MODE_PRIVATE)
       .getString(RoleIconModule.ROLE_KEY, "ADMIN")
@@ -67,6 +74,11 @@ class SplashActivity : AppCompatActivity() {
     // Respaldo: si el archivo Lottie no carga o el listener no dispara.
     handler.postDelayed({ goToApp() }, 4000)
   }
+
+  private fun isMainActivityTaskOpen() =
+    getSystemService(ActivityManager::class.java).appTasks.any {
+      it.taskInfo.baseActivity?.className == MainActivity::class.java.name
+    }
 
   private fun goToApp() {
     if (launched) return

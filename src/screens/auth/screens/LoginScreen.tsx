@@ -78,7 +78,8 @@ const LoginScreen: React.FC = () => {
       });
 
     if (response.success && response.data) {
-      await saveOfflineLogin(values.username, values.password, response.data);
+      // En segundo plano: guardar la sesión offline no debe retrasar la entrada.
+      saveOfflineLogin(values.username, values.password, response.data);
       dispatch(login(response.data));
       dispatch(
         showToast({

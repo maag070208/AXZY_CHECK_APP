@@ -51,11 +51,11 @@ describe('S-22 · el JWT no se guarda en AsyncStorage', () => {
 });
 
 describe('S-21 · verificador de contraseña offline', () => {
-  it('es determinista por sal, distinto entre sales y no contiene la clave', () => {
-    const a = derivePasswordHash('Clave12345', 'sal-1');
-    expect(a).toBe(derivePasswordHash('Clave12345', 'sal-1'));
-    expect(a).not.toBe(derivePasswordHash('Clave12345', 'sal-2'));
-    expect(a).not.toBe(derivePasswordHash('Otra123456', 'sal-1'));
+  it('es determinista por sal, distinto entre sales y no contiene la clave', async () => {
+    const a = await derivePasswordHash('Clave12345', 'sal-1');
+    expect(a).toBe(await derivePasswordHash('Clave12345', 'sal-1'));
+    expect(a).not.toBe(await derivePasswordHash('Clave12345', 'sal-2'));
+    expect(a).not.toBe(await derivePasswordHash('Otra123456', 'sal-1'));
     expect(a).not.toContain('Clave12345');
     expect(a).toHaveLength(64);
   });

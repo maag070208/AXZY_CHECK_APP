@@ -1,5 +1,6 @@
+import { NativeModules } from 'react-native';
 import * as Keychain from 'react-native-keychain';
-import { pbkdf2 } from '@noble/hashes/pbkdf2.js';
+import { pbkdf2Async } from '@noble/hashes/pbkdf2.js';
 import { randomBytes } from '@noble/hashes/utils.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
@@ -18,8 +19,12 @@ const textBytes = utf8ToBytes;
 
 const makeSalt = () => bytesToHex(randomBytes(16));
 
-export const derivePasswordHash = (password: string, salt: string) =>
-  bytesToHex(pbkdf2(sha256, textBytes(password), textBytes(salt), { c: PBKDF2_ROUNDS, dkLen: 32 }));
+/** Android lo calcula en nativo; sin ese módulo (iOS) corre en JS cediendo el hilo, nunca en bloque. */
+export const derivePasswordHash = async (password: string, salt: string): Promise<string> => {
+  const native = NativeModules.PasswordHash;
+  if (native) return native.pbkdf2Sha256(password, salt, PBKDF2_ROUNDS);
+  return bytesToHex(await pbkdf2Async(sha256, textBytes(password), textBytes(salt), { c: PBKDF2_ROUNDS, dkLen: 32 }));
+};
 
 interface CachedLogin {
   hash: string;
@@ -36,7 +41,7 @@ export const saveOfflineLogin = async (
   try {
     const salt = makeSalt();
     const payload: CachedLogin = {
-      hash: derivePasswordHash(password, salt),
+      hash: await derivePasswordHash(password, salt),
       salt,
       token,
       savedAt: new Date().toISOString(),
@@ -69,7 +74,7 @@ export const loginOffline = async (
 
     const cached = JSON.parse(stored.password) as CachedLogin;
     // Las entradas antiguas (con `password` en claro) ya no sirven: obligan a iniciar sesión en línea y se reescriben.
-    if (!cached.hash || !cached.salt || derivePasswordHash(password, cached.salt) !== cached.hash) {
+    if (!cached.hash || !cached.salt || (await derivePasswordHash(password, cached.salt)) !== cached.hash) {
       return { success: false, message: 'Usuario o contraseña incorrectos.' };
     }
 

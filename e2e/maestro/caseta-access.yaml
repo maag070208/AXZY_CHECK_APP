@@ -1,6 +1,6 @@
 appId: com.axzy.checkapp.barcelona
 ---
-# Fase 2A: accesos de caseta desde las acciones rápidas del guardia.
+# Fase 2A: accesos de caseta desde el menú lateral del guardia.
 - launchApp:
     clearState: true
 - tapOn:
@@ -25,6 +25,7 @@ appId: com.axzy.checkapp.barcelona
     timeout: 30000
 
 # Vehículos
+- tapOn: "Abrir menú"
 - scrollUntilVisible:
     element:
       text: "Vehículos"
@@ -39,6 +40,7 @@ appId: com.axzy.checkapp.barcelona
     timeout: 15000
 
 # Clave peatonal
+- tapOn: "Abrir menú"
 - scrollUntilVisible:
     element:
       text: "Clave peatonal"
@@ -53,6 +55,7 @@ appId: com.axzy.checkapp.barcelona
     timeout: 15000
 
 # Pase QR personal
+- tapOn: "Abrir menú"
 - scrollUntilVisible:
     element:
       text: "Pase QR"

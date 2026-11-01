@@ -438,8 +438,9 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
                   item.label === 'Contactos'
                     ? { residentId: Number(userState.id) }
                     : undefined;
+                // El reset ya cierra el drawer. Un closeDrawer aquí corre sobre el estado anterior
+                // al reset y lo pisa: el menú se cierra pero la pantalla no cambia.
                 resetToModule(item.route as any, item.screen, params);
-                navigation.closeDrawer();
               }}
             >
               <Icon

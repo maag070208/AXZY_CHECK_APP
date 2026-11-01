@@ -14,7 +14,7 @@ appId: com.axzy.checkapp.barcelona
     text: "Iniciar sesión"
     index: 1
 - extendedWaitUntil:
-    visible: "Buenos días, Isabel"
+    visible: ".*, Isabel"
     timeout: 30000
 - tapOn: "Abrir menú"
 - extendedWaitUntil:
