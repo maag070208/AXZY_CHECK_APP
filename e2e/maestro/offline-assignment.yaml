@@ -7,10 +7,18 @@ appId: com.axzy.checkapp.barcelona
     timeout: 30000
 - scrollUntilVisible:
     element:
-      text: "Escanear"
+      text: "E2E-08"
     direction: DOWN
     timeout: 30000
-- tapOn: "Escanear"
+- scrollUntilVisible:
+    element:
+      text: "Escanear"
+      below: "E2E-08"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    text: "Escanear"
+    below: "E2E-08"
 - extendedWaitUntil:
     visible: "E2E: simular escaneo"
     timeout: 15000
@@ -34,10 +42,18 @@ appId: com.axzy.checkapp.barcelona
     timeout: 30000
 - scrollUntilVisible:
     element:
-      text: "Escanear"
+      text: "E2E-08"
     direction: DOWN
     timeout: 30000
-- tapOn: "Escanear"
+- scrollUntilVisible:
+    element:
+      text: "Escanear"
+      below: "E2E-08"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    text: "Escanear"
+    below: "E2E-08"
 - extendedWaitUntil:
     visible: "E2E: simular escaneo"
     timeout: 15000

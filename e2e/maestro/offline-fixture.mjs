@@ -23,6 +23,12 @@ const prepare = async () => {
   const route = rows.find?.((item) => item.title === 'E2E RONDA 8 PUNTOS');
   const point = route?.recurringLocations?.find((item) => item.location?.name === 'E2E-08');
   if (!point) throw new Error('No existe el punto E2E-08: corre el seed E2E.');
+  const existing = await request(`/assignments?guardId=${guardId}&status=PENDING`, admin);
+  const pending = existing.find((item) => item.locationId === point.location.id);
+  if (pending) {
+    console.log(pending.id);
+    return;
+  }
   const assignment = await request('/assignments', admin, {
     method: 'POST',
     body: JSON.stringify({

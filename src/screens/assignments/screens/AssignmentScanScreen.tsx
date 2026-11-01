@@ -111,17 +111,6 @@ export const AssignmentScanScreen = () => {
                 <View style={{ width: 48 }} /> 
             </View>
 
-            {E2E_MODE && (
-                <Button
-                    mode="contained"
-                    accessibilityLabel="E2E simular escaneo"
-                    style={styles.e2eButton}
-                    onPress={() => handleCodeScanned(targetLocation?.name ?? '')}
-                >
-                    E2E: simular escaneo
-                </Button>
-            )}
-
             {/* Scan Overlay */}
             <View style={styles.scanOverlay}>
                 <View style={styles.targetBox}>
@@ -136,12 +125,22 @@ export const AssignmentScanScreen = () => {
                     <Text style={styles.locationName}>{targetLocation?.name || 'Ubicación Desconocida'}</Text>
                 </View>
             </View>
+            {E2E_MODE && (
+                <Button
+                    mode="contained"
+                    accessibilityLabel="E2E simular escaneo"
+                    style={styles.e2eButton}
+                    onPress={() => handleCodeScanned(targetLocation?.name ?? '')}
+                >
+                    E2E: simular escaneo
+                </Button>
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    e2eButton: { position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 10 },
+    e2eButton: { position: 'absolute', top: 120, alignSelf: 'center' },
     container: {
         flex: 1,
         backgroundColor: '#000',
