@@ -14,6 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAppSelector } from '../../../core/store/hooks';
 import { RootState } from '../../../core/store/redux.config';
 import { getStatusColor, getStatusText } from '../../../shared/utils/revision-status';
+import { getGuardSnapshot } from '../../../offline/snapshot';
 import { getMyAssignments } from '../service/assignment.service';
 import { AssignmentStatus, IAssignment } from '../service/assignment.types';
 import { AppButton } from '../../../shared/components/AppButton';
@@ -42,7 +43,13 @@ export const MyAssignmentsScreen = () => {
       const allAssignments = (response.data as any[]) ?? [];
       setAssignments(allAssignments.filter(a => a.status !== 'REVIEWED'));
     } catch {
-      setError('No se pudieron cargar tus asignaciones.');
+      // Sin red: la última copia local. El error solo aparece si nunca se descargó.
+      const snapshot = await getGuardSnapshot(Number(user.id));
+      if (snapshot) {
+        setAssignments(snapshot.assignments.filter(a => a.status !== 'REVIEWED'));
+      } else {
+        setError('No se pudieron cargar tus asignaciones.');
+      }
     } finally {
       setLoading(false);
     }

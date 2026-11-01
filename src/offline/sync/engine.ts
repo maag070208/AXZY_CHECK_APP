@@ -9,6 +9,7 @@ import {
   markFailed,
   markSynced,
   markSyncing,
+  requeueInterrupted,
   setSyncState,
 } from '../outbox';
 import { markReportFailed, markReportSynced } from '../reports';
@@ -20,6 +21,7 @@ import { createMaintenance } from '../../screens/maintenances/service/maintenanc
 import { createClub } from '../../screens/club/service/club.service';
 import { startRound, endRound } from '../../screens/home/service/round.service';
 import { registerCheck, updateCheck } from '../../screens/check/service/check.service';
+import { setTaskCompleted } from '../../screens/assignments/service/assignment.service';
 
 const parse = (value: string | null): any => {
   if (!value) return null;
@@ -178,7 +180,7 @@ const processCheck = async (db: DB, row: OutboxRow) => {
     media,
     undefined,
     undefined,
-    undefined,
+    payload.assignmentId ?? undefined,
     {
       clientRef: payload.clientRef,
       roundId: roundServerId,
@@ -187,6 +189,10 @@ const processCheck = async (db: DB, row: OutboxRow) => {
     },
   );
   if (!result?.success) throw new Error('No se pudo sincronizar el check.');
+  if (payload.assignmentId) {
+    const done = (payload.tasks ?? []).filter((task: any) => task.completed);
+    await Promise.all(done.map((task: any) => setTaskCompleted(task.id)));
+  }
   await db.execute(
     `UPDATE local_checks SET sync_state = 'SYNCED', server_id = ? WHERE client_id = ?`,
     [result.data?.id ?? null, row.entity_client_id],
@@ -226,7 +232,7 @@ const errorMessage = (error: any): string =>
 
 const shouldConflict = (error: any): boolean => {
   const status = error?.status ?? error?.response?.status;
-  return status === 409 || status === 400 || status === 422;
+  return [400, 403, 404, 409, 422].includes(status);
 };
 
 export interface SyncResult {
@@ -240,7 +246,7 @@ export interface SyncResult {
 
 let syncInFlight: Promise<SyncResult> | null = null;
 
-const runSync = async (userId: number): Promise<SyncResult> => {
+const runSync = async (userId: number, force: boolean): Promise<SyncResult> => {
   const db = await getOfflineDb(userId);
   if (!db) {
     return { processed: 0, failed: 0, pending: 0, online: false, unavailable: true, pulled: false };
@@ -256,11 +262,14 @@ const runSync = async (userId: number): Promise<SyncResult> => {
     };
   }
 
+  // Una sola sincronización corre a la vez: lo que siga en SYNCING quedó de una APP cerrada a medias.
+  await requeueInterrupted(db);
+
   let processed = 0;
   let failed = 0;
 
   for (let pass = 0; pass < 20; pass += 1) {
-    const pending = await getPendingOutbox(db);
+    const pending = await getPendingOutbox(db, force);
     let progressed = false;
 
     for (const row of pending) {
@@ -301,9 +310,10 @@ const runSync = async (userId: number): Promise<SyncResult> => {
   };
 };
 
-export const syncNow = (userId: number): Promise<SyncResult> => {
+/** `force`: el guardia pidió sincronizar, no se espera la pausa entre reintentos. */
+export const syncNow = (userId: number, options?: { force?: boolean }): Promise<SyncResult> => {
   if (syncInFlight) return syncInFlight;
-  syncInFlight = runSync(userId).finally(() => {
+  syncInFlight = runSync(userId, !!options?.force).finally(() => {
     syncInFlight = null;
   });
   return syncInFlight;

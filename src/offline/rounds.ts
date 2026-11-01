@@ -1,6 +1,7 @@
+import type { DB } from '@op-engineering/op-sqlite';
 import { getOfflineDb, newClientId } from './db';
 import { enqueue, outboxId } from './outbox';
-import { mediaMime, persistMedia } from './media';
+import { mediaMime, persistMedia, removeLocalMedia } from './media';
 
 export interface LocalRound {
   id: number;
@@ -13,6 +14,71 @@ export interface LocalRound {
   recurringConfiguration?: any;
   __offline?: boolean;
 }
+
+type Tx = { execute: DB['execute'] };
+
+const roundServerIdFrom = (roundClientId?: string | null) =>
+  roundClientId?.startsWith('server-') ? Number(roundClientId.slice('server-'.length)) : null;
+
+/** Pasa a PENDING las evidencias guardadas en el borrador y las encola. */
+const enqueueDraftMedia = async (tx: Tx, checkClientId: string, location: string | null, now: number) => {
+  const drafted = await tx.execute(
+    `SELECT client_id, kind, local_path FROM local_media WHERE check_client_id = ? AND status = 'DRAFT'`,
+    [checkClientId],
+  );
+  const ids: string[] = [];
+  for (const media of drafted.rows ?? []) {
+    await tx.execute(`UPDATE local_media SET status = 'PENDING' WHERE client_id = ?`, [media.client_id]);
+    ids.push(await enqueue(tx, {
+      operation: 'MEDIA_UPLOAD',
+      entityType: 'MEDIA',
+      entityClientId: String(media.client_id),
+      payload: {
+        clientMediaId: media.client_id,
+        localPath: media.local_path,
+        type: media.kind === 'VIDEO' ? 'video' : 'photo',
+        location: location || 'checkapp',
+      },
+      now,
+    }));
+  }
+  return ids;
+};
+
+const promoteDraft = async (tx: Tx, userId: number, draft: any, now: number) => {
+  const clientId = String(draft.client_id);
+  const roundClientId = draft.round_client_id ? String(draft.round_client_id) : null;
+  const mediaIds = await enqueueDraftMedia(tx, clientId, draft.location_name ?? null, now);
+  await tx.execute(
+    `UPDATE local_checks SET status = 'NOT_COMPLETED', completed_at = ?, sync_state = 'QUEUED' WHERE client_id = ?`,
+    [now, clientId],
+  );
+  await enqueue(tx, {
+    operation: 'CHECK_CREATE',
+    entityType: 'CHECK',
+    entityClientId: clientId,
+    payload: {
+      clientRef: clientId,
+      userId,
+      serverId: null,
+      roundClientId,
+      roundServerId: roundServerIdFrom(roundClientId),
+      assignmentId: draft.assignment_id ?? null,
+      locationId: draft.location_id,
+      locationName: draft.location_name ?? null,
+      notes: draft.notes ?? '',
+      tasks: [],
+      scannedAt: new Date(Number(draft.scanned_at)).toISOString(),
+      completedAt: new Date(now).toISOString(),
+      offline: true,
+    },
+    dependsOn: [
+      ...mediaIds,
+      ...(roundClientId && !roundClientId.startsWith('server-') ? [outboxId('ROUND_START', roundClientId)] : []),
+    ],
+    now,
+  });
+};
 
 export const getLocalActiveRound = async (userId: number): Promise<LocalRound | null> => {
   const db = await getOfflineDb(userId);
@@ -100,14 +166,6 @@ export const endLocalRound = async (
   const endedAt = new Date(now).toISOString();
   const roundClientId = round.clientId ?? `server-${round.id}`;
   const isServerRound = !round.clientId && Number(round.id) > 0;
-  const checks = await db.execute(
-    `SELECT client_id FROM local_checks WHERE round_client_id = ?`,
-    [roundClientId],
-  );
-  const dependencies = [
-    ...(isServerRound ? [] : [outboxId('ROUND_START', roundClientId)]),
-    ...(checks.rows ?? []).map((c: any) => outboxId('CHECK_CREATE', c.client_id)),
-  ];
   try {
     await db.transaction(async tx => {
       if (isServerRound) {
@@ -131,12 +189,30 @@ export const endLocalRound = async (
           [now, roundClientId],
         );
       }
+      // Un punto escaneado y no guardado también cuenta: viaja como NOT_COMPLETED antes del cierre.
+      const drafts = await tx.execute(
+        `SELECT * FROM local_checks WHERE round_client_id = ? AND status = 'DRAFT'`,
+        [roundClientId],
+      );
+      for (const draft of drafts.rows ?? []) {
+        await promoteDraft(tx, userId, draft, now);
+      }
+
+      const queued = await tx.execute(
+        `SELECT o.id FROM outbox o
+         JOIN local_checks c ON c.client_id = o.entity_client_id
+         WHERE c.round_client_id = ? AND o.operation IN ('CHECK_CREATE', 'CHECK_UPDATE')`,
+        [roundClientId],
+      );
       await enqueue(tx, {
         operation: 'ROUND_END',
         entityType: 'ROUND',
         entityClientId: roundClientId,
         payload: { clientRef: roundClientId, serverId: round.id, endedAt, offline: true },
-        dependsOn: dependencies,
+        dependsOn: [
+          ...(isServerRound ? [] : [outboxId('ROUND_START', roundClientId)]),
+          ...(queued.rows ?? []).map((row: any) => String(row.id)),
+        ],
         now,
       });
     });
@@ -156,11 +232,12 @@ export const queueLocalCheck = async (
     roundClientId?: string;
     roundServerId?: number;
     serverId?: number;
+    assignmentId?: number;
     locationId: number;
     locationName?: string;
     notes: string;
     tasks: any[];
-    media: Array<{ uri: string; type: 'photo' | 'video'; url?: string }>;
+    media: Array<{ uri: string; type: 'photo' | 'video'; url?: string; draftMediaId?: string }>;
     existingClientId?: string;
   },
 ): Promise<{ success: boolean; clientId?: string; error?: string }> => {
@@ -173,6 +250,8 @@ export const queueLocalCheck = async (
 
   try {
     for (const media of input.media) {
+      // Ya vive en el teléfono como evidencia del borrador.
+      if (media.draftMediaId) continue;
       if (media.url) {
         prepared.push({ clientId: newClientId(), path: '', type: media.type, url: media.url });
         continue;
@@ -185,7 +264,7 @@ export const queueLocalCheck = async (
   }
 
   const checkClientId = input.existingClientId ?? clientId;
-  const isCompleted = !!input.notes?.trim() && prepared.length > 0;
+  const isCompleted = !!input.notes?.trim() && input.media.length > 0;
   const checkStatus = isCompleted ? 'COMPLETED' : 'NOT_COMPLETED';
   try {
     await db.transaction(async tx => {
@@ -247,7 +326,12 @@ export const queueLocalCheck = async (
         }));
       }
 
-      const dependencies = [...mediaOutbox];
+      const dependencies = [
+        ...mediaOutbox,
+        ...(input.existingClientId
+          ? await enqueueDraftMedia(tx, input.existingClientId, input.locationName ?? null, now)
+          : []),
+      ];
       if (!input.serverId && input.roundClientId && !input.roundClientId.startsWith('server-')) {
         dependencies.push(outboxId('ROUND_START', input.roundClientId));
       }
@@ -260,7 +344,8 @@ export const queueLocalCheck = async (
           userId,
           serverId: input.serverId ?? null,
           roundClientId: input.roundClientId ?? null,
-          roundServerId: input.roundServerId ?? null,
+          roundServerId: input.roundServerId ?? roundServerIdFrom(input.roundClientId),
+          assignmentId: input.assignmentId ?? null,
           locationId: input.locationId,
           locationName: input.locationName ?? null,
           notes: input.notes,
@@ -299,7 +384,7 @@ export const getLocalChecksForRound = async (
 
 export const createLocalCheckDraft = async (
   userId: number,
-  input: { roundClientId?: string; locationId: number; locationName?: string; tasks: any[] },
+  input: { roundClientId?: string; assignmentId?: number; locationId: number; locationName?: string; tasks: any[] },
 ): Promise<{ success: boolean; clientId?: string; error?: string }> => {
   const db = await getOfflineDb(userId);
   if (!db) return { success: false, error: 'Almacenamiento offline no disponible.' };
@@ -308,9 +393,9 @@ export const createLocalCheckDraft = async (
   try {
     await db.execute(
       `INSERT INTO local_checks
-        (client_id, round_client_id, location_id, location_name, status, notes, tasks_json, scanned_at, sync_state)
-       VALUES (?, ?, ?, ?, 'DRAFT', '', ?, ?, 'DRAFT')`,
-      [clientId, input.roundClientId ?? null, input.locationId, input.locationName ?? null, JSON.stringify(input.tasks ?? []), now],
+        (client_id, round_client_id, assignment_id, location_id, location_name, status, notes, tasks_json, scanned_at, sync_state)
+       VALUES (?, ?, ?, ?, ?, 'DRAFT', '', ?, ?, 'DRAFT')`,
+      [clientId, input.roundClientId ?? null, input.assignmentId ?? null, input.locationId, input.locationName ?? null, JSON.stringify(input.tasks ?? []), now],
     );
     return { success: true, clientId };
   } catch (error: any) {
@@ -327,9 +412,63 @@ export const getLocalCheckDraft = async (
   if (!db) return null;
   const result = await db.execute(
     `SELECT * FROM local_checks
-     WHERE round_client_id = ? AND location_id = ? AND status = 'DRAFT'
+     WHERE round_client_id IS ? AND location_id = ? AND status = 'DRAFT'
      ORDER BY scanned_at DESC LIMIT 1`,
     [roundClientId ?? null, locationId],
   );
   return result.rows?.[0] ?? null;
+};
+
+export const updateLocalDraftNotes = async (userId: number, clientId: string, notes: string) => {
+  const db = await getOfflineDb(userId);
+  if (!db) return;
+  await db.execute(`UPDATE local_checks SET notes = ? WHERE client_id = ? AND status = 'DRAFT'`, [notes, clientId]);
+};
+
+/** Guarda la evidencia al capturarla: cerrar la APP con el borrador abierto no debe perderla. */
+export const saveDraftMedia = async (
+  userId: number,
+  checkClientId: string,
+  uri: string,
+  type: 'photo' | 'video',
+): Promise<{ clientId: string; path: string } | null> => {
+  const db = await getOfflineDb(userId);
+  if (!db) return null;
+  const saved = await persistMedia(userId, uri, type);
+  await db.execute(
+    `INSERT INTO local_media (client_id, check_client_id, kind, local_path, mime_type, status)
+     VALUES (?, ?, ?, ?, ?, 'DRAFT')`,
+    [saved.clientId, checkClientId, type === 'video' ? 'VIDEO' : 'IMAGE', saved.path, mediaMime(type)],
+  );
+  return saved;
+};
+
+export const getDraftMedia = async (userId: number, checkClientId: string): Promise<any[]> => {
+  const db = await getOfflineDb(userId);
+  if (!db) return [];
+  const result = await db.execute(
+    `SELECT client_id, kind, local_path FROM local_media WHERE check_client_id = ? AND status = 'DRAFT'`,
+    [checkClientId],
+  );
+  return result.rows ?? [];
+};
+
+export const removeDraftMedia = async (userId: number, mediaClientId: string) => {
+  const db = await getOfflineDb(userId);
+  if (!db) return;
+  const result = await db.execute(`SELECT local_path FROM local_media WHERE client_id = ?`, [mediaClientId]);
+  await db.execute(`DELETE FROM local_media WHERE client_id = ? AND status = 'DRAFT'`, [mediaClientId]);
+  const path = result.rows?.[0]?.local_path;
+  if (path) await removeLocalMedia(String(path));
+};
+
+/** Una ronda del servidor cerrada sin red sigue "activa" en el snapshot hasta el siguiente pull. */
+export const isServerRoundEndedLocally = async (userId: number, serverRoundId: number): Promise<boolean> => {
+  const db = await getOfflineDb(userId);
+  if (!db) return false;
+  const result = await db.execute(
+    `SELECT 1 AS found FROM local_rounds WHERE client_id = ? AND status = 'COMPLETED'`,
+    [`server-${serverRoundId}`],
+  );
+  return (result.rows?.length ?? 0) > 0;
 };

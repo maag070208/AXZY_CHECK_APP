@@ -46,3 +46,8 @@ export const updateAssignmentStatus = async (
 export const toggleTask = async (taskId: number): Promise<TResult<any>> => {
     return await patch<any>(`/assignments/tasks/${taskId}/toggle`, {});
 };
+
+/** Fija el valor: se puede repetir sin invertir la tarea. Lo usa la sincronización offline. */
+export const setTaskCompleted = async (taskId: number): Promise<TResult<any>> => {
+    return await patch<any>(`/assignments/tasks/${taskId}/toggle`, { completed: true });
+};

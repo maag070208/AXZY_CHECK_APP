@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -30,13 +30,22 @@ import { uploadFile } from '../../../shared/service/upload.service';
 import { CameraModal } from '../components/CameraModal';
 import { registerCheck, updateCheck } from '../service/check.service';
 import Geolocation from '@react-native-community/geolocation';
-import { getAllAssignments, getMyAssignments } from '../../assignments/service/assignment.service';
+import { getAllAssignments, getMyAssignments, setTaskCompleted } from '../../assignments/service/assignment.service';
 import { TaskChecklist } from '../components/TaskChecklist';
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../../../shared/components/AppButton';
-import { isOnline } from '../../../offline/network';
-import { createLocalCheckDraft, getLocalCheckDraft, queueLocalCheck } from '../../../offline/rounds';
+import { isNetworkFailure, isOnline } from '../../../offline/network';
+import { getGuardSnapshot } from '../../../offline/snapshot';
+import {
+  createLocalCheckDraft,
+  getDraftMedia,
+  getLocalCheckDraft,
+  queueLocalCheck,
+  removeDraftMedia,
+  saveDraftMedia,
+  updateLocalDraftNotes,
+} from '../../../offline/rounds';
 
 const { width } = Dimensions.get('window');
 
@@ -51,6 +60,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   const [notes, setNotes] = useState('');
   const [currentKardexId, setCurrentKardexId] = useState<number | null>(null);
   const [offlineCheckClientId, setOfflineCheckClientId] = useState<string | undefined>();
+  const draftIdRef = useRef<string | undefined>(undefined);
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<'video' | 'photo'>('photo');
   const [exitDialogVisible, setExitDialogVisible] = useState(false);
@@ -88,7 +98,14 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
         setTasks(assignment?.tasks || []);
       }
     } catch {
-      // Sin red o sin asignación: el reporte puede continuar sin checklist.
+      // Sin red: el checklist sale de lo que trajo la pantalla anterior o de la última copia local.
+      if (route.params.tasks?.length) {
+        setTasks(route.params.tasks);
+        return;
+      }
+      const snapshot = await getGuardSnapshot(Number(user.id));
+      const assignment = snapshot?.assignments?.find(a => Number(a.id) === Number(assignmentId));
+      setTasks(assignment?.tasks || []);
     }
   };
 
@@ -144,27 +161,57 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     });
   };
 
+  // Borrador local recuperable: si se sale o se cierra la APP, queda NOT_COMPLETED.
+  const startOfflineDraft = async () => {
+    const existing = await getLocalCheckDraft(
+      Number(user.id),
+      route.params.roundClientId,
+      Number(location.id),
+    );
+    if (existing) {
+      setOfflineCheckClientId(existing.client_id);
+      draftIdRef.current = existing.client_id;
+      setNotes(existing.notes ?? '');
+      const saved = await getDraftMedia(Number(user.id), existing.client_id);
+      setPhotos(saved.filter(m => m.kind === 'IMAGE').map(m => ({
+        uri: `file://${m.local_path}`,
+        draftMediaId: m.client_id,
+        uploading: false,
+      })));
+      const savedVideo = saved.find(m => m.kind === 'VIDEO');
+      if (savedVideo) {
+        setVideo({ uri: `file://${savedVideo.local_path}`, draftMediaId: savedVideo.client_id, uploading: false });
+      }
+    } else {
+      const draft = await createLocalCheckDraft(Number(user.id), {
+        roundClientId: route.params.roundClientId,
+        assignmentId: route.params.assignmentId,
+        locationId: Number(location.id),
+        locationName: location.name,
+        tasks: route.params.recurringTasks || [],
+      });
+      if (draft.clientId) {
+        setOfflineCheckClientId(draft.clientId);
+        draftIdRef.current = draft.clientId;
+      }
+    }
+    setCurrentKardexId(-1);
+  };
+
+  const persistDraftEvidence = async (uri: string, type: 'photo' | 'video') => {
+    if (!draftIdRef.current) return undefined;
+    const saved = await saveDraftMedia(Number(user.id), draftIdRef.current, uri, type);
+    return saved?.clientId;
+  };
+
+  const handleNotesBlur = () => {
+    if (offlineCheckClientId) void updateLocalDraftNotes(Number(user.id), offlineCheckClientId, notes);
+  };
+
   const initReport = async () => {
     try {
       if (!(await isOnline())) {
-        // Borrador local recuperable: si se sale o se cierra la APP, queda NOT_COMPLETED.
-        const existing = await getLocalCheckDraft(
-          Number(user.id),
-          route.params.roundClientId,
-          Number(location.id),
-        );
-        if (existing) {
-          setOfflineCheckClientId(existing.client_id);
-        } else {
-          const draft = await createLocalCheckDraft(Number(user.id), {
-            roundClientId: route.params.roundClientId,
-            locationId: Number(location.id),
-            locationName: location.name,
-            tasks: route.params.recurringTasks || [],
-          });
-          if (draft.clientId) setOfflineCheckClientId(draft.clientId);
-        }
-        setCurrentKardexId(-1);
+        await startOfflineDraft();
         return;
       }
       const hasPermission = await requestLocationPermission();
@@ -198,7 +245,12 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       }
     } catch (e) {
       console.log(e);
-      Alert.alert('Error de Conexión', 'Revisa tu internet.');
+      // Hay señal pero la API no contesta: se sigue trabajando en el teléfono.
+      if (isNetworkFailure(e)) {
+        await startOfflineDraft();
+      } else {
+        Alert.alert('Error de Conexión', 'Revisa tu internet.');
+      }
     }
   };
 
@@ -253,8 +305,9 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   };
 
   const performVideoUpload = async (uri: string) => {
-    if (!(await isOnline())) {
-      setVideo({ uri, uploading: false, error: false });
+    if (draftIdRef.current || !(await isOnline())) {
+      const draftMediaId = await persistDraftEvidence(uri, 'video');
+      setVideo({ uri, uploading: false, error: false, draftMediaId });
       return;
     }
     setVideo((prev: any) => ({ ...prev, uploading: true, error: false }));
@@ -290,9 +343,10 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   };
 
   const performPhotoUpload = async (photo: any) => {
-    if (!(await isOnline())) {
+    if (draftIdRef.current || !(await isOnline())) {
+      const draftMediaId = await persistDraftEvidence(photo.uri, 'photo');
       setPhotos(current => current.map(p =>
-        p.uri === photo.uri ? { ...p, uploading: false, error: false } : p,
+        p.uri === photo.uri ? { ...p, uploading: false, error: false, draftMediaId } : p,
       ));
       return;
     }
@@ -343,6 +397,8 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   };
 
   const handleRemovePhoto = (index: number) => {
+    const draftMediaId = photos[index]?.draftMediaId;
+    if (draftMediaId) void removeDraftMedia(Number(user.id), draftMediaId);
     const newPhotos = photos.filter((_, i) => i !== index);
     setPhotos(newPhotos);
     syncMedia(newPhotos, video);
@@ -433,13 +489,21 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
           const checklist = tasks.map(t => `[${t.completed ? 'x' : ' '}] ${t.description}`).join('\n');
           offlineNotes = `${offlineNotes ? offlineNotes + '\n\n' : ''}--- LISTA DE VERIFICACIÓN ---\n${checklist}`;
         }
-        const media: Array<{ uri: string; type: 'photo' | 'video'; url?: string }> = [
-          ...photos.filter(p => p.uri).map(p => ({ uri: p.uri, type: 'photo' as const, url: p.url })),
-          ...(video?.uri ? [{ uri: video.uri, type: 'video' as const, url: video.url }] : []),
+        const media: Array<{ uri: string; type: 'photo' | 'video'; url?: string; draftMediaId?: string }> = [
+          ...photos.filter(p => p.uri).map(p => ({
+            uri: p.uri,
+            type: 'photo' as const,
+            url: p.url,
+            draftMediaId: p.draftMediaId,
+          })),
+          ...(video?.uri
+            ? [{ uri: video.uri, type: 'video' as const, url: video.url, draftMediaId: video.draftMediaId }]
+            : []),
         ];
         const queued = await queueLocalCheck(Number(user.id), {
           serverId: currentKardexId > 0 ? currentKardexId : undefined,
           existingClientId: offlineCheckClientId,
+          assignmentId: route.params.assignmentId,
           roundClientId: route.params.roundClientId,
           roundServerId: route.params.roundServerId,
           locationId: Number(location.id),
@@ -473,6 +537,10 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       );
 
       if (res.success) {
+        // Tareas marcadas mientras no había señal: repetir no las invierte.
+        if (assignmentId) {
+          await Promise.all(tasks.filter(t => t.completed).map(t => setTaskCompleted(t.id).catch(() => undefined)));
+        }
         // El cambio de estatus de la asignación es de administración
         // (assignments.manage); el guardia solo registra el kardex.
         dispatch(showToast({ message: 'Reporte completado y guardado.', type: 'success' }));
@@ -554,7 +622,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
           <TaskChecklist 
             tasks={tasks} 
             onTaskToggle={handleTaskToggle} 
-            isLocalOnly={!!route.params?.recurringTasks}
+            isLocalOnly={!!route.params?.recurringTasks || currentKardexId === -1}
           />
         )}
 
@@ -574,6 +642,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
             placeholder="Escribe los detalles de la revisión..."
             value={notes}
             onChangeText={setNotes}
+            onBlur={handleNotesBlur}
             multiline
             numberOfLines={4}
             style={styles.inputCard}

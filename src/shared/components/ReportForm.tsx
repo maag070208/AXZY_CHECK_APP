@@ -31,7 +31,7 @@ import { uploadFile } from '../service/upload.service';
 import { getCatalog } from '../service/catalog.service';
 import Geolocation from '@react-native-community/geolocation';
 import { AppButton } from './AppButton';
-import { isOnline } from '../../offline/network';
+import { isNetworkFailure, isOnline } from '../../offline/network';
 import { queueReport } from '../../offline/reports';
 
 /* ======================================================
@@ -374,7 +374,19 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
       longitude,
     };
 
-    const res = await onSubmit(state);
+    let res: { success: boolean };
+    try {
+      res = await onSubmit(state);
+    } catch (error) {
+      setLoading(false);
+      // Hay señal pero la API no contestó: el reporte no se pierde.
+      if (isNetworkFailure(error)) {
+        await saveLocally();
+      } else {
+        Alert.alert('Error', 'No se pudo enviar el reporte.');
+      }
+      return;
+    }
     setLoading(false);
 
     if (res.success) {
@@ -384,6 +396,33 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
       navigation.goBack();
     } else {
       Alert.alert('Error', 'No se pudo enviar el reporte.');
+    }
+  };
+
+  const saveLocally = async () => {
+    const selectedType = allTypes.find(t => t.id === typeId);
+    const result = await queueReport(Number(userId), {
+      kind: config.offlineKind,
+      title: selectedType?.value || config.title,
+      categoryId,
+      typeId,
+      description,
+      media: media.map(item => ({
+        uri: item.uri,
+        type: item.type === 'video' ? 'video' : 'photo',
+        url: item.url,
+      })),
+    });
+    if (result.success) {
+      dispatch(
+        showToast({
+          message: 'Reporte guardado. Se sincronizará al recuperar conexión.',
+          type: 'success',
+        }),
+      );
+      navigation.goBack();
+    } else {
+      Alert.alert('No se pudo guardar offline', result.error || 'Intenta de nuevo.');
     }
   };
 
@@ -403,30 +442,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ config, onSubmit }) => {
     const online = await isOnline();
     const hasLocalEvidence = media.some(item => item.uri && !item.url);
     if (!online || hasLocalEvidence) {
-      const selectedType = allTypes.find(t => t.id === typeId);
-      const result = await queueReport(Number(userId), {
-        kind: config.offlineKind,
-        title: selectedType?.value || config.title,
-        categoryId,
-        typeId,
-        description,
-        media: media.map(item => ({
-          uri: item.uri,
-          type: item.type === 'video' ? 'video' : 'photo',
-          url: item.url,
-        })),
-      });
-      if (result.success) {
-        dispatch(
-          showToast({
-            message: 'Reporte guardado. Se sincronizará al recuperar conexión.',
-            type: 'success',
-          }),
-        );
-        navigation.goBack();
-      } else {
-        Alert.alert('No se pudo guardar offline', result.error || 'Intenta de nuevo.');
-      }
+      await saveLocally();
       return;
     }
 

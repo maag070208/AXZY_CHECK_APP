@@ -31,6 +31,13 @@ const getOrCreateKey = async (userId: number): Promise<string> => {
   return key;
 };
 
+/** Lo que `CREATE TABLE IF NOT EXISTS` no agrega en teléfonos que ya tienen la base. */
+const applyLocalMigrations = async (next: DB) => {
+  const columns = await next.execute('PRAGMA table_info(local_checks)');
+  const hasAssignment = (columns.rows ?? []).some((column: any) => column.name === 'assignment_id');
+  if (!hasAssignment) await next.execute('ALTER TABLE local_checks ADD COLUMN assignment_id INTEGER');
+};
+
 export const isOfflineAvailable = () => db !== null;
 
 export const getOfflineDb = async (userId: number): Promise<DB | null> => {
@@ -50,6 +57,7 @@ export const getOfflineDb = async (userId: number): Promise<DB | null> => {
       await next.executeBatch(
         OFFLINE_SCHEMA.filter(sql => !sql.startsWith('PRAGMA')).map(sql => [sql]),
       );
+      await applyLocalMigrations(next);
       db = next;
       dbUserId = userId;
       return next;

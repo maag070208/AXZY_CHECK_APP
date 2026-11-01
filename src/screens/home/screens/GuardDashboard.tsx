@@ -52,9 +52,9 @@ import { Skeleton } from '../../../shared/components/Skeleton';
 import { UserRole } from '../../../core/types/IUser';
 import { ShiftAlertBanner } from '../../shiftHandover/components/ShiftAlertBanner';
 import { parseLocationQrPayload } from '../../../shared/utils/locationQr';
-import { isOnline } from '../../../offline/network';
+import { isNetworkFailure, isOnline } from '../../../offline/network';
 import { getGuardSnapshot, saveGuardSnapshot } from '../../../offline/snapshot';
-import { endLocalRound, getLocalActiveRound, getLocalChecksForRound, startLocalRound } from '../../../offline/rounds';
+import { endLocalRound, getLocalActiveRound, getLocalChecksForRound, isServerRoundEndedLocally, startLocalRound } from '../../../offline/rounds';
 import { mergeLocalRoundStatus } from '../../../offline/roundStatus';
 import { E2E_MODE } from '../../../core/constants/test-mode';
 import { tokens } from '../../../shared/theme/tokens';
@@ -224,7 +224,10 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
         const snapshot = await getGuardSnapshot(Number(user.id));
         if (snapshot) {
           const localRound = await getLocalActiveRound(Number(user.id));
-          const serverRound = !localRound ? snapshot.activeRound : null;
+          const endedOffline = snapshot.activeRound?.id
+            ? await isServerRoundEndedLocally(Number(user.id), snapshot.activeRound.id)
+            : false;
+          const serverRound = !localRound && !endedOffline ? snapshot.activeRound : null;
           const roundKey =
             localRound?.clientId ??
             (serverRound?.id ? `server-${serverRound.id}` : undefined);
@@ -237,7 +240,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             __offline: false,
           } : undefined);
           applySnapshot(
-            { ...snapshot, activeRound: localRound ?? snapshot.activeRound },
+            { ...snapshot, activeRound: localRound ?? serverRound },
             mergeRound,
             localChecks,
           );
@@ -329,18 +332,21 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
   const onStartRoundConfirmed = async (configId?: number) => {
       setRouteSelectionVisible(false); // Close dialog if open
       setRoundLoading(true);
+      const startOffline = async () => {
+        const route = configs.find((c: any) => c.id === configId) || configs[0];
+        const local = await startLocalRound(Number(user.id), route);
+        if (local.success && local.data) {
+          setActiveRound(local.data);
+          DeviceEventEmitter.emit('ROUND_STATE_CHANGED');
+          dispatch(showToast({ message: 'Ronda iniciada offline. Se sincroniza al volver el WiFi.', type: 'success' }));
+          void loadData();
+        } else {
+          Alert.alert('No se pudo iniciar', local.error || 'Intenta de nuevo.');
+        }
+      };
       try {
         if (!(await isOnline())) {
-          const route = configs.find((c: any) => c.id === configId) || configs[0];
-          const local = await startLocalRound(Number(user.id), route);
-          if (local.success && local.data) {
-            setActiveRound(local.data);
-            DeviceEventEmitter.emit('ROUND_STATE_CHANGED');
-            dispatch(showToast({ message: 'Ronda iniciada offline. Se sincroniza al volver el WiFi.', type: 'success' }));
-            void loadData();
-          } else {
-            Alert.alert('No se pudo iniciar', local.error || 'Intenta de nuevo.');
-          }
+          await startOffline();
           return;
         }
         const res = await startRound(Number(user.id), configId);
@@ -358,6 +364,10 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
         }
       } catch (e: any) {
         console.log("Start Round Error:", e);
+        if (isNetworkFailure(e)) {
+          await startOffline();
+          return;
+        }
         const msg = e?.messages?.[0] || e.message || 'Error inesperado al iniciar';
         dispatch(showToast({ message: msg, type: 'error' }));
       } finally {
@@ -391,16 +401,19 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
   const onEndRoundConfirmed = async () => {
     setEndRoundVisible(false);
     setRoundLoading(true);
+    const endOffline = async () => {
+      const local = await endLocalRound(Number(user.id), activeRound);
+      if (local.success && local.data) {
+        setActiveRound(local.data);
+        DeviceEventEmitter.emit('ROUND_STATE_CHANGED');
+        setRoundCompletedVisible(true);
+      } else {
+        dispatch(showToast({ message: local.error || 'No se pudo terminar la ronda offline.', type: 'error' }));
+      }
+    };
     try {
         if (!(await isOnline()) || activeRound?.__offline) {
-          const local = await endLocalRound(Number(user.id), activeRound);
-          if (local.success && local.data) {
-            setActiveRound(local.data);
-            DeviceEventEmitter.emit('ROUND_STATE_CHANGED');
-            setRoundCompletedVisible(true);
-          } else {
-            dispatch(showToast({ message: local.error || 'No se pudo terminar la ronda offline.', type: 'error' }));
-          }
+          await endOffline();
           return;
         }
         const res = await endRound(activeRound.id);
@@ -413,6 +426,10 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
             dispatch(showToast({ message: res.messages?.[0] || 'Error al finalizar', type: 'error' }));
         }
     } catch (error: any) {
+        if (isNetworkFailure(error)) {
+          await endOffline();
+          return;
+        }
         dispatch(showToast({ message: error?.messages?.[0] || 'Error de conexión', type: 'error' }));
     } finally {
         setRoundLoading(false);

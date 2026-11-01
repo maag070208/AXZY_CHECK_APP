@@ -1,0 +1,14 @@
+appId: com.axzy.checkapp.barcelona
+---
+# Sin red: incidencia, mantenimiento y Casa Club con foto; quedan en cola, no inician ronda.
+- launchApp
+- extendedWaitUntil:
+    visible: ".*Sin conexión.*"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 30000
+- runFlow: incident-photo.yaml
+- runFlow: maintenance-photo.yaml
+- runFlow: club-photo.yaml
+- assertVisible: "Ronda no iniciada"

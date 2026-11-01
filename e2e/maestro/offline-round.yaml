@@ -1,0 +1,104 @@
+appId: com.axzy.checkapp.barcelona
+---
+# Sin red: ronda completa. E2E-01 sale sin guardar, E2E-02 se guarda con foto, E2E-03 se cierra
+# con la APP abierta en el reporte y una foto tomada; luego se termina la ronda.
+- launchApp
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 30000
+- runFlow: e2e-route-start.yaml
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: "Escaneo E2E"
+    timeout: 15000
+- tapOn:
+    text: ".*E2E-01.*"
+- extendedWaitUntil:
+    visible: "E2E-01"
+    timeout: 15000
+- pressKey: Back
+- extendedWaitUntil:
+    visible: "¿Salir del reporte?"
+    timeout: 15000
+- tapOn:
+    text: "^Salir$"
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 20000
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: ".*E2E-01.*No completada.*"
+    timeout: 15000
+- tapOn:
+    text: ".*E2E-02.*"
+- extendedWaitUntil:
+    visible: "E2E-02"
+    timeout: 15000
+- swipe:
+    start: 50%, 80%
+    end: 50%, 55%
+    duration: 400
+- tapOn: "Añadir"
+- extendedWaitUntil:
+    visible: "CÁMARA LISTA"
+    timeout: 20000
+- tapOn: "Tomar foto"
+- extendedWaitUntil:
+    notVisible: "CÁMARA LISTA"
+    timeout: 20000
+- swipe:
+    start: 50%, 30%
+    end: 50%, 75%
+    duration: 400
+- tapOn: "Escribe los detalles de la revisión..."
+- inputText: "Punto guardado sin WiFi"
+- hideKeyboard
+- tapOn: "Guardar reporte"
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 30000
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: ".*E2E-02.*Completada.*"
+    timeout: 15000
+- tapOn:
+    text: ".*E2E-03.*"
+- extendedWaitUntil:
+    visible: "E2E-03"
+    timeout: 15000
+- swipe:
+    start: 50%, 80%
+    end: 50%, 55%
+    duration: 400
+- tapOn: "Añadir"
+- extendedWaitUntil:
+    visible: "CÁMARA LISTA"
+    timeout: 20000
+- tapOn: "Tomar foto"
+- extendedWaitUntil:
+    notVisible: "CÁMARA LISTA"
+    timeout: 20000
+# Cierra la APP sin guardar: la foto debe sobrevivir y salir en la ronda.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Ronda en curso"
+    timeout: 30000
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: ".*E2E-03.*No completada.*"
+    timeout: 15000
+- pressKey: Back
+- tapOn: "Terminar ronda"
+- extendedWaitUntil:
+    visible: "¿Finalizar Ronda?"
+    timeout: 15000
+- tapOn:
+    text: "^Finalizar$"
+- extendedWaitUntil:
+    visible: "¡Ronda completada!"
+    timeout: 30000
+- tapOn: "Entendido"
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 20000

@@ -102,7 +102,7 @@ export const SyncScreen = ({ navigation }: any) => {
       setMessage('Subiendo y actualizando datos…');
 
       // La animación se mantiene visible aunque el sync termine muy rápido.
-      const [result] = await Promise.all([syncNow(Number(user.id)), delay(1200)]);
+      const [result] = await Promise.all([syncNow(Number(user.id), { force: true }), delay(1200)]);
 
       if (result.unavailable) {
         setCheck('upload', 'error', 'Almacenamiento offline no disponible');

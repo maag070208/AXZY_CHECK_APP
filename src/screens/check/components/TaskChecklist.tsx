@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Icon, Text } from 'react-native-paper';
+import { isNetworkFailure } from '../../../offline/network';
 import { toggleTask } from '../../assignments/service/assignment.service';
 
 interface Task {
@@ -36,8 +37,9 @@ export const TaskChecklist = ({ tasks, onTaskToggle, isLocalOnly }: Props) => {
     try {
       await toggleTask(taskId);
       onTaskToggle(taskId);
-    } catch {
-      // Sin red: el guardia puede reintentar tocando la tarea de nuevo.
+    } catch (error) {
+      // Sin red la tarea se marca en el teléfono y viaja con el reporte al sincronizar.
+      if (isNetworkFailure(error)) onTaskToggle(taskId);
     } finally {
       setToggling(null);
     }

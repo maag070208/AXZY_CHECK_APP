@@ -4,6 +4,7 @@ import { Text, IconButton, Button, ActivityIndicator } from 'react-native-paper'
 import { Camera, useCameraDevice, useCodeScanner } from 'react-native-vision-camera';
 import { useNavigation, useRoute, useIsFocused, useFocusEffect } from '@react-navigation/native';
 import { theme } from '../../../shared/theme/theme';
+import { E2E_MODE } from '../../../core/constants/test-mode';
 
 export const AssignmentScanScreen = () => {
     const navigation = useNavigation<any>();
@@ -110,6 +111,17 @@ export const AssignmentScanScreen = () => {
                 <View style={{ width: 48 }} /> 
             </View>
 
+            {E2E_MODE && (
+                <Button
+                    mode="contained"
+                    accessibilityLabel="E2E simular escaneo"
+                    style={styles.e2eButton}
+                    onPress={() => handleCodeScanned(targetLocation?.name ?? '')}
+                >
+                    E2E: simular escaneo
+                </Button>
+            )}
+
             {/* Scan Overlay */}
             <View style={styles.scanOverlay}>
                 <View style={styles.targetBox}>
@@ -129,6 +141,7 @@ export const AssignmentScanScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    e2eButton: { position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 10 },
     container: {
         flex: 1,
         backgroundColor: '#000',

@@ -16,3 +16,10 @@ export const isOnline = async (): Promise<boolean> => {
     return false;
   }
 };
+
+/**
+ * Falla de red o servidor caído: el dato no llegó y debe guardarse en el teléfono. Un rechazo del
+ * servidor trae `status` 4xx y no se reintenta. `isOnline` no basta: hay WiFi que no llega a la API.
+ */
+export const isNetworkFailure = (error: any): boolean =>
+  !error?.status || Number(error.status) >= 500;

@@ -41,13 +41,13 @@ export const enqueue = async (
   return id;
 };
 
-export const getPendingOutbox = async (db: DB): Promise<OutboxRow[]> => {
+export const getPendingOutbox = async (db: DB, ignoreBackoff = false): Promise<OutboxRow[]> => {
   const result = await db.execute(
     `SELECT * FROM outbox
      WHERE status IN ('QUEUED', 'FAILED')
        AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
      ORDER BY created_at ASC`,
-    [Date.now()],
+    [ignoreBackoff ? Number.MAX_SAFE_INTEGER : Date.now()],
   );
   return result.rows as unknown as OutboxRow[];
 };
@@ -74,6 +74,10 @@ export const dependenciesReady = async (db: DB, row: OutboxRow): Promise<boolean
     ids,
   );
   return Number(result.rows?.[0]?.count ?? 0) === ids.length;
+};
+
+export const requeueInterrupted = async (db: DB) => {
+  await db.execute(`UPDATE outbox SET status = 'QUEUED', updated_at = ? WHERE status = 'SYNCING'`, [Date.now()]);
 };
 
 export const markSyncing = async (db: DB, id: string) => {

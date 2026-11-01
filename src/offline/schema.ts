@@ -42,6 +42,7 @@ export const OFFLINE_SCHEMA: string[] = [
     client_id TEXT PRIMARY KEY,
     server_id INTEGER,
     round_client_id TEXT,
+    assignment_id INTEGER,
     location_id INTEGER NOT NULL,
     location_name TEXT,
     status TEXT NOT NULL,
