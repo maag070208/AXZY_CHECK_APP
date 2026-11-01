@@ -216,37 +216,38 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
     setActiveRound(snapshot?.activeRound || null);
   };
 
+  const showLocalData = async () => {
+    const snapshot = await getGuardSnapshot(Number(user.id));
+    if (!snapshot) return false;
+    const localRound = await getLocalActiveRound(Number(user.id));
+    const endedOffline = snapshot.activeRound?.id
+      ? await isServerRoundEndedLocally(Number(user.id), snapshot.activeRound.id)
+      : false;
+    const serverRound = !localRound && !endedOffline ? snapshot.activeRound : null;
+    const roundKey =
+      localRound?.clientId ??
+      (serverRound?.id ? `server-${serverRound.id}` : undefined);
+    const localChecks = roundKey
+      ? await getLocalChecksForRound(Number(user.id), roundKey)
+      : [];
+    const mergeRound = localRound ?? (serverRound ? {
+      clientId: roundKey,
+      recurringConfigurationId: serverRound.recurringConfigurationId,
+      __offline: false,
+    } : undefined);
+    applySnapshot(
+      { ...snapshot, activeRound: localRound ?? serverRound },
+      mergeRound,
+      localChecks,
+    );
+    return true;
+  };
+
   const loadData = async () => {
     const startedAt = Date.now();
     setLoading(true);
     try {
-      if (!(await isOnline())) {
-        const snapshot = await getGuardSnapshot(Number(user.id));
-        if (snapshot) {
-          const localRound = await getLocalActiveRound(Number(user.id));
-          const endedOffline = snapshot.activeRound?.id
-            ? await isServerRoundEndedLocally(Number(user.id), snapshot.activeRound.id)
-            : false;
-          const serverRound = !localRound && !endedOffline ? snapshot.activeRound : null;
-          const roundKey =
-            localRound?.clientId ??
-            (serverRound?.id ? `server-${serverRound.id}` : undefined);
-          const localChecks = roundKey
-            ? await getLocalChecksForRound(Number(user.id), roundKey)
-            : [];
-          const mergeRound = localRound ?? (serverRound ? {
-            clientId: roundKey,
-            recurringConfigurationId: serverRound.recurringConfigurationId,
-            __offline: false,
-          } : undefined);
-          applySnapshot(
-            { ...snapshot, activeRound: localRound ?? serverRound },
-            mergeRound,
-            localChecks,
-          );
-          return;
-        }
-      }
+      if (!(await isOnline()) && (await showLocalData())) return;
 
       const [recurringRes, assignRes, roundRes, activeRoundsRes] = await Promise.all([
         getMyRecurringAssignments().catch(err => {
@@ -266,6 +267,11 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
            return { success: false, data: [] };
         }),
       ]);
+
+      // Hay señal pero la API no contestó: la última copia sirve, y no se pisa con listas vacías.
+      if (!recurringRes?.success || !assignRes?.success) {
+        if (await showLocalData()) return;
+      }
 
       // Safe assignments with Fallbacks
       const allConfigs = recurringRes?.data || [];
@@ -304,6 +310,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
         setActiveRound(null);
       }
 
+      if (!recurringRes?.success || !assignRes?.success) return;
       await saveGuardSnapshot(Number(user.id), {
         routes: allConfigs,
         assignments: assignRes?.data || [],

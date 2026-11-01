@@ -2,10 +2,13 @@ appId: com.axzy.checkapp.barcelona
 ---
 # Inicia la ruta fixture de 8 puntos.
 - tapOn: "Iniciar ronda"
-- extendedWaitUntil:
-    visible: "Selecciona una Ruta"
-    timeout: 15000
-- tapOn: "8 ubicaciones registradas"
+- waitForAnimationToEnd
+# Con una sola ruta libre la APP pasa directo a la confirmación.
+- runFlow:
+    when:
+      visible: "Selecciona una Ruta"
+    commands:
+      - tapOn: "8 ubicaciones registradas"
 - extendedWaitUntil:
     visible: "Iniciar Recorrido"
     timeout: 15000

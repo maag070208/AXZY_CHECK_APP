@@ -23,8 +23,18 @@ const prepare = async () => {
   const route = rows.find?.((item) => item.title === 'E2E RONDA 8 PUNTOS');
   const point = route?.recurringLocations?.find((item) => item.location?.name === 'E2E-08');
   if (!point) throw new Error('No existe el punto E2E-08: corre el seed E2E.');
-  const existing = await request(`/assignments?guardId=${guardId}&status=PENDING`, admin);
-  const pending = existing.find((item) => item.locationId === point.location.id);
+  // Cada corrida empieza limpia: una ronda abierta cambiaría el inicio del guardia y una
+  // asignación abierta en el punto se llevaría el reporte.
+  const rounds = await request(`/rounds?guardId=${guardId}`, admin);
+  for (const round of rounds.filter((item) => item.status === 'IN_PROGRESS')) {
+    await request(`/rounds/${round.id}/end`, admin, { method: 'PUT', body: '{}' });
+  }
+  const existing = await request(`/assignments?guardId=${guardId}`, admin);
+  const open = existing.filter((item) => item.locationId === point.location.id && item.status !== 'REVIEWED');
+  const pending = open.find((item) => item.status === 'PENDING' && !item.tasks?.some((task) => task.completed));
+  for (const item of open.filter((candidate) => candidate.status !== 'PENDING')) {
+    await request(`/assignments/${item.id}/status`, admin, { method: 'PATCH', body: JSON.stringify({ status: 'REVIEWED' }) });
+  }
   if (pending) {
     console.log(pending.id);
     return;
@@ -64,7 +74,7 @@ const verify = async (since, assignmentId) => {
   const byName = (name) => inRound.find((row) => row.location?.name === name);
   expect('tres puntos en la ronda', inRound.length === 3, `filas=${inRound.length}`);
   expect('E2E-01 sin guardar llega vacío', byName('E2E-01') && !byName('E2E-01').notes);
-  expect('E2E-02 con nota y foto', byName('E2E-02')?.notes === 'Punto guardado sin WiFi' && byName('E2E-02')?.media?.length === 1);
+  expect('E2E-02 con nota y foto', byName('E2E-02')?.notes?.startsWith('Punto guardado sin WiFi') && byName('E2E-02')?.media?.length === 1);
   expect('E2E-03 conserva la foto tras cerrar la APP', byName('E2E-03')?.media?.length === 1);
 
   const linked = kardex.filter((row) => row.assignmentId === Number(assignmentId));

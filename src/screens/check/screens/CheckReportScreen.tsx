@@ -49,7 +49,14 @@ import {
 
 const { width } = Dimensions.get('window');
 
-export const CheckReportScreen = ({ route, navigation }: any) => {
+// La pantalla sigue montada al salir del reporte: la `key` da uno nuevo por punto. Sin ella, el
+// siguiente escaneo escribiría su foto y su nota sobre el reporte del punto anterior.
+export const CheckReportScreen = (props: any) => {
+  const { location, assignmentId } = props.route.params;
+  return <CheckReportForm key={`${location.id}-${assignmentId ?? ''}`} {...props} />;
+};
+
+const CheckReportForm = ({ route, navigation }: any) => {
   const { location, assignmentId } = route.params;
   const insets = useSafeAreaInsets();
   const user = useSelector((state: RootState) => state.userState);
@@ -62,6 +69,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   const [offlineCheckClientId, setOfflineCheckClientId] = useState<string | undefined>();
   const draftIdRef = useRef<string | undefined>(undefined);
   const draftTasksRef = useRef<any[]>([]);
+  const [draftRestored, setDraftRestored] = useState(false);
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<'video' | 'photo'>('photo');
   const [exitDialogVisible, setExitDialogVisible] = useState(false);
@@ -95,16 +103,16 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     return () => clearTimeout(pending);
   }, [offlineCheckClientId, notes, tasks, user.id]);
 
-  // Las tareas llegan después que el borrador: se restauran las que ya estaban marcadas.
+  // Tareas y borrador cargan por separado, en cualquier orden: se restaura cuando estén ambos.
   useEffect(() => {
     const saved = draftTasksRef.current;
-    if (!saved.length || !tasks.length) return;
+    if (!draftRestored || !saved.length || !tasks.length) return;
     draftTasksRef.current = [];
     setTasks(current => current.map(task => ({
       ...task,
       completed: task.completed || !!saved.find(item => item.id === task.id)?.completed,
     })));
-  }, [tasks]);
+  }, [draftRestored, tasks]);
 
   const loadAssignmentTasks = async () => {
     // El guardia no puede leer /assignments (permiso assignments.manage):
@@ -194,6 +202,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       draftIdRef.current = existing.client_id;
       setNotes(existing.notes ?? '');
       draftTasksRef.current = JSON.parse(existing.tasks_json || '[]');
+      setDraftRestored(true);
       const saved = await getDraftMedia(Number(user.id), existing.client_id);
       setPhotos(saved.filter(m => m.kind === 'IMAGE').map(m => ({
         uri: `file://${m.local_path}`,

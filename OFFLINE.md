@@ -48,7 +48,7 @@ app muestra el estado de “Sin conexión” existente.
 | Mantenimiento (reporte) | Catálogo cacheado | Crear |
 | Casa Club | Catálogo cacheado | Crear |
 | Mantenimiento (lista/detalle) | Última copia | Resolver (fase 2) |
-| Mis asignaciones | Última copia | — |
+| Mis asignaciones | Última copia | Completar tareas y crear su reporte |
 
 ### 2.3 Fuera de alcance
 

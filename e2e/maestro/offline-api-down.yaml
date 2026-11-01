@@ -1,0 +1,44 @@
+appId: com.axzy.checkapp.barcelona
+---
+# Hay WiFi pero la API no responde: el guardia sigue trabajando y nada se pierde.
+- launchApp
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 40000
+- assertVisible: "E2E RONDA 8 PUNTOS"
+- runFlow: incident.yaml
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 30000
+- runFlow: e2e-route-start.yaml
+- tapOn: "E2E: simular escaneo"
+- extendedWaitUntil:
+    visible: "Escaneo E2E"
+    timeout: 15000
+- tapOn:
+    text: ".*E2E-01.*"
+- extendedWaitUntil:
+    visible: "E2E-01"
+    timeout: 20000
+- extendedWaitUntil:
+    visible: "Guardar reporte"
+    timeout: 30000
+- pressKey: Back
+- extendedWaitUntil:
+    visible: "¿Salir del reporte?"
+    timeout: 15000
+- tapOn:
+    text: "^Salir$"
+- tapOn: "Terminar ronda"
+- extendedWaitUntil:
+    visible: "¿Finalizar Ronda?"
+    timeout: 15000
+- tapOn:
+    text: "^Finalizar$"
+- extendedWaitUntil:
+    visible: "¡Ronda completada!"
+    timeout: 40000
+- tapOn: "Entendido"
+- extendedWaitUntil:
+    visible: "Ronda no iniciada"
+    timeout: 30000

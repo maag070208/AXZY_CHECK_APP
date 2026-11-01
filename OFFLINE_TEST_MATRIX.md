@@ -298,3 +298,35 @@ DEVICE=R58YA0MM1TZ bash e2e/maestro/mixed-suite.sh
 JAVA_OPTS="-Duser.home=$PWD/.maestro-home" \
   ~/.maestro/bin/maestro --device R58YA0MM1TZ test e2e/maestro/e2e-route-end.yaml
 ```
+
+
+---
+
+## 11. Cobertura offline del guardia (2026-11-01)
+
+Tres capas: la lógica corre contra SQLite real (`__tests__/offline/guardOffline.test.ts`), el servidor en
+`API/tests/e2e/offline-sync.e2e.spec.ts`, y la jornada completa en un teléfono real con verificación por API.
+
+```bash
+# Requiere Metro, API y E2E_MODE=true (src/core/constants/test-mode.ts). Devolverlo a false al terminar.
+DEVICE=R58YA0MM1TZ API_BASE=http://IP:4444/api/v1 bash e2e/maestro/guard-offline-full.sh
+DEVICE=R58YA0MM1TZ API_BASE=http://IP:4444/api/v1 bash e2e/maestro/api-down-suite.sh
+DEVICE=R58YA0MM1TZ API_BASE=http://IP:4444/api/v1 bash e2e/maestro/mixed-suite.sh
+```
+
+| Área | Lógica (SQLite real) | Servidor | Teléfono |
+|---|---|---|---|
+| Rondas: iniciar, terminar, doble inicio, orden de sync, rondas seguidas, conflicto | OFF-R-01 a 10 | clave repetida, cierre repetido | `offline-round.yaml` |
+| Puntos: guardar, salir sin guardar, cerrar APP, foto, video, mezcla en línea y sin red | OFF-P-01 a 07 | clave repetida, ronda ya cerrada | `offline-round.yaml`, `mixed-suite.sh` |
+| Incidencias | OFF-INCIDENT-01 a 07 | clave repetida, hora de captura | `offline-reports.yaml` |
+| Mantenimiento | OFF-MAINTENANCE-01 a 07 | clave repetida, hora de captura | `offline-reports.yaml` |
+| Casa Club | OFF-CLUB-01 a 07 | clave repetida, hora de captura | `offline-reports.yaml` |
+| Asignaciones especiales: lista, tareas, borrador, cierre de APP, sync | OFF-A-01 a 07 | liga al check, tarea repetible, tarea ajena | `offline-assignment.yaml` |
+| Sincronización: reintentos, APP cerrada a medias, sesión vencida, error 500, doble sync | OFF-S-01 a 10 | — | `guard-offline-sync.yaml` |
+| Hay señal pero la API no contesta | OFF-N | — | `api-down-suite.sh` |
+
+### Lo que estas pruebas no cubren
+
+- La cámara leyendo un QR real: Maestro usa el escaneo simulado de `E2E_MODE`.
+- iOS: no tiene módulo nativo de cifrado; corre en JavaScript sin congelar la pantalla.
+- Horas o días reales sin red: los casos largos se simulan con fechas.
