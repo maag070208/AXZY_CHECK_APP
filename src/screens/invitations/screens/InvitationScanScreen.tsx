@@ -9,7 +9,7 @@ import { useDispatch } from 'react-redux';
 
 import { showToast } from '../../../core/store/slices/toast.slice';
 import { theme } from '../../../shared/theme/theme';
-import { getInvitationByCode, Invitation, updateInvitationStatus } from '../service/invitation.service';
+import { getInvitationByCode, Invitation, registerRejectedScan, updateInvitationStatus } from '../service/invitation.service';
 
 export const InvitationScanScreen = () => {
     const navigation = useNavigation<any>();
@@ -75,6 +75,7 @@ export const InvitationScanScreen = () => {
                     }
                 } else {
                     // Already Exited, Expired, etc.
+                    registerRejectedScan(scannedInvitation.code).catch(() => undefined);
                     const reason = scannedInvitation.status === 'EXITED' ? 'Salida ya registrada anteriormente' : 
                                   scannedInvitation.status === 'EXPIRED' ? 'El pase ha vencido' : 'Pase no válido';
                     dispatch(showToast({ type: 'info', message: reason }));

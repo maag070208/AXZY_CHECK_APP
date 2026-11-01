@@ -29,6 +29,11 @@ export const createInvitation = async (data: any) => {
     return await post<Invitation>('/invitations', data);
 };
 
+/** Deja en la bitácora la lectura de un pase que no puede entrar. */
+export const registerRejectedScan = async (code: string) => {
+    return await post<Invitation>('/invitations/scan', { code });
+};
+
 export const updateInvitationStatus = async (id: number, status: string): Promise<TResult<Invitation>> => {
     try {
         return await put<Invitation>(`/invitations/${id}/status`, { status });
