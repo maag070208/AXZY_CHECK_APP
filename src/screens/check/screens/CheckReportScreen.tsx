@@ -44,7 +44,7 @@ import {
   queueLocalCheck,
   removeDraftMedia,
   saveDraftMedia,
-  updateLocalDraftNotes,
+  updateLocalDraft,
 } from '../../../offline/rounds';
 
 const { width } = Dimensions.get('window');
@@ -61,6 +61,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
   const [currentKardexId, setCurrentKardexId] = useState<number | null>(null);
   const [offlineCheckClientId, setOfflineCheckClientId] = useState<string | undefined>();
   const draftIdRef = useRef<string | undefined>(undefined);
+  const draftTasksRef = useRef<any[]>([]);
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<'video' | 'photo'>('photo');
   const [exitDialogVisible, setExitDialogVisible] = useState(false);
@@ -84,6 +85,26 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       loadAssignmentTasks();
     }
   }, []);
+
+  // Cada captura queda en el borrador: la APP puede cerrarse en cualquier momento.
+  useEffect(() => {
+    if (!offlineCheckClientId) return;
+    const pending = setTimeout(() => {
+      void updateLocalDraft(Number(user.id), offlineCheckClientId, notes, tasks);
+    }, 300);
+    return () => clearTimeout(pending);
+  }, [offlineCheckClientId, notes, tasks, user.id]);
+
+  // Las tareas llegan después que el borrador: se restauran las que ya estaban marcadas.
+  useEffect(() => {
+    const saved = draftTasksRef.current;
+    if (!saved.length || !tasks.length) return;
+    draftTasksRef.current = [];
+    setTasks(current => current.map(task => ({
+      ...task,
+      completed: task.completed || !!saved.find(item => item.id === task.id)?.completed,
+    })));
+  }, [tasks]);
 
   const loadAssignmentTasks = async () => {
     // El guardia no puede leer /assignments (permiso assignments.manage):
@@ -172,6 +193,7 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
       setOfflineCheckClientId(existing.client_id);
       draftIdRef.current = existing.client_id;
       setNotes(existing.notes ?? '');
+      draftTasksRef.current = JSON.parse(existing.tasks_json || '[]');
       const saved = await getDraftMedia(Number(user.id), existing.client_id);
       setPhotos(saved.filter(m => m.kind === 'IMAGE').map(m => ({
         uri: `file://${m.local_path}`,
@@ -202,10 +224,6 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
     if (!draftIdRef.current) return undefined;
     const saved = await saveDraftMedia(Number(user.id), draftIdRef.current, uri, type);
     return saved?.clientId;
-  };
-
-  const handleNotesBlur = () => {
-    if (offlineCheckClientId) void updateLocalDraftNotes(Number(user.id), offlineCheckClientId, notes);
   };
 
   const initReport = async () => {
@@ -642,7 +660,6 @@ export const CheckReportScreen = ({ route, navigation }: any) => {
             placeholder="Escribe los detalles de la revisión..."
             value={notes}
             onChangeText={setNotes}
-            onBlur={handleNotesBlur}
             multiline
             numberOfLines={4}
             style={styles.inputCard}

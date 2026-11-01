@@ -64,7 +64,7 @@ import {
   removeDraftMedia,
   saveDraftMedia,
   startLocalRound,
-  updateLocalDraftNotes,
+  updateLocalDraft,
 } from '../../src/offline/rounds';
 import { isNetworkFailure } from '../../src/offline/network';
 import { getGuardSnapshot, saveGuardSnapshot } from '../../src/offline/snapshot';
@@ -247,13 +247,25 @@ describe('PUNTOS DE RONDA', () => {
   it('OFF-P-02 el borrador sobrevive: nota y foto se recuperan al reabrir', async () => {
     const round = await startRound();
     const draft = await createLocalCheckDraft(USER, { roundClientId: round.clientId, locationId: 1, tasks: [] });
-    await updateLocalDraftNotes(USER, draft.clientId!, 'Portón abierto');
+    await updateLocalDraft(USER, draft.clientId!, 'Portón abierto', [{ id: 1, completed: true }]);
     await saveDraftMedia(USER, draft.clientId!, '/uno.jpg', 'photo');
 
     const recovered = await getLocalCheckDraft(USER, round.clientId, 1);
 
     expect(recovered).toMatchObject({ client_id: draft.clientId, notes: 'Portón abierto' });
+    expect(JSON.parse(recovered.tasks_json)).toEqual([{ id: 1, completed: true }]);
     expect(await getDraftMedia(USER, draft.clientId!)).toHaveLength(1);
+  });
+
+  it('OFF-P-07 el borrador ya guardado no se pisa si la lista de tareas aún no carga', async () => {
+    const round = await startRound();
+    const draft = await createLocalCheckDraft(USER, { roundClientId: round.clientId, locationId: 1, tasks: [] });
+    await updateLocalDraft(USER, draft.clientId!, 'Nota', [{ id: 1, completed: true }]);
+    await updateLocalDraft(USER, draft.clientId!, 'Nota 2', []);
+
+    const recovered = await getLocalCheckDraft(USER, round.clientId, 1);
+    expect(recovered.notes).toBe('Nota 2');
+    expect(JSON.parse(recovered.tasks_json)).toHaveLength(1);
   });
 
   it('OFF-P-03 quitar una foto del borrador no la sube', async () => {

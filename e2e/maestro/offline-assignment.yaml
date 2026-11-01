@@ -35,6 +35,7 @@ appId: com.axzy.checkapp.barcelona
 - tapOn: "Escribe los detalles de la revisión..."
 - inputText: "Asignacion sin WiFi"
 - hideKeyboard
+- waitForAnimationToEnd
 - stopApp
 - launchApp
 - extendedWaitUntil:
@@ -62,7 +63,7 @@ appId: com.axzy.checkapp.barcelona
     visible: "TAREAS DEL PUNTO"
     timeout: 20000
 - assertVisible: "Asignacion sin WiFi"
-- tapOn: "Revisar candado E2E"
+- assertVisible: "1/2 completadas"
 - tapOn: "Revisar luces E2E"
 - extendedWaitUntil:
     visible: "2/2 completadas"

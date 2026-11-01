@@ -419,10 +419,13 @@ export const getLocalCheckDraft = async (
   return result.rows?.[0] ?? null;
 };
 
-export const updateLocalDraftNotes = async (userId: number, clientId: string, notes: string) => {
+export const updateLocalDraft = async (userId: number, clientId: string, notes: string, tasks: any[]) => {
   const db = await getOfflineDb(userId);
   if (!db) return;
-  await db.execute(`UPDATE local_checks SET notes = ? WHERE client_id = ? AND status = 'DRAFT'`, [notes, clientId]);
+  await db.execute(
+    `UPDATE local_checks SET notes = ?, tasks_json = COALESCE(?, tasks_json) WHERE client_id = ? AND status = 'DRAFT'`,
+    [notes, tasks.length ? JSON.stringify(tasks) : null, clientId],
+  );
 };
 
 /** Guarda la evidencia al capturarla: cerrar la APP con el borrador abierto no debe perderla. */
