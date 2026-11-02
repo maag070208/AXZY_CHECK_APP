@@ -1,4 +1,8 @@
-import { AssignmentStatus } from "../../screens/assignments/service/assignment.types";
+import { AssignmentStatus, IAssignment } from "../../screens/assignments/service/assignment.types";
+
+/** El guardia ya entregó su reporte: solo falta que lo cierre un supervisor. */
+export const isDelivered = ({ status, delivered }: Pick<IAssignment, 'status' | 'delivered'>): boolean =>
+    status === AssignmentStatus.UNDER_REVIEW || (status === AssignmentStatus.CHECKING && !!delivered);
 
 export const getStatusColor = (status: AssignmentStatus): string => {
     switch (status) {

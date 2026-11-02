@@ -43,6 +43,8 @@ import {
   getActiveRounds,
 } from '../../home/service/round.service';
 import { getMyAssignments } from '../../assignments/service/assignment.service';
+import { IAssignment } from '../../assignments/service/assignment.types';
+import { isDelivered } from '../../../shared/utils/revision-status';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../core/store/redux.config';
 import { showToast } from '../../../core/store/slices/toast.slice';
@@ -212,7 +214,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
     });
     setConfigs(freeConfigs);
     setBusyConfigs(busy);
-    setSpecialAssignments(snapshot?.assignments || []);
+    setSpecialAssignments((snapshot?.assignments || []).filter((a: IAssignment) => !isDelivered(a)));
     setActiveRound(snapshot?.activeRound || null);
   };
 
@@ -301,7 +303,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
 
       setConfigs(freeConfigs);
       setBusyConfigs(busy);
-      setSpecialAssignments(assignRes?.data || []);
+      setSpecialAssignments((assignRes?.data || []).filter(a => !isDelivered(a)));
 
       // For round, we check if it is valid
       if (roundRes?.success && roundRes.data) {

@@ -13,6 +13,8 @@ export interface IAssignment {
   locationId: number;
   assignedBy: number;
   status: AssignmentStatus;
+  /** Tiene reporte completo: en CHECKING puede haber solo el borrador del escaneo. */
+  delivered?: boolean;
   notes?: string;
   createdAt: string;
   updatedAt: string;

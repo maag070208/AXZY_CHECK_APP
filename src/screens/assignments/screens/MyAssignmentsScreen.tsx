@@ -13,7 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAppSelector } from '../../../core/store/hooks';
 import { RootState } from '../../../core/store/redux.config';
-import { getStatusColor, getStatusText } from '../../../shared/utils/revision-status';
+import { getStatusColor, getStatusText, isDelivered } from '../../../shared/utils/revision-status';
 import { getGuardSnapshot } from '../../../offline/snapshot';
 import { getMyAssignments } from '../service/assignment.service';
 import { AssignmentStatus, IAssignment } from '../service/assignment.types';
@@ -62,9 +62,7 @@ export const MyAssignmentsScreen = () => {
   );
 
   const handlePress = (item: IAssignment) => {
-    if (item.status === AssignmentStatus.REVIEWED || item.status === AssignmentStatus.UNDER_REVIEW) {
-      return;
-    }
+    if (isDelivered(item)) return;
     navigation.navigate('CHECK_STACK', {
       screen: 'CHECK_SCAN',
       params: {
@@ -79,16 +77,16 @@ export const MyAssignmentsScreen = () => {
     const totalTasks = item.tasks?.length || 0;
     const completedTasks = item.tasks?.filter(t => t.completed).length || 0;
     const progress = totalTasks > 0 ? completedTasks / totalTasks : 0;
-    const color = getStatusColor(item.status);
-    const actionable =
-      item.status !== AssignmentStatus.REVIEWED && item.status !== AssignmentStatus.UNDER_REVIEW;
+    const actionable = !isDelivered(item);
+    const status = actionable ? item.status : AssignmentStatus.UNDER_REVIEW;
+    const color = getStatusColor(status);
 
     return (
       <TouchableOpacity
         activeOpacity={actionable ? 0.9 : 1}
         onPress={() => handlePress(item)}
         accessibilityRole="button"
-        accessibilityLabel={`${item.location?.name || 'Asignación'}, ${getStatusText(item.status)}`}
+        accessibilityLabel={`${item.location?.name || 'Asignación'}, ${getStatusText(status)}`}
         style={styles.cardWrap}
       >
         <Surface style={styles.card} elevation={0}>
@@ -109,7 +107,7 @@ export const MyAssignmentsScreen = () => {
             </View>
 
             <View style={[styles.statusChip, { backgroundColor: `${color}14` }]}>
-              <Text style={[styles.statusText, { color }]}>{getStatusText(item.status)}</Text>
+              <Text style={[styles.statusText, { color }]}>{getStatusText(status)}</Text>
             </View>
           </View>
 

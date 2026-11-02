@@ -2,6 +2,8 @@
 # Jornada offline completa del guardia por USB: reportes, asignación y ronda sin red, sincroniza y
 # verifica en la API. Requiere Metro, API, E2E_MODE=true y el teléfono conectado.
 # Uso: DEVICE=R58YA0MM1TZ API_BASE=http://IP:4444/api/v1 bash e2e/maestro/guard-offline-full.sh
+# Varios días sin red: DAYS_OFFLINE=6 pausa para que atrases a mano la fecha del teléfono. Hasta 7 días
+# se conserva la hora de captura; con más (prueba con 8) la API guarda el trabajo con la hora de sincronización.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -34,6 +36,7 @@ SINCE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "2/5 Sin red"
 network enable
 sleep 5
+[ -z "${DAYS_OFFLINE:-}" ] || read -rp "Pon el teléfono $DAYS_OFFLINE días atrás, sin fecha automática, y presiona Enter "
 "$MAESTRO" --device "$DEVICE" test e2e/maestro/offline-reports.yaml
 "$MAESTRO" --device "$DEVICE" test e2e/maestro/offline-assignment.yaml
 "$MAESTRO" --device "$DEVICE" test e2e/maestro/offline-round.yaml
@@ -42,10 +45,11 @@ echo "3/5 La cola sobrevive al cierre de la APP"
 adb -s "$DEVICE" shell am force-stop com.axzy.checkapp.barcelona
 
 echo "4/5 Vuelve la red y sincroniza"
+[ -z "${DAYS_OFFLINE:-}" ] || read -rp "Reactiva la fecha automática del teléfono y presiona Enter "
 network disable
 sleep 8
 "$MAESTRO" --device "$DEVICE" test e2e/maestro/guard-offline-sync.yaml
 
 echo "5/5 Verificación en la API"
-node e2e/maestro/offline-fixture.mjs verify "$SINCE" "$ASSIGNMENT"
+node e2e/maestro/offline-fixture.mjs verify "$SINCE" "$ASSIGNMENT" "${DAYS_OFFLINE:-}"
 echo "OK: jornada offline completa"

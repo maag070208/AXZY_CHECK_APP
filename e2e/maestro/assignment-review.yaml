@@ -1,0 +1,23 @@
+appId: com.axzy.checkapp.barcelona
+---
+# Reporte entregado: en solo lectura. Borrador del escaneo: se puede terminar.
+# Antes: node e2e/maestro/offline-fixture.mjs review
+- runFlow: login.yaml
+- scrollUntilVisible:
+    element: ".*Revision E2E-08.*"
+    direction: DOWN
+- assertNotVisible: ".*Revision E2E-07.*"
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "Mis Asignaciones"
+    timeout: 10000
+- tapOn: "Mis Asignaciones"
+- extendedWaitUntil:
+    visible: "Asignaciones"
+    timeout: 15000
+- assertVisible: "E2E-07, En Revisión"
+- assertVisible: "E2E-08, En Verificación"
+- assertVisible: "Escanear punto"
+- tapOn: "E2E-07, En Revisión"
+- assertVisible: "Asignaciones"
+- pressKey: Back

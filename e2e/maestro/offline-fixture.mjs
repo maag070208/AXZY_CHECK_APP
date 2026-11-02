@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Prepara y verifica por API la suite offline del guardia (usa los usuarios de prueba de dev).
-// Uso: node offline-fixture.mjs prepare | verify <desde-ISO> <assignmentId>
+// Uso: node offline-fixture.mjs prepare | review | clean | verify <desde-ISO> <assignmentId> [días]
 const API = process.env.API_BASE ?? 'http://192.168.10.100:4444/api/v1';
 
 const request = async (path, token, options = {}) => {
@@ -51,7 +51,7 @@ const prepare = async () => {
   console.log(assignment.id);
 };
 
-const verify = async (since, assignmentId) => {
+const verify = async (since, assignmentId, daysOffline) => {
   const admin = await login('isabel');
   const guardId = guardIdOf(await login('marcoh'));
   const after = (rows) => rows.filter((row) => new Date(row.syncedAt ?? 0) >= new Date(since) && row.createdOffline);
@@ -68,6 +68,12 @@ const verify = async (since, assignmentId) => {
 
   const rounds = after(await request(`/rounds?guardId=${guardId}`, admin));
   expect('una ronda offline cerrada', rounds.length === 1 && rounds[0].status === 'COMPLETED', `filas=${rounds.length} estado=${rounds[0]?.status}`);
+
+  if (daysOffline) {
+    const expected = Number(daysOffline) > 7 ? 0 : Number(daysOffline);
+    const age = (Date.now() - new Date(rounds[0]?.startTime)) / 86_400_000;
+    expect(`ronda con fecha de hace ${expected} días`, Math.abs(age - expected) < 1, `${age.toFixed(1)} días`);
+  }
 
   const kardex = after(await request(`/kardex?userId=${guardId}`, admin));
   const inRound = kardex.filter((row) => row.roundId === rounds[0]?.id);
@@ -89,5 +95,44 @@ const verify = async (since, assignmentId) => {
   }
 };
 
+// Cierra lo abierto del guardia: una asignación abierta en un punto se lleva sus reportes.
+const closeOpen = async (admin, guardId) => {
+  const open = (await request(`/assignments?guardId=${guardId}`, admin)).filter((item) => item.status !== 'REVIEWED');
+  for (const item of open) {
+    const steps = item.status === 'PENDING' ? ['CHECKING', 'REVIEWED'] : ['REVIEWED'];
+    for (const status of steps) {
+      await request(`/assignments/${item.id}/status`, admin, { method: 'PATCH', body: JSON.stringify({ status }) });
+    }
+  }
+};
+
+// Una asignación con reporte entregado (E2E-07) y otra solo con el borrador del escaneo (E2E-08).
+const review = async () => {
+  const admin = await login('isabel');
+  const guard = await login('marcoh');
+  const guardId = guardIdOf(guard);
+  await closeOpen(admin, guardId);
+  const route = (await request('/recurring', admin)).find((item) => item.title === 'E2E RONDA 8 PUNTOS');
+  const scan = async (name) => {
+    const location = route.recurringLocations.find((item) => item.location?.name === name).location;
+    const assignment = await request('/assignments', admin, {
+      method: 'POST',
+      body: JSON.stringify({ guardId, locationId: location.id, notes: `Revision ${name}` }),
+    });
+    return request('/kardex', guard, {
+      method: 'POST',
+      body: JSON.stringify({ userId: guardId, locationId: location.id, notes: '', media: [], assignmentId: assignment.id }),
+    });
+  };
+  const report = await scan('E2E-07');
+  await request(`/kardex/${report.id}`, guard, {
+    method: 'PATCH',
+    body: JSON.stringify({ notes: 'Reporte terminado', media: [{ type: 'IMAGE', url: 'https://example.test/e2e.jpg', key: 'e2e/entregada.jpg' }] }),
+  });
+  await scan('E2E-08');
+};
+
+const clean = async () => closeOpen(await login('isabel'), guardIdOf(await login('marcoh')));
+
 const [action, ...args] = process.argv.slice(2);
-await (action === 'prepare' ? prepare() : verify(...args));
+await ({ prepare, review, clean }[action] ?? verify)(...(action === 'verify' ? args : []));
