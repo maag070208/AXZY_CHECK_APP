@@ -82,3 +82,6 @@ android/.gradle-home/
 .env
 .env.*
 !.env.example
+
+# Datos locales de Maestro (logs, capturas y llaves de ADB)
+.maestro-home/
