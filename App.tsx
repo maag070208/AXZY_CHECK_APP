@@ -15,12 +15,13 @@ import { toastConfig } from './src/shared/components/CustomToast';
 import { ToastHandler } from './src/core/store/hooks/toast';
 import { es, registerTranslation } from 'react-native-paper-dates';
 import { initSyncManager } from './src/core/services/syncManager';
+import OfflineStatusBar from './src/shared/components/OfflineStatusBar';
 // NOTA (offline-first): `NoInternetScreen` bloqueaba TODA la app con un
 // modal de pantalla completa en cuanto se perdía la conexión, lo cual es
 // justo lo contrario de lo que necesita el guardia (poder seguir su
-// ronda/incidencia/mantenimiento/casa club sin wifi). Se retira de aquí a
-// propósito; la app ahora sigue funcionando offline vía la cola de
-// sincronización (ver core/services/syncManager.ts).
+// ronda/incidencia/mantenimiento/casa club sin wifi). Se reemplaza por
+// `OfflineStatusBar`, un banner persistente no intrusivo que muestra el
+// estado de conexión y el conteo de items pendientes de sync.
 
 registerTranslation('es', es);
 
@@ -54,6 +55,7 @@ function App() {
           <Provider store={store}>
             <PersistGate persistor={persistored} loading={null}>
               <PaperProvider theme={themePaper}>
+                <OfflineStatusBar />
                 <MainNavigator />
                 <ToastHandler />
                 <Toast config={toastConfig} />

@@ -3,7 +3,7 @@ export type Environment = 'DEV' | 'PROD' | 'LOCAL';
 export const ENVIRONMENTS: Record<Environment, string> = {
   DEV: 'https://axzy-checkapp-bonaterra-dev-api.up.railway.app/api/v1',
   PROD: 'https://axzy-checkapp-bonaterra-prod-api.up.railway.app/api/v1',
-  LOCAL: 'http://192.168.10.108:4444/api/v1',
+  LOCAL: 'http://192.168.10.104:4444/api/v1',
 };
 
 export const ENVIRONMENT_LABELS: Record<Environment, string> = {
@@ -12,7 +12,7 @@ export const ENVIRONMENT_LABELS: Record<Environment, string> = {
   LOCAL: 'Local',
 };
 
-export const DEFAULT_ENVIRONMENT: Environment = 'PROD';
+export const DEFAULT_ENVIRONMENT: Environment = 'LOCAL';
 
 export const API_CONSTANTS = {
   BASE_URL: ENVIRONMENTS[DEFAULT_ENVIRONMENT],
