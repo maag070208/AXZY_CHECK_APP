@@ -22,6 +22,9 @@ interface Props {
   maxDuration?: number;
 }
 
+const formatTime = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
+
 export const CameraModal = ({
   visible,
   onDismiss,
@@ -84,11 +87,9 @@ export const CameraModal = ({
     if (recording) {
       interval = setInterval(() => {
         setDuration(prev => {
-          if (prev >= maxDuration) {
-            stopRecording();
-            return prev;
-          }
-          return prev + 1;
+          const next = prev + 1;
+          if (next >= maxDuration) stopRecording();
+          return next;
         });
       }, 1000);
     }
@@ -286,9 +287,14 @@ export const CameraModal = ({
             <View style={styles.timerPill}>
               <View style={styles.recordingDot} />
               <Text style={styles.timerText}>
-                {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')} /{' '}
-                {Math.floor(maxDuration / 60)}:00
+                {formatTime(duration)} / {formatTime(maxDuration)}
               </Text>
+            </View>
+          )}
+
+          {mode === 'video' && !recording && (
+            <View style={[styles.timerPill, styles.limitPill]}>
+              <Text style={styles.timerText}>Máximo {formatTime(maxDuration)}</Text>
             </View>
           )}
 
@@ -422,6 +428,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     marginBottom: 14,
   },
+  limitPill: { backgroundColor: 'rgba(15,23,42,0.75)' },
   recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFFFFF', marginRight: 7 },
   timerText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
   shutterOuter: {

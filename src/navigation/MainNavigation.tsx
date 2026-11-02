@@ -13,6 +13,7 @@ import { ApiVersionGate } from '../shared/components/ApiVersionGate';
 import { getMyPermissions } from '../screens/auth/services/permissions.service';
 import { ROLE_PERMISSIONS } from '../core/permissions/permissions';
 import { registerPushNotifications } from '../core/push/push-notifications';
+import { flushPendingNotification, listenNotificationOpens, navigationRef } from '../core/push/push-navigation';
 
 const MainNavigation = () => {
   const { isSignedIn, token, permissions, role } = useAppSelector(state => state.userState);
@@ -26,6 +27,12 @@ const MainNavigation = () => {
 
   useEffect(() => {
     if (isSignedIn && permissionsAccepted) void registerPushNotifications();
+  }, [isSignedIn, permissionsAccepted]);
+
+  useEffect(() => listenNotificationOpens(), []);
+
+  useEffect(() => {
+    if (isSignedIn && permissionsAccepted) flushPendingNotification();
   }, [isSignedIn, permissionsAccepted]);
 
   useEffect(() => {
@@ -87,7 +94,7 @@ const MainNavigation = () => {
     <>
       <LoaderComponent />
       <ApiVersionGate>
-        <NavigationContainer onStateChange={validateToken}>
+        <NavigationContainer ref={navigationRef} onStateChange={validateToken}>
         {isSignedIn ? (
           permissionsAccepted ? (
             <DrawerNavigator />
