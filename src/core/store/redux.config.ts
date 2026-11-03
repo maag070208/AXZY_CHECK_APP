@@ -15,12 +15,14 @@ import userReducer from './slices/user.slice';
 import loaderReducer from './slices/loader.slice';
 import toastReducer from './slices/toast.slice';
 import environmentReducer from './slices/environment.slice';
+import tenantReducer from './slices/tenant.slice';
 
 const rootReducer = combineReducers({
   userState: userReducer,
   loaderState: loaderReducer,
   toastState: toastReducer,
   environmentState: environmentReducer,
+  tenantState: tenantReducer,
 });
 
 const persistConfig = {
@@ -30,6 +32,7 @@ const persistConfig = {
   blacklist: [
     'loaderState', // nunca debemos persistir loaders
     'environmentState', // nunca persistir el ambiente; se lee de DEFAULT_ENVIRONMENT
+    'tenantState', // la selección de cliente se persiste por usuario en AsyncStorage
   ],
 };
 

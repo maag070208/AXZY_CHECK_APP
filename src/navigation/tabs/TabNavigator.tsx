@@ -37,7 +37,7 @@ const TabNavigator = () => {
         },
       }}
     >
-      {(role === UserRole.ADMIN || role === UserRole.SHIFT || role === UserRole.GUARD || role === UserRole.MAINT || role === UserRole.RESDN) && (
+      {(role === UserRole.ADMIN || role === UserRole.SHIFT || role === UserRole.GUARD || role === UserRole.MAINT || role === UserRole.RESDN || role === UserRole.CLIENT) && (
         <Tab.Screen
             name="HOME_STACK"
             component={HomeStack}
@@ -52,7 +52,7 @@ const TabNavigator = () => {
             }}
         />
       )}
-      {(role === UserRole.ADMIN || role === UserRole.SHIFT) && (
+      {(role === UserRole.ADMIN || role === UserRole.SHIFT || role === UserRole.CLIENT) && (
         <Tab.Screen
             name="Kardex"
             component={KardexStack}

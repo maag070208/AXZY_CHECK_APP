@@ -23,6 +23,26 @@ export interface OutboxRow {
   last_error: string | null;
   created_at: number;
   updated_at: number;
+  /** Cliente de tenant con el que se encoló el registro. NULL en colas previas al multicliente. */
+  client_id: string | null;
+}
+
+/** Cliente de la asignación activa del guardia (`client` del snapshot de `/sync/pull`). */
+export interface OfflineClient {
+  id: number;
+  name: string;
+  type: string | null;
+}
+
+/** Cambio de cliente detectado al aplicar un pull: qué se descartó y cuándo. */
+export interface ClientChangeNotice {
+  previousClientId: number | null;
+  previousClientName: string | null;
+  clientId: number;
+  clientName: string;
+  /** Registros pendientes del cliente anterior que se descartaron (nunca se suben al nuevo). */
+  discarded: number;
+  changedAt: number;
 }
 
 export interface OfflineMediaInput {

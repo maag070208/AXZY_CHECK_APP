@@ -11,7 +11,13 @@ import { useAppSelector } from '../../core/store/hooks';
 import { isOnline } from '../../offline/network';
 import { syncNow } from '../../offline/sync/engine';
 import { getOutboxIssues } from '../../offline/outbox';
+import {
+  claimClientChangeNotice,
+  describeClientChange,
+} from '../../offline/client';
+import type { ClientChangeNotice } from '../../offline/types';
 import { AppButton } from '../../shared/components/AppButton';
+import { tokens } from '../../shared/theme/tokens';
 
 type CheckState = 'pending' | 'running' | 'ok' | 'error';
 
@@ -24,8 +30,8 @@ interface CheckItem {
 
 const INITIAL_CHECKS: CheckItem[] = [
   { key: 'connection', label: 'Conexión con la API', detail: 'Verificando red y servidor', state: 'pending' },
+  { key: 'download', label: 'Actualizar cliente y datos', detail: 'Rutas, asignaciones, catálogos y cliente activo', state: 'pending' },
   { key: 'upload', label: 'Subir cambios locales', detail: 'Reportes, rondas, checks y evidencias', state: 'pending' },
-  { key: 'download', label: 'Actualizar datos', detail: 'Rutas, asignaciones y catálogos', state: 'pending' },
   { key: 'conflicts', label: 'Verificar conflictos', detail: 'Todo debe quedar consistente', state: 'pending' },
 ];
 
@@ -39,6 +45,7 @@ export const SyncScreen = ({ navigation }: any) => {
   const [message, setMessage] = useState('Preparando sincronización…');
   const [stats, setStats] = useState({ processed: 0, pending: 0, failed: 0 });
   const [issues, setIssues] = useState<Array<{ operation: string; error: string; payload: any }>>([]);
+  const [clientNotice, setClientNotice] = useState<ClientChangeNotice | null>(null);
   const rotate = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
   const animation = useRef<Animated.CompositeAnimation | null>(null);
@@ -80,6 +87,7 @@ export const SyncScreen = ({ navigation }: any) => {
     if (syncing) return;
     setSyncing(true);
     setDone(false);
+    setClientNotice(null);
     setChecks(INITIAL_CHECKS.map(c => ({ ...c, state: 'pending' })));
     setMessage('Comprobando conexión…');
     startAnimation();
@@ -96,15 +104,17 @@ export const SyncScreen = ({ navigation }: any) => {
       }
       setCheck('connection', 'ok', 'API disponible');
 
-      setCheck('upload', 'running');
-      setMessage('Subiendo cambios locales…');
+      // Multicliente: el motor primero descarga (cliente, rutas y catálogos) y después sube la cola.
       setCheck('download', 'running');
-      setMessage('Subiendo y actualizando datos…');
+      setMessage('Actualizando cliente y datos…');
+      setCheck('upload', 'running');
+      setMessage('Actualizando datos y subiendo cambios…');
 
       // La animación se mantiene visible aunque el sync termine muy rápido.
       const [result] = await Promise.all([syncNow(Number(user.id), { force: true }), delay(1200)]);
 
       if (result.unavailable) {
+        setCheck('download', 'error', 'Almacenamiento offline no disponible');
         setCheck('upload', 'error', 'Almacenamiento offline no disponible');
         throw new Error('El almacenamiento offline no está disponible en este APK.');
       }
@@ -112,14 +122,20 @@ export const SyncScreen = ({ navigation }: any) => {
       setCheck('upload', result.failed > 0 ? 'error' : 'ok',
         result.failed > 0 ? `${result.failed} elemento(s) con error` : `${result.processed} elemento(s) enviados`);
       setCheck('download', result.pulled ? 'ok' : 'error',
-        result.pulled ? 'Rutas, asignaciones y catálogos actualizados' : 'No se pudieron actualizar los datos');
+        result.pulled ? 'Cliente, rutas, asignaciones y catálogos actualizados' : 'No se pudieron actualizar los datos');
       setCheck('conflicts', result.failed > 0 ? 'error' : 'ok',
         result.failed > 0 ? 'Revisá los registros pendientes' : 'Sin conflictos');
 
       setStats({ processed: result.processed, pending: result.pending, failed: result.failed });
       setIssues(await getOutboxIssues(Number(user.id)));
 
-      if (!result.pulled) {
+      // El cambio de cliente es un aviso único: lo reclama la pantalla que lo muestre primero.
+      const notice = await claimClientChangeNotice(Number(user.id));
+      if (notice) setClientNotice(notice);
+
+      if (notice) {
+        setMessage(describeClientChange(notice));
+      } else if (!result.pulled) {
         setMessage('Cambios locales subidos, pero no se pudo descargar la actualización.');
       } else if (result.failed > 0 || result.pending > 0) {
         setMessage(`Quedan ${result.pending || result.failed} pendiente(s). Podés reintentar.`);
@@ -160,6 +176,16 @@ export const SyncScreen = ({ navigation }: any) => {
         <Text style={styles.title}>{done ? 'Todo listo' : syncing ? 'Sincronizando…' : 'Sincronización'}</Text>
         <Text style={styles.subtitle}>{message}</Text>
       </View>
+
+      {clientNotice && (
+        <View style={styles.clientCard} accessible accessibilityLabel="Cambiaste de cliente">
+          <View style={styles.clientHeader}>
+            <Icon source="domain-switch" size={18} color={tokens.color.primary} />
+            <Text style={styles.clientTitle}>CAMBIÓ DE CLIENTE</Text>
+          </View>
+          <Text style={styles.clientText}>{describeClientChange(clientNotice)}</Text>
+        </View>
+      )}
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Revisión</Text>
@@ -271,6 +297,17 @@ const styles = StyleSheet.create({
   },
   issueTitle: { fontSize: 10, fontWeight: '900', color: '#B91C1C', letterSpacing: 0.8 },
   issueText: { marginTop: 4, fontSize: 11, fontWeight: '600', color: '#7F1D1D', lineHeight: 16 },
+  clientCard: {
+    marginTop: 14,
+    backgroundColor: tokens.color.primarySoft,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: tokens.color.primaryBorder,
+    padding: 12,
+  },
+  clientHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  clientTitle: { fontSize: 10, fontWeight: '900', color: tokens.color.primary, letterSpacing: 0.8 },
+  clientText: { marginTop: 4, fontSize: 12, fontWeight: '700', color: tokens.color.text, lineHeight: 17 },
   button: { marginTop: 20, width: '100%' },
   back: { marginTop: 8, width: '100%' },
 });

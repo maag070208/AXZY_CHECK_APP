@@ -157,6 +157,7 @@ CREATE TABLE outbox (
   attempts          INTEGER NOT NULL DEFAULT 0,
   next_attempt_at   INTEGER,
   last_error        TEXT,
+  client_id         TEXT,                   -- cliente de tenant con el que se encoló (multicliente)
   created_at        INTEGER NOT NULL,
   updated_at        INTEGER NOT NULL
 );
@@ -339,6 +340,25 @@ Diálogo:
 
 Nunca borrar la cola en silencio.
 
+### 7.7 Cambio de asignación (multicliente)
+
+La APP es de un solo cliente a la vez: el de la asignación activa del guardia en el servidor.
+
+1. El snapshot de `GET /sync/pull` trae `client: { id, name, type }`. Se guarda en `offline_meta`
+   (`client_id`, `client_name`, `client_type`) y el home muestra una tarjeta “CLIENTE ACTIVO”.
+2. Cada operación de la cola se encola etiquetada con el `client_id` vigente.
+3. En el siguiente pull, si el cliente del snapshot es distinto al guardado:
+   - se **descartan** las operaciones pendientes del cliente anterior (`QUEUED`/`FAILED`/`SYNCING`),
+     los borradores y las tablas locales de operación (`local_rounds`, `local_checks`,
+     `local_reports`, `local_media`, `sync_conflicts`);
+   - se borran del teléfono las evidencias del cliente anterior que aún no se habían subido;
+   - se guarda el cliente nuevo;
+   - se registra el aviso (cliente anterior, nuevo, fecha y cuántos registros se descartaron).
+4. La UI muestra el aviso **una sola vez**: “Cambiaste de cliente: se descartaron N registros
+   pendientes del cliente anterior; no se enviaron al cliente nuevo.”
+5. Esos datos **nunca** se suben ni se mezclan con el cliente nuevo. La cola solo se vacía después
+   de aplicar el pull, y el motor además descarta cualquier fila etiquetada con otro cliente.
+
 ---
 
 ## 8. Sincronización
@@ -356,11 +376,13 @@ COMMIT;
 
 El worker:
 
-1. Toma operaciones `QUEUED` con `next_attempt_at <= now`.
-2. Respeta dependencias (`depends_on`).
-3. Procesa una escritura a la vez (media puede tener concurrencia 2).
-4. Actualiza `sync_state` y notifica a la UI.
-5. Al terminar, intenta la siguiente.
+1. Ejecuta el **pull primero** (`GET /sync/pull`). Así se resuelve el cliente activo y, si cambió
+   de asignación, se purga lo pendiente del cliente anterior **antes** de subir nada.
+2. Toma operaciones `QUEUED` con `next_attempt_at <= now`, solo del cliente activo.
+3. Respeta dependencias (`depends_on`).
+4. Procesa una escritura a la vez (media puede tener concurrencia 2).
+5. Actualiza `sync_state` y notifica a la UI.
+6. Al terminar, intenta la siguiente.
 
 ### 8.2 Tipos de operación y dependencias
 
@@ -424,6 +446,10 @@ Se guardan por `cache_key` con `fetched_at`.
 
 Fase 2 opcional: `GET /sync/pull?since=<timestamp>` con cambios incrementales.
 
+**Multicliente (fase 4):** `GET /sync/pull` es la fuente del `client` activo y del alcance del token
+(guardia/jefe de turno; sin asignación responde `403`). La APP lo aplica antes de vaciar el outbox:
+si `client.id` difiere del guardado se dispara la purga descrita en §7.7.
+
 ### 8.6 Disparadores
 
 - Al iniciar la app y al hacer login.
@@ -456,6 +482,27 @@ Fase 2 opcional: `GET /sync/pull?since=<timestamp>` con cambios incrementales.
 | Reloj del dispositivo desfasado | Enviar `occurredAt` y `receivedAt`; servidor valida ±10 min. |
 
 No hay “last write wins” para rondas ni checks: son eventos operativos.
+
+### 8.9 Cambio de cliente (multicliente)
+
+- Meta local: `client_id`, `client_name`, `client_type` y `client_last_change` (JSON con el aviso:
+  cliente anterior, cliente nuevo, fecha y registros descartados).
+- `outbox.client_id` etiqueta cada operación al encolarse. Las filas sin etiqueta (colas anteriores
+  a esta versión) se adoptan al cliente activo; las filas de otro cliente se descartan y **nunca**
+  se envían con el alcance nuevo.
+- Eventos para la UI: `OFFLINE_CLIENT_CHANGED` (hubo cambio; el home refresca y avisa) y
+  `OFFLINE_CLIENT_UPDATED` (el cliente se conoce o cambió de nombre).
+- El aviso se entrega una sola vez (`claimClientChangeNotice`) y se borra al mostrarse, para no
+  repetirlo en cada sincronización.
+- Pruebas: `__tests__/offline/clientScope.test.ts` con el SQL real (`jest/sqliteHarness.ts`).
+
+### 8.10 Chat en vivo por cliente
+
+- Ably publica en `chat:team:<clientId>` (ya no hay canal global `chat:team`). El chat se suscribe
+  con el cliente activo: meta offline de la fase 4 (GUARD/MAINT/SHIFT) o `clientId` de `/users/me`.
+- Sin cliente no se suscribe (sigue el polling REST); al cambiar de cliente se cierra la conexión
+  anterior y se abre `chat:team:<nuevo>` con los eventos `OFFLINE_CLIENT_UPDATED`/`CHANGED`.
+  Pruebas: `__tests__/chat/chatRealtime.test.tsx`.
 
 ---
 
@@ -686,5 +733,7 @@ Orden acordado:
 - ✅ Caché de rutas/catálogos y lectura offline del Home (snapshot `GET /sync/pull`).
 - ✅ Login offline con credenciales en Keychain (requiere un login online previo).
 - ✅ Banner/estado de sincronización y botón Sync en header.
+- ✅ Multicliente fase 4: cliente de la asignación activa en el home, cola etiquetada por cliente y
+  purga con aviso al cambiar de asignación (nunca se mezclan datos entre clientes).
 - ⬜ Pantalla de conflictos.
 - ⬜ Pruebas unitarias/E2E de offline y rebuild nativo con SQLCipher.

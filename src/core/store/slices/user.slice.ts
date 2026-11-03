@@ -14,6 +14,9 @@ export interface IUserState {
   isSignedIn: boolean;
   loggedInAt: string | null;
   permissions: string[] | null;
+  /** Alcance multicliente de la sesión (`GET /users/me`): cliente activo y organización. */
+  clientId: number | null;
+  organizationId: number | null;
 }
 
 const initialState: IUserState = {
@@ -28,6 +31,8 @@ const initialState: IUserState = {
   isSignedIn: false,
   loggedInAt: null,
   permissions: null,
+  clientId: null,
+  organizationId: null,
 };
 
 export const userSlice = createSlice({
@@ -51,12 +56,23 @@ export const userSlice = createSlice({
       state.token = action.payload;
       state.loggedInAt = new Date().toISOString();
       state.permissions = null;
+      // El alcance del cliente se hidrata con `GET /users/me` al entrar; no se hereda del usuario anterior.
+      state.clientId = null;
+      state.organizationId = null;
     },
 
     logout: state => ({ ...initialState, lastRole: state.role ?? state.lastRole }),
 
     setPermissions: (state, action: PayloadAction<string[]>) => {
       state.permissions = action.payload;
+    },
+
+    setClientScope: (
+      state,
+      action: PayloadAction<{ clientId: number | null; organizationId: number | null }>,
+    ) => {
+      state.clientId = action.payload.clientId ?? null;
+      state.organizationId = action.payload.organizationId ?? null;
     },
 
     updateProfile: (state, action: PayloadAction<{ name: string; lastName: string }>) => {
@@ -69,6 +85,7 @@ export const userSlice = createSlice({
   },
 });
 
-export const { login, logout, updateProfile, setPermissions, setPhotoUrl } = userSlice.actions;
+export const { login, logout, updateProfile, setPermissions, setPhotoUrl, setClientScope } =
+  userSlice.actions;
 
 export default userSlice.reducer;

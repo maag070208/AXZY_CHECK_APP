@@ -13,7 +13,8 @@ import {
   setSyncState,
 } from '../outbox';
 import { markReportFailed, markReportSynced } from '../reports';
-import { OutboxRow } from '../types';
+import { ClientChangeNotice, OutboxRow } from '../types';
+import { getStoredClientChange, getStoredClientId } from '../client';
 import { uploadFile } from '../../shared/service/upload.service';
 import { pullSync } from './pull';
 import { createIncident } from '../../screens/assignments/service/incident.service';
@@ -242,14 +243,50 @@ export interface SyncResult {
   online: boolean;
   unavailable: boolean;
   pulled: boolean;
+  /** Cambio de cliente detectado en este pull: la UI lo usa para avisar lo que se descartó. */
+  clientChanged: ClientChangeNotice | null;
 }
 
 let syncInFlight: Promise<SyncResult> | null = null;
 
+/**
+ * Multicliente: la cola solo puede vaciarse hacia el cliente activo. Antes de subir nada
+ * descartamos cualquier operación encolada con otro cliente; las filas viejas sin cliente
+ * (colas previas al multicliente) se adoptan al cliente actual.
+ */
+const dropForeignClientRows = async (db: DB): Promise<number> => {
+  const activeClientId = await getStoredClientId(db);
+  if (!activeClientId) return 0;
+  await db.execute(`UPDATE outbox SET client_id = ? WHERE client_id IS NULL`, [activeClientId]);
+  const foreign = await db.execute(
+    `SELECT COUNT(*) AS count FROM outbox WHERE client_id IS NOT NULL AND client_id <> ?`,
+    [activeClientId],
+  );
+  const count = Number(foreign.rows?.[0]?.count ?? 0);
+  if (count > 0) {
+    console.warn(
+      `[Offline] Se descartan ${count} operación(es) encoladas para otro cliente.`,
+    );
+    await db.execute(
+      `DELETE FROM outbox WHERE client_id IS NOT NULL AND client_id <> ?`,
+      [activeClientId],
+    );
+  }
+  return count;
+};
+
 const runSync = async (userId: number, force: boolean): Promise<SyncResult> => {
   const db = await getOfflineDb(userId);
   if (!db) {
-    return { processed: 0, failed: 0, pending: 0, online: false, unavailable: true, pulled: false };
+    return {
+      processed: 0,
+      failed: 0,
+      pending: 0,
+      online: false,
+      unavailable: true,
+      pulled: false,
+      clientChanged: null,
+    };
   }
   if (!(await isOnline())) {
     return {
@@ -259,11 +296,20 @@ const runSync = async (userId: number, force: boolean): Promise<SyncResult> => {
       online: false,
       unavailable: false,
       pulled: false,
+      clientChanged: null,
     };
   }
 
+  // Multicliente: el pull va PRIMERO. Si la asignación activa cambió de cliente, la cola y los
+  // datos locales del cliente anterior se descartan antes de intentar subir nada.
+  const pulledSnapshot = await pullSync(userId);
+  const clientChanged = await getStoredClientChange(db);
+
   // Una sola sincronización corre a la vez: lo que siga en SYNCING quedó de una APP cerrada a medias.
   await requeueInterrupted(db);
+
+  // Regla de oro: nunca enviar una operación encolada bajo el cliente A con el alcance del cliente B.
+  await dropForeignClientRows(db);
 
   let processed = 0;
   let failed = 0;
@@ -298,7 +344,6 @@ const runSync = async (userId: number, force: boolean): Promise<SyncResult> => {
     if (!progressed) break;
   }
 
-  const pulled = await pullSync(userId);
   await setSyncState(db, 'last_sync_at', String(Date.now()));
   return {
     processed,
@@ -306,7 +351,8 @@ const runSync = async (userId: number, force: boolean): Promise<SyncResult> => {
     pending: await getAllPendingCount(db),
     online: true,
     unavailable: false,
-    pulled: !!pulled,
+    pulled: !!pulledSnapshot,
+    clientChanged,
   };
 };
 

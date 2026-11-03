@@ -279,11 +279,28 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 - Pull-to-refresh conserva la lista; el refrescar del header también recarga.
 
 ### 6.8.4 Homes por rol
-- ADMIN → `AdminDashboardScreen` (KPIs, alertas, mapa, rondas).
+- ADMIN y CLIENT → `AdminDashboardScreen` (KPIs, alertas, mapa, rondas). CLIENT tiene alcance fijo del token y permisos administrativos de su cliente.
 - SHIFT → `ShiftDashboard` (hero, KPIs, alertas, operaciones, rondas activas y equipo) + `ShiftRoundScreen`, que reutiliza `GuardDashboard` en modo ronda: misma pantalla que Guardia/Mantenimiento.
 - GUARD y MAINT → `GuardDashboard` (mismo home: ronda, escaneo y reportes).
 - RESDN → `ResidentHomeScreen` (hero de bienvenida, propiedad, perfil, contactos y pases).
 - El home se elige por rol; dentro de cada uno, los accesos se filtran por permisos.
+- GUARD/MAINT (y SHIFT en modo ronda) muestran arriba del hero la tarjeta **Cliente activo** (§6.8.5).
+- ADMIN/MAINT de organización multicliente eligen cliente antes de operar (§6.9.4).
+
+### 6.8.5 Cliente activo (guardia/mantenimiento)
+- Tarjeta blanca full-width (`marginHorizontal 16`, radio 16, borde `line`, sombra de tarjeta),
+  por encima del hero del escáner. Es de **solo lectura**: el cliente se cambia desde la asignación
+  que administra la web, no desde la APP.
+- Fila: caja de icono 36 (`primarySoft`, icono `office-building` color `primary`), label
+  **CLIENTE ACTIVO** 10/900 `muted` con tracking, nombre 14/800 `ink` y chip 999 del tipo
+  (`RESIDENTIAL` → “Residencial”, `MAQUILA` → “Maquila”, `PLAZA` → “Plaza”).
+- Estados: **loading** con el `Skeleton` de 58 px; **empty** “Sin cliente activo · Conéctate para
+  descargar tu asignación.”; **error** con icono/`danger` y `AppButton` “Reintentar”.
+- El aviso de cambio de cliente (“Cambiaste de cliente: se descartaron N registros pendientes…”)
+  se muestra una sola vez al aplicar el pull, también en `SyncScreen` como tarjeta mint.
+- Accesibilidad: `accessible` + `accessibilityLabel` “Cliente activo: {nombre}. Tipo: {tipo}”.
+- Usa `ActiveClientCard` (`src/shared/components/ActiveClientCard.tsx`); no dupliques estilos.
+- Tokens añadidos a `src/shared/theme/tokens.ts`: `primaryBorder` y `lineSoft` (ya documentados en §2).
 
 ### 6.9.0 Listas operativas (estándar)
 - Resumen compacto arriba: total, en turno y refrescar.
@@ -298,6 +315,8 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 - Drawer, Home y botones de acción usan `useCan()`; no se compara `role ===`.
 - ADMIN tiene “Roles y permisos” en el drawer para editar la matriz (mismos endpoints que la WEB).
 - El guardia conserva sus accesos: Inicio, Mis Asignaciones, Caseta y su dashboard de rondas.
+- `CLIENT` (administrador de cliente) usa la matriz de administrador de su cliente, sin selector de
+  cliente y con paleta própria; `client.view` solo lo tienen ADMIN/MAINT de organización.
 
 ### 6.9.1 Secciones
 - Header de sección: label 10/900 `soft` mayúsculas + `letterSpacing 1.1`; a la derecha un aside 10/700
@@ -327,6 +346,26 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
   vacío “Aún no hay movimientos” y error con “Reintentar”.
 - Solo lectura; el servidor filtra por propiedad y residente.
 - Entrada en el drawer del residente con permiso `resident.self`.
+
+### 6.9.4 Selector de cliente (ADMIN/MAINT multicliente)
+- **Gate bloqueante** al entrar (`ClientGateScreen`) cuando el rol es ADMIN/MAINT de organización
+  multicliente y no hay cliente elegido: sin header `X-Client-Id` el API responde 403 en datos de
+  cliente, así que se elige antes de operar. Fondo `bg`, marca CheckApp arriba, título 24/900
+  “¿Con qué cliente trabajas?” y subtítulo 13/600; debajo, la lista.
+- **Tarjeta de cliente** (48–68 px): caja de icono 38 `lineSoft`, nombre 14/800 `ink`, meta 11/600
+  (`tipo · Activo/Inactivo`), check-circle verde en el seleccionado (fila `primarySoft` +
+  borde `primaryBorder`) y chip rojo suave “INACTIVO” para los inactivos (no seleccionables).
+  Estados: **loading** 3 skeletons de 68, **empty** “No hay clientes disponibles.” y **error** con
+  “Reintentar”.
+- **Drawer**: ítem “Cliente” (icono `office-building`, permiso `client.view`, solo ADMIN/MAINT) y
+  pill en el header con el cliente activo (“Elegir cliente” si no hay) que abre el selector.
+- **Persistencia**: la selección se guarda en AsyncStorage por usuario (`checkapp.tenant.v1.<id>`)
+  y se borra al cerrar sesión; si la organización tiene un solo cliente activo se auto-selecciona.
+- **Rol CLIENT**: administrador de cliente con alcance fijo; paleta ámbar (`#B45309`), drawer con
+  “Inicio”/“Quejas”, home = `AdminDashboardScreen` y sin CTA de ronda en la tab bar.
+- Accesibilidad: filas con `accessibilityRole="button"`, `accessibilityState` (selected/disabled) y
+  label “Cliente {nombre}. {tipo} · {estado}”. Componentes: `ClientPickerList`,
+  `ClientGateScreen`, `ClientsScreen` en `src/screens/clients/`.
 
 ---
 
@@ -449,3 +488,5 @@ dictado por voz (Android, permiso RECORD_AUDIO); el texto se transcribe en el ca
 | 2026-10-26 | 2.48 | Se agrega **Multa / Infracción** como tipo de cargo manual, visible en los cargos del residente. `payment.service`, `PaymentsScreen`. |
 | 2026-10-26 | 2.49 | Mis pagos: filtros rápidos de cargos (Todos, Pendientes, Pagados) con conteo y estados vacíos por filtro; margen superior para “Levantar una queja”. `PaymentsScreen`, `payments/utils/chargeFilters`. |
 | 2026-10-26 | 2.50 | Mi kardex: icono de cargo corregido, filtros que envuelven sin cortarse, etiquetas humanas para categoría/método y estados vacíos por filtro. `ResidentKardexScreen`, `kardex.service`. |
+| 2026-11-02 | 2.51 | Multicliente fase 4: tarjeta **Cliente activo** en el home del guardia (nombre + chip de tipo, estados loading/empty/error), aviso único al cambiar de asignación y `SyncScreen` con el paso de descarga primero. Tokens `primaryBorder`/`lineSoft` en `tokens.ts`. `ActiveClientCard`, `GuardDashboard`, `SyncScreen`, `src/offline/client.ts`. |
+| 2026-11-02 | 2.52 | Multicliente fase 6: **selector de cliente** para ADMIN/MAINT de organización (`ClientGateScreen`, `ClientsScreen`, pill en drawer, persistencia por usuario y header `X-Client-Id`), nuevo ítem “Cliente” en el drawer y rol **CLIENT** (paleta ámbar, home administrativo, Inicio/Quejas, sin CTA de ronda). `src/core/tenant/*`, `tenant.slice`, `ClientPickerList`, `menuItems`, `MainNavigation`, `role-colors`, `HomeScreen`. |

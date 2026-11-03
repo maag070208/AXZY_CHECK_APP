@@ -36,6 +36,13 @@ const applyLocalMigrations = async (next: DB) => {
   const columns = await next.execute('PRAGMA table_info(local_checks)');
   const hasAssignment = (columns.rows ?? []).some((column: any) => column.name === 'assignment_id');
   if (!hasAssignment) await next.execute('ALTER TABLE local_checks ADD COLUMN assignment_id INTEGER');
+
+  // Multicliente: cada operación de la cola recuerda con qué cliente se encoló. Es aditivo:
+  // las colas viejas quedan en NULL y se adoptan al cliente activo al sincronizar.
+  const outboxColumns = await next.execute('PRAGMA table_info(outbox)');
+  const hasOutboxClient = (outboxColumns.rows ?? []).some((column: any) => column.name === 'client_id');
+  if (!hasOutboxClient) await next.execute('ALTER TABLE outbox ADD COLUMN client_id TEXT');
+  await next.execute('CREATE INDEX IF NOT EXISTS outbox_client_idx ON outbox(client_id, status)');
 };
 
 export const isOfflineAvailable = () => db !== null;

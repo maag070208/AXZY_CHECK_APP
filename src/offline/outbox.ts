@@ -6,6 +6,7 @@ import {
   SyncStatus,
 } from './types';
 import { newClientId } from './db';
+import { getStoredClientId } from './client';
 
 export const outboxId = (operation: OfflineOperation, clientId: string) =>
   `${operation}:${clientId}`;
@@ -23,10 +24,13 @@ export const enqueue = async (
 ): Promise<string> => {
   const id = outboxId(input.operation, input.entityClientId);
   const now = input.now ?? Date.now();
+  // Multicliente: la operación queda marcada con el cliente activo al encolarse. Si el pull
+  // revela otro cliente, esta fila se purga y nunca se envía con el alcance nuevo.
+  const clientId = await getStoredClientId(tx);
   await tx.execute(
     `INSERT OR IGNORE INTO outbox
-      (id, entity_type, entity_client_id, operation, payload_json, depends_on, status, attempts, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'QUEUED', 0, ?, ?)`,
+      (id, entity_type, entity_client_id, operation, payload_json, depends_on, status, attempts, client_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'QUEUED', 0, ?, ?, ?)`,
     [
       id,
       input.entityType,
@@ -34,6 +38,7 @@ export const enqueue = async (
       input.operation,
       JSON.stringify(input.payload),
       input.dependsOn?.length ? JSON.stringify(input.dependsOn) : null,
+      clientId,
       now,
       now,
     ],

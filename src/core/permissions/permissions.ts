@@ -59,6 +59,17 @@ export const P = {
   VEHICLE_SELF: 'vehicle.self',
   ACCESS_PIN_MANAGE: 'accesspin.manage',
   ACCESS_PIN_VALIDATE: 'accesspin.validate',
+  // Administración de la organización (fase 3-6 multicliente).
+  CLIENT_VIEW: 'client.view',
+  CLIENT_MANAGE: 'client.manage',
+  GUARD_ASSIGN: 'guard.assign',
+  // Fase 2A: morosos, bitácora y avisos.
+  DELINQUENCY_VIEW: 'delinquency.view',
+  DELINQUENCY_MANAGE: 'delinquency.manage',
+  ACCESS_EVENT_VIEW: 'access.event.view',
+  ANNOUNCEMENT_VIEW: 'announcement.view',
+  ANNOUNCEMENT_MANAGE: 'announcement.manage',
+  INVITATION_APPROVE: 'invitation.approve',
 } as const;
 
 export type PermissionCode = (typeof P)[keyof typeof P];
@@ -77,6 +88,10 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'club.view','club.create','club.resolve','club.delete',
     'complaint.view','complaint.manage','charge.view','charge.manage','payment.view','payment.manage',
     'vehicle.view','vehicle.manage','accesspin.validate',
+    // Multicliente: los administradores eligen el cliente de la organización.
+    'client.view','client.manage','guard.assign',
+    'delinquency.view','delinquency.manage','access.event.view','announcement.view','announcement.manage',
+    'invitation.approve',
   ],
   SHIFT: [
     'access.check','assignments.manage','properties.view','chat.use','club.manage','dashboard.view',
@@ -86,12 +101,15 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'assignment.view','maintenance.view','maintenance.create',
     'club.view','club.create','club.resolve','club.delete',
     'complaint.view','complaint.manage','vehicle.view','accesspin.validate','invitation.manage',
+    'delinquency.view','access.event.view','announcement.view','invitation.approve',
   ],
   GUARD: [
     'access.check','chat.use','recurring.operate','round.view','round.start','round.end','round.scan',
     'assignment.view','incident.create','incident.view','maintenance.create','maintenance.view','club.view','club.create','accesspin.validate','invitation.manage',
   ],
   MAINT: [
+    // Multicliente: mantenimiento de organización también elige cliente.
+    'client.view',
     'chat.use','maintenance.manage','recurring.operate','round.view','round.start','round.end','round.scan',
     'assignment.view','incident.create','maintenance.view','maintenance.create','maintenance.resolve','maintenance.delete',
     'club.view','club.create','club.resolve','club.delete',
@@ -99,5 +117,16 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   RESDN: [
     'resident.self','invitation.view','invitation.create','invitation.revoke',
     'complaint.create','complaint.view','charge.view','payment.view','vehicle.self','accesspin.manage',
+  ],
+  // Administrador de cliente: alcance fijo del token, permisos administrativos de su cliente
+  // (y sin selector). Matriz equivalente a la del API (permission-matrix.ts).
+  CLIENT: [
+    'dashboard.view','documents.view','properties.view','properties.manage','occupancy.change',
+    'residents.manage','complaint.view','complaint.manage','charge.view','charge.manage',
+    'payment.view','payment.manage','delinquency.view','delinquency.manage','access.event.view',
+    'announcement.view','announcement.manage','vehicle.view','vehicle.manage','invitation.manage',
+    'incident.view','incident.create','incident.resolve','maintenance.view','maintenance.create',
+    'maintenance.resolve','club.view','club.create','club.resolve','round.view','kardex.view',
+    'assignment.view',
   ],
 };

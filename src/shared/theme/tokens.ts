@@ -6,9 +6,11 @@ export const tokens = {
   color: {
     primary: '#065911',       // verde de marca: botones, selección, íconos activos
     primarySoft: '#E8F7EF',   // fondo suave de íconos y botones secundarios
+    primaryBorder: '#C7F0DF', // borde de elementos verdes suaves
     screen: '#F4F9F6',        // fondo de pantalla
     card: '#FFFFFF',
     border: '#E6EEE9',        // borde de tarjetas y encabezados
+    lineSoft: '#F1F5F9',      // separadores internos y fondos neutros suaves
     borderStrong: '#CBD5E1',  // radio sin seleccionar
     textStrong: '#0F172A',    // títulos
     text: '#1E293B',

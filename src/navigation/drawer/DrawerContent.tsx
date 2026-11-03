@@ -14,258 +14,7 @@ import EnvironmentBadge from '../../shared/components/EnvironmentBadge';
 import { UserAvatar } from '../../shared/components/UserAvatar';
 import { RoleMark } from '../../shared/components/RoleBrand';
 import { useCan } from '../../core/permissions/useCan';
-import { P, PermissionRequirement } from '../../core/permissions/permissions';
-
-/* ======================================================
-   TYPES
-====================================================== */
-type Role = 'ADMIN' | 'SHIFT' | 'GUARD' | 'MAINT' | 'RESDN';
-
-interface MenuItem {
-  label: string;
-  icon: string;
-  route: string;
-  screen: string;
-  permission?: PermissionRequirement;
-  excludePermission?: PermissionRequirement;
-  /** Solo para items que no se pueden expresar con un permiso sin abrir el menú a otro rol. */
-  roles?: Role[];
-}
-
-/* ======================================================
-   MENU CONFIG
-====================================================== */
-const MENU_ITEMS: MenuItem[] = [
-  {
-    label: 'Inicio',
-    icon: 'home-outline',
-    route: 'Tabs',
-    screen: 'HOME_STACK',
-    roles: ['ADMIN', 'SHIFT', 'GUARD', 'MAINT', 'RESDN'],
-  },
-  {
-    label: 'Guardias',
-    icon: 'account-group',
-    route: 'GUARDS_STACK',
-    screen: 'GUARD_LIST',
-    permission: P.ASSIGNMENTS_MANAGE,
-  },
-  {
-    label: 'Mis Asignaciones',
-    icon: 'clipboard-list-outline',
-    route: 'ASSIGNMENTS_STACK',
-    screen: 'MY_ASSIGNMENTS_MAIN',
-    permission: P.ASSIGNMENT_VIEW,
-    excludePermission: P.ASSIGNMENTS_MANAGE,
-  },
-  {
-    label: 'Roles y permisos',
-    icon: 'shield-account',
-    route: 'RBAC_STACK',
-    screen: 'RBAC_MAIN',
-    permission: P.USERS_MANAGE,
-  },
-  {
-    label: 'Usuarios',
-    icon: 'account-plus',
-    route: 'USERS_STACK',
-    screen: 'USER_LIST',
-    permission: P.USERS_MANAGE,
-  },
-  {
-    label: 'Historial',
-    icon: 'history',
-    route: 'Tabs',
-    screen: 'Kardex',
-    permission: P.KARDEX_VIEW,
-  },
-  {
-    label: 'Rutas',
-    icon: 'briefcase-clock-outline',
-    route: 'RECURRING_STACK',
-    screen: 'RecurringList',
-    permission: P.RECURRING_MANAGE,
-  },
-  {
-    label: 'Mis Rutinas',
-    icon: 'clipboard-check-outline',
-    route: 'RECURRING_STACK',
-    screen: 'MyRecurring',
-    permission: P.RECURRING_OPERATE,
-    // El guardia ejecuta rutas desde su dashboard; no se le agrega este ítem.
-    roles: ['SHIFT', 'MAINT'],
-  },
-  {
-    label: 'Incidencias',
-    icon: 'alert-circle-outline',
-    route: 'INCIDENTS_STACK',
-    screen: 'INCIDENT_LIST',
-    permission: P.INCIDENT_VIEW,
-  },
-  {
-    label: 'Mantenimiento',
-    icon: 'toolbox-outline',
-    route: 'MAINTENANCE_STACK',
-    screen: 'MAINTENANCE_LIST',
-    permission: P.MAINTENANCE_VIEW,
-  },
-  {
-    label: 'Casa Club',
-    icon: 'home-modern',
-    route: 'CLUB_STACK',
-    screen: 'CLUB_LIST',
-    permission: P.CLUB_MANAGE,
-  },
-  {
-    label: 'Hist. Recorridos',
-    icon: 'clipboard-text-clock',
-    route: 'ROUNDS_STACK',
-    screen: 'ROUNDS_LIST',
-    permission: P.DASHBOARD_VIEW,
-  },
-  {
-    label: 'Horarios',
-    icon: 'clock-outline',
-    route: 'SCHEDULES_STACK',
-    screen: 'SchedulesList',
-    permission: P.SCHEDULES_MANAGE,
-  },
-  {
-    label: 'Chat',
-    icon: 'chat-outline',
-    route: 'CHAT_STACK',
-    screen: 'CHAT_MAIN',
-    permission: P.CHAT_USE,
-    roles: ['ADMIN', 'SHIFT'],
-  },
-  {
-    label: 'Propiedades',
-    icon: 'home-city-outline',
-    route: 'PROPERTIES_STACK',
-    screen: 'PROPERTIES_MAIN',
-    permission: P.PROPERTIES_VIEW,
-  },
-  {
-    label: 'Residentes',
-    icon: 'account-group-outline',
-    route: 'RESIDENTS_STACK',
-    screen: 'RESIDENTS_MAIN',
-    permission: P.PROPERTIES_VIEW,
-  },
-  {
-    label: 'Invitaciones',
-    icon: 'ticket-confirmation-outline',
-    route: 'INVITATIONS_STACK',
-    screen: 'INVITATIONS_MAIN',
-    permission: P.INVITATION_MANAGE,
-  },
-  {
-    label: 'Quejas',
-    icon: 'message-alert-outline',
-    route: 'COMPLAINTS_STACK',
-    screen: 'COMPLAINTS_MAIN',
-    permission: P.COMPLAINT_VIEW,
-    roles: ['RESDN'],
-  },
-  {
-    label: 'Mis accesos',
-    icon: 'history',
-    route: 'ACCESS_PIN_STACK',
-    screen: 'ACCESS_HISTORY',
-    permission: P.RESIDENT_SELF,
-    roles: ['RESDN'],
-  },
-  {
-    label: 'Mi pase QR',
-    icon: 'qrcode',
-    route: 'ACCESS_PIN_STACK',
-    screen: 'MY_QR_PASS',
-    permission: P.ACCESS_PIN_MANAGE,
-    roles: ['RESDN'],
-  },
-  {
-    label: 'Mi clave peatonal',
-    icon: 'door-open',
-    route: 'ACCESS_PIN_STACK',
-    screen: 'MY_ACCESS_PIN',
-    permission: P.ACCESS_PIN_MANAGE,
-    roles: ['RESDN'],
-  },
-  {
-    label: 'Mis vehículos',
-    icon: 'car-outline',
-    route: 'VEHICLES_STACK',
-    screen: 'MY_VEHICLES',
-    permission: P.VEHICLE_SELF,
-    roles: ['RESDN'],
-  },
-  {
-    label: 'Mis pagos',
-    icon: 'wallet-outline',
-    route: 'PAYMENTS_STACK',
-    screen: 'PAYMENTS_MAIN',
-    permission: P.PAYMENT_VIEW,
-    roles: ['RESDN'],
-  },
-  {
-    label: 'Mi kardex',
-    icon: 'timeline-text-outline',
-    route: 'RESIDENT_KARDEX_STACK',
-    screen: 'RESIDENT_KARDEX_MAIN',
-    permission: P.RESIDENT_SELF,
-    roles: ['RESDN'],
-  },
-  {
-    label: 'Entrega de turno',
-    icon: 'swap-horizontal',
-    route: 'SHIFT_HANDOVER_STACK',
-    screen: 'SHIFT_HANDOVER_LIST',
-    permission: P.SHIFT_HANDOVER_MANAGE,
-  },
-  {
-    label: 'Uniforme',
-    icon: 'tshirt-crew-outline',
-    route: 'UNIFORM_STACK',
-    screen: 'UNIFORM_LIST',
-    permission: P.UNIFORM_MANAGE,
-  },
-  {
-    label: 'Caseta',
-    icon: 'shield-check-outline',
-    route: 'CASETA',
-    screen: 'CASETA',
-    permission: P.ACCESS_CHECK,
-  },
-  {
-    label: 'Vehículos',
-    icon: 'car-search',
-    route: 'VEHICLE_ACCESS',
-    screen: 'VEHICLE_ACCESS',
-    permission: P.ACCESS_CHECK,
-  },
-  {
-    label: 'Pase QR',
-    icon: 'qrcode-scan',
-    route: 'PERSONAL_PASS_ACCESS',
-    screen: 'PERSONAL_PASS_ACCESS',
-    permission: P.ACCESS_PIN_VALIDATE,
-  },
-  {
-    label: 'Clave peatonal',
-    icon: 'door-open',
-    route: 'PIN_ACCESS',
-    screen: 'PIN_ACCESS',
-    permission: P.ACCESS_PIN_VALIDATE,
-  },
-];
-
-const ROLE_TRANSLATIONS: Record<string, string> = {
-  ADMIN: 'Administrador',
-  SHIFT: 'Jefe de Guardias',
-  GUARD: 'Guardia',
-  MAINT: 'Mantenimiento',
-  RESDN: 'Residente',
-};
+import { MenuItem, ROLE_TRANSLATIONS, Role, visibleMenuItems } from './menuItems';
 
 /* ======================================================
    HOOKS
@@ -322,9 +71,16 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
   const { resetToModule } = useAppNavigation();
 
   const userState = useAppSelector((state: RootState) => state.userState);
+  const tenantState = useAppSelector((state: RootState) => state.tenantState);
   const palette = useRolePalette();
   const userRole = userState.role;
   const can = useCan();
+  // ADMIN/MAINT de organización eligen cliente; el resto tiene alcance fijo en el token.
+  const canChooseClient = userRole === 'ADMIN' || userRole === 'MAINT';
+  const selectedTenant =
+    tenantState.clients.find(
+      client => Number(client.id) === Number(tenantState.selectedClientId),
+    ) ?? null;
   const focusedPath = getFocusedRoutePath(state);
   const clock = useLiveClock();
 
@@ -337,12 +93,7 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
     }).start();
   }, [fadeIn]);
 
-  const filteredMenuItems = MENU_ITEMS.filter(item => {
-    if (item.roles && !item.roles.includes(userRole as Role)) return false;
-    if (item.permission && !can(item.permission)) return false;
-    if (item.excludePermission && can(item.excludePermission)) return false;
-    return true;
-  });
+  const filteredMenuItems = visibleMenuItems(userRole, can);
 
   // Los items anclados a "Tabs" (Inicio/Historial) se distinguen por su
   // pantalla interna; el resto, por su stack o su pantalla.
@@ -397,6 +148,26 @@ const DrawerContent = ({ navigation, state }: DrawerContentComponentProps) => {
               Entrada {userState.loggedInAt ? dayjs(userState.loggedInAt).format('HH:mm') : '—'} ·{' '}
               {ROLE_TRANSLATIONS[userRole || ''] || userRole || ''}
             </Text>
+            {canChooseClient && (
+              <TouchableOpacity
+                style={styles.clientPill}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={`Cambiar cliente. Cliente actual: ${
+                  selectedTenant?.name ?? 'sin elegir'
+                }`}
+                onPress={() => resetToModule('CLIENTS_STACK' as any, 'CLIENTS_MAIN')}
+              >
+                <Icon source="office-building" size={13} color={palette.heroAccent} />
+                <Text
+                  style={[styles.clientPillText, { color: palette.heroAccent }]}
+                  numberOfLines={1}
+                >
+                  {selectedTenant?.name ?? 'Elegir cliente'}
+                </Text>
+                <Icon source="chevron-down" size={13} color={palette.heroAccent} />
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={styles.avatarWrap}>
@@ -560,6 +331,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#BBF7D0',
   },
+  clientPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginTop: 7,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderRadius: 999,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  clientPillText: { fontSize: 11, fontWeight: '800', maxWidth: 180 },
   avatarWrap: {
     width: 60,
     height: 60,

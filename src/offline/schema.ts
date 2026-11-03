@@ -22,6 +22,7 @@ export const OFFLINE_SCHEMA: string[] = [
     attempts INTEGER NOT NULL DEFAULT 0,
     next_attempt_at INTEGER,
     last_error TEXT,
+    client_id TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );`,

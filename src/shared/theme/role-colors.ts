@@ -72,6 +72,19 @@ const PALETTES: Record<string, RolePalette> = {
     heroAccent: '#CBD5E1',
     label: 'Mantenimiento',
   },
+  // Administrador del cliente (fase 6): identidad ámbar como en la WEB, distinta del verde
+  // de la organización (ADMIN). Alcance fijo del token, sin selector de cliente.
+  CLIENT: {
+    role: 'CLIENT',
+    primary: '#B45309',
+    primarySoft: '#FFFBEB',
+    primaryDeep: '#78350F',
+    accent: '#F59E0B',
+    hero: '#92400E',
+    heroDeep: '#451A03',
+    heroAccent: '#FDE68A',
+    label: 'Administrador de cliente',
+  },
 };
 
 export const getRolePalette = (role?: string | null): RolePalette =>

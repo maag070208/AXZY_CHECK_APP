@@ -1,10 +1,13 @@
 import { getOfflineDb } from './db';
+import type { OfflineClient } from './types';
 
 const KEY = 'guard_snapshot';
 
 export interface GuardSnapshot {
   cursor?: string;
   serverTime?: string;
+  /** Multicliente: cliente de la asignación activa del guardia. */
+  client?: OfflineClient | null;
   routes: any[];
   assignments: any[];
   locations?: any[];

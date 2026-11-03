@@ -11,6 +11,8 @@ import MapView, { Marker } from 'react-native-maps';
 import { Icon, Surface, Text } from 'react-native-paper';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAppSelector } from '../../../core/store/hooks';
+import { useCan } from '../../../core/permissions/useCan';
+import { P } from '../../../core/permissions/permissions';
 import { ENVIRONMENT_LABELS } from '../../../core/constants/API_CONSTANTS';
 import {
   getLiveDashboard,
@@ -20,6 +22,11 @@ import {
 import { timeAgo } from '../../../shared/utils/duration';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Skeleton } from '../../../shared/components/Skeleton';
+import {
+  AdminQuickAction,
+  AdminQuickActionColor,
+  visibleAdminQuickActions,
+} from '../quick-actions';
 
 const COLORS = {
   ink: '#0F172A',
@@ -34,6 +41,16 @@ const COLORS = {
   red: '#E53935',
   amber: '#F59E0B',
   violet: '#8B5CF6',
+};
+
+/** Tono semántico -> color del dashboard (única fuente: `COLORS`). */
+const QUICK_COLORS: Record<AdminQuickActionColor, string> = {
+  red: COLORS.red,
+  amber: COLORS.amber,
+  sky: COLORS.sky,
+  violet: COLORS.violet,
+  teal: '#0F766E',
+  slate: '#475569',
 };
 
 const MONTHS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
@@ -89,6 +106,10 @@ export const AdminDashboardScreen = () => {
   const isFocused = useIsFocused();
   const environment = useAppSelector(state => state.environmentState.environment);
   const user = useAppSelector(state => state.userState);
+  const can = useCan();
+  // Accesos rápidos filtrados con el mismo criterio de permisos que el drawer: CLIENT no ve
+  // Chat/Entrega de turno/Uniforme/Casa Club si no tiene el permiso del módulo.
+  const quickActions = visibleAdminQuickActions(can);
 
   const [dashboard, setDashboard] = useState<ILiveDashboard | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
@@ -309,23 +330,27 @@ export const AdminDashboardScreen = () => {
     </TouchableOpacity>
   );
 
-  const renderQuick = (
-    key: string,
-    label: string,
-    icon: string,
-    color: string,
-    onPress: () => void,
-  ) => (
-    <TouchableOpacity key={key} style={styles.quickCard} activeOpacity={0.85} onPress={onPress}>
-      <View style={[styles.quickIcon, { backgroundColor: `${color}14` }]}>
-        <Icon source={icon as any} size={20} color={color} />
-      </View>
-      <Text style={styles.quickLabel} numberOfLines={2}>
-        {label}
-      </Text>
-      <Icon source="chevron-right" size={18} color="#CBD5E1" />
-    </TouchableOpacity>
-  );
+  const renderQuick = (action: AdminQuickAction) => {
+    const color = QUICK_COLORS[action.color] ?? COLORS.primary;
+    return (
+      <TouchableOpacity
+        key={action.key}
+        style={styles.quickCard}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={`Abrir ${action.label}`}
+        onPress={() => navigation.navigate(action.route, { screen: action.screen })}
+      >
+        <View style={[styles.quickIcon, { backgroundColor: `${color}14` }]}>
+          <Icon source={action.icon as any} size={20} color={color} />
+        </View>
+        <Text style={styles.quickLabel} numberOfLines={2}>
+          {action.label}
+        </Text>
+        <Icon source="chevron-right" size={18} color="#CBD5E1" />
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <ScrollView
@@ -401,24 +426,30 @@ export const AdminDashboardScreen = () => {
         )}
       </Surface>
 
-      {/* Acciones */}
-      <View style={styles.actionsRow}>
-        <AppButton
-          label="Nuevo reporte"
-          icon="plus"
-          size="sm"
-          onPress={() => navigation.navigate('INCIDENT_REPORT')}
-          style={styles.actionBtn}
-        />
-        <AppButton
-          label="Ver rondas"
-          icon="clipboard-text-clock-outline"
-          variant="outline"
-          size="sm"
-          onPress={() => navigation.navigate('ROUNDS_STACK', { screen: 'ROUNDS_LIST' })}
-          style={styles.actionBtn}
-        />
-      </View>
+      {/* Acciones: cada CTA se muestra solo si el rol puede usar el módulo destino. */}
+      {(can(P.INCIDENT_CREATE) || can(P.ROUND_VIEW)) && (
+        <View style={styles.actionsRow}>
+          {can(P.INCIDENT_CREATE) && (
+            <AppButton
+              label="Nuevo reporte"
+              icon="plus"
+              size="sm"
+              onPress={() => navigation.navigate('INCIDENT_REPORT')}
+              style={styles.actionBtn}
+            />
+          )}
+          {can(P.ROUND_VIEW) && (
+            <AppButton
+              label="Ver rondas"
+              icon="clipboard-text-clock-outline"
+              variant="outline"
+              size="sm"
+              onPress={() => navigation.navigate('ROUNDS_STACK', { screen: 'ROUNDS_LIST' })}
+              style={styles.actionBtn}
+            />
+          )}
+        </View>
+      )}
 
       {dashboardError && !loadingKpis && (
         <Surface style={styles.errorCard} elevation={0}>
@@ -701,30 +732,15 @@ export const AdminDashboardScreen = () => {
         </Surface>
       )}
 
-      {/* Accesos rápidos */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>ACCESOS RÁPIDOS</Text>
-      </View>
-      <View style={styles.quickGrid}>
-        {renderQuick('incidents', 'Incidencias', 'alert-circle-outline', COLORS.red, () =>
-          navigation.navigate('INCIDENTS_STACK', { screen: 'INCIDENT_LIST' }),
-        )}
-        {renderQuick('maintenance', 'Mantenimiento', 'wrench-outline', COLORS.amber, () =>
-          navigation.navigate('MAINTENANCE_STACK', { screen: 'MAINTENANCE_LIST' }),
-        )}
-        {renderQuick('club', 'Casa Club', 'home-modern', COLORS.sky, () =>
-          navigation.navigate('CLUB_STACK', { screen: 'CLUB_LIST' }),
-        )}
-        {renderQuick('chat', 'Chat', 'chat-outline', COLORS.violet, () =>
-          navigation.navigate('CHAT_STACK', { screen: 'CHAT_MAIN' }),
-        )}
-        {renderQuick('shift', 'Entrega de turno', 'swap-horizontal-bold', '#0F766E', () =>
-          navigation.navigate('SHIFT_HANDOVER_STACK', { screen: 'SHIFT_HANDOVER_LIST' }),
-        )}
-        {renderQuick('uniform', 'Uniforme', 'tshirt-crew-outline', '#475569', () =>
-          navigation.navigate('UNIFORM_STACK', { screen: 'UNIFORM_LIST' }),
-        )}
-      </View>
+      {/* Accesos rápidos filtrados por permiso (mismo criterio que el drawer) */}
+      {quickActions.length > 0 && (
+        <>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>ACCESOS RÁPIDOS</Text>
+          </View>
+          <View style={styles.quickGrid}>{quickActions.map(renderQuick)}</View>
+        </>
+      )}
     </ScrollView>
   );
 };

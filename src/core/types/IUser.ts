@@ -18,5 +18,7 @@ export enum UserRole {
   SHIFT = 'SHIFT',
   GUARD = 'GUARD',
   MAINT = 'MAINT',
-  RESDN = 'RESDN'
+  RESDN = 'RESDN',
+  /** Administrador de un cliente (alcance fijo del token, sin selector). */
+  CLIENT = 'CLIENT',
 }

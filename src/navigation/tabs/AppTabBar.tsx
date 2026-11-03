@@ -71,7 +71,10 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
 
   const isGuard = role === UserRole.GUARD;
   const isResident = role === UserRole.RESDN;
-  const canHistory = role === UserRole.ADMIN || role === UserRole.SHIFT;
+  // El administrador de cliente (CLIENT) tiene dashboard/historial, pero no inicia rondas ni usa chat.
+  const isClientAdmin = role === UserRole.CLIENT;
+  const canHistory =
+    role === UserRole.ADMIN || role === UserRole.SHIFT || role === UserRole.CLIENT;
   const canChat = role === UserRole.ADMIN || role === UserRole.SHIFT;
   const isHome = focusedRoute.name === 'HOME_STACK';
   const isHistory = focusedRoute.name === 'Kardex';
@@ -227,6 +230,7 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
             />
           )}
 
+          {!isClientAdmin && (
           <View style={styles.centerSlot}>
             <TouchableOpacity
               style={[styles.fab, { backgroundColor: palette.primary, shadowColor: palette.primary }]}
@@ -253,6 +257,7 @@ export const AppTabBar = ({ state, navigation }: BottomTabBarProps) => {
               {!checkingScan && <Text style={[styles.fabLabel, { color: palette.primary }]}>{centerLabel}</Text>}
             </TouchableOpacity>
           </View>
+          )}
 
           {canChat && (
             <TabItem icon="chat-outline" label="Chat" active={false} onPress={goChat} />

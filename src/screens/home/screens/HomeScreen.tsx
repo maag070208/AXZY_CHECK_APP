@@ -13,32 +13,31 @@ import { AdminDashboardScreen } from '../../admin/screens/AdminDashboardScreen';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { getPendingIncidentsCount } from '../../assignments/service/incident.service';
+import { homeKindForRole } from '../home-role';
 
 export const HomeScreen = () => {
   const user = useSelector((state: RootState) => state.userState);
   const can = useCan();
   const [pendingIncidents, setPendingIncidents] = useState(0);
+  const homeKind = homeKindForRole(user.role);
 
-  // Administrador: home = dashboard operativo (misma fuente que la WEB).
-  if (user.role === UserRole.ADMIN) {
+  // Administrador (organización o cliente): home = dashboard operativo (misma fuente que la WEB).
+  if (homeKind === 'admin') {
     return <AdminDashboardScreen />;
   }
 
   // Jefe de Guardias: panel con botonera operativa (rondas son secundarias).
-  if (user.role === UserRole.SHIFT) {
+  if (homeKind === 'shift') {
     return <ShiftDashboard />;
   }
 
   // Guardias y Mantenimiento: dashboard con escáner de rondas.
-  if (
-    user.role === UserRole.GUARD ||
-    user.role === UserRole.MAINT
-  ) {
+  if (homeKind === 'guard') {
     return <GuardDashboard />;
   }
 
   // Residente: home propio de autoservicio (perfil, contactos y pases).
-  if (user.role === UserRole.RESDN) {
+  if (homeKind === 'resident') {
     return <ResidentHomeScreen />;
   }
 

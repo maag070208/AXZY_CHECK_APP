@@ -1,5 +1,6 @@
 import { get } from '../../core/axios';
 import { getOfflineDb } from '../db';
+import { applySnapshotClient } from '../client';
 import { saveGuardSnapshot, GuardSnapshot } from '../snapshot';
 import { primeCatalogCache } from '../../shared/service/catalog.service';
 
@@ -12,6 +13,9 @@ export const pullSync = async (userId: number): Promise<GuardSnapshot | null> =>
     const response: any = await get('/sync/pull');
     if (!response?.success || !response.data) return null;
     const snapshot = response.data as GuardSnapshot;
+    // Multicliente: primero se reconcilia el cliente. Si cambió, se descarta lo pendiente del
+    // cliente anterior ANTES de guardar el snapshot nuevo (nunca se mezclan colas ni tablas).
+    await applySnapshotClient(userId, snapshot.client ?? null);
     await saveGuardSnapshot(userId, snapshot);
 
     const catalogs = snapshot.catalogs ?? {};

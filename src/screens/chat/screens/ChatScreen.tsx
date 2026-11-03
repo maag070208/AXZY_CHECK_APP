@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
+  AppState,
+  DeviceEventEmitter,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -7,31 +9,41 @@ import {
   View,
 } from 'react-native';
 import { ActivityIndicator, IconButton, Surface, Text, TextInput } from 'react-native-paper';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootState } from '../../../core/store/redux.config';
-import { getMessages, getRealtimeToken, IChatMessage, sendMessage } from '../service/chat.service';
+import { UserRole } from '../../../core/types/IUser';
+import { getMessages, IChatMessage, sendMessage } from '../service/chat.service';
+import { resolveChatClientId, useChatRealtime } from '../service/chat.realtime';
+import { CLIENT_CHANGED_EVENT, CLIENT_UPDATED_EVENT } from '../../../offline/client';
 import { AppButton } from '../../../shared/components/AppButton';
 
 const POLL_INTERVAL_MS = 10000;
-const ABLY_CHAT_CHANNEL = 'chat:team';
+
+/** Roles con operación offline: su cliente activo (fase 4) vive en la meta local. */
+const OFFLINE_CHAT_ROLES: string[] = [UserRole.GUARD, UserRole.MAINT, UserRole.SHIFT];
 
 /**
  * "4.1 Chat grupal" — canal de mensajería del equipo operativo (ADMIN, GUARD,
  * SHIFT, MAINT). Postgres es la fuente de verdad (persistido vía REST);
  * Ably es solo una mejora en vivo — si no conecta, la pantalla sigue
  * funcionando por polling cada 10s.
+ *
+ * Multicliente: el chat en vivo escucha `chat:team:<clientId>` (nunca el canal global
+ * `chat:team`). Sin cliente activo no se suscribe y queda el polling.
  */
 export const ChatScreen = () => {
   const user = useSelector((state: RootState) => state.userState);
+  const isFocused = useIsFocused();
   const [messages, setMessages] = useState<IChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  /** Cliente activo del canal de tiempo real; `null` = sin cliente (solo polling). */
+  const [realtimeClientId, setRealtimeClientId] = useState<number | null>(null);
   const listRef = useRef<FlatList>(null);
-  const ablyRef = useRef<any>(null);
 
   const loadMessages = useCallback(async () => {
     try {
@@ -50,50 +62,53 @@ export const ChatScreen = () => {
     }
   }, []);
 
+  const includeOfflineClient = OFFLINE_CHAT_ROLES.includes(String(user.role));
+  // ADMIN/MAINT de organización: el canal es el del cliente elegido en el selector multicliente.
+  const tenantClientId = useSelector(
+    (state: RootState) => state.tenantState.selectedClientId,
+  );
+
+  // El pull/selector pueden cambiar el cliente: se vuelve a resolver para re-suscribirse.
+  const syncRealtimeClient = useCallback(async () => {
+    const clientId = await resolveChatClientId({
+      userId: user.id,
+      sessionClientId: user.clientId,
+      tenantClientId,
+      useOfflineClient: includeOfflineClient,
+    });
+    setRealtimeClientId(clientId);
+  }, [user.id, user.clientId, tenantClientId, includeOfflineClient]);
+
   useFocusEffect(
     useCallback(() => {
-      loadMessages();
-      const pollTimer = setInterval(loadMessages, POLL_INTERVAL_MS);
+      void loadMessages();
+      const pollTimer = setInterval(() => void loadMessages(), POLL_INTERVAL_MS);
 
-      // Best-effort realtime via Ably; if it can't connect, polling above
-      // keeps the chat working.
-      let client: any = null;
-      (async () => {
-        try {
-          const Ably = require('ably');
-          client = new Ably.Realtime({
-            authCallback: async (_tokenParams: any, callback: any) => {
-              try {
-                const res = await getRealtimeToken();
-                if (res.success && res.data) {
-                  callback(null, res.data);
-                } else {
-                  callback('No se pudo obtener el token de tiempo real', null);
-                }
-              } catch (error) {
-                callback(error, null);
-              }
-            },
-          });
-          ablyRef.current = client;
-          const channel = client.channels.get(ABLY_CHAT_CHANNEL);
-          channel.subscribe('new-message', (msg: any) => {
-            const incoming: IChatMessage = msg.data;
-            setMessages(prev =>
-              prev.some(m => m.id === incoming.id) ? prev : [incoming, ...prev],
-            );
-          });
-        } catch (e) {
-          console.warn('[Chat] Ably no disponible, usando solo polling.', e);
-        }
-      })();
+      void syncRealtimeClient();
+      const updatedSub = DeviceEventEmitter.addListener(CLIENT_UPDATED_EVENT, () => {
+        void syncRealtimeClient();
+      });
+      const changedSub = DeviceEventEmitter.addListener(CLIENT_CHANGED_EVENT, () => {
+        void syncRealtimeClient();
+      });
+      const appSub = AppState.addEventListener('change', next => {
+        if (next === 'active') void syncRealtimeClient();
+      });
 
       return () => {
         clearInterval(pollTimer);
-        client?.close?.();
+        updatedSub.remove();
+        changedSub.remove();
+        appSub.remove();
       };
-    }, [loadMessages]),
+    }, [loadMessages, syncRealtimeClient]),
   );
+
+  // Suscripción al canal del cliente mientras la pantalla está enfocada. Al cambiar de cliente
+  // el hook cierra la conexión anterior y abre `chat:team:<nuevoClientId>`.
+  useChatRealtime(isFocused ? realtimeClientId : null, (incoming: IChatMessage) => {
+    setMessages(prev => (prev.some(m => m.id === incoming.id) ? prev : [incoming, ...prev]));
+  });
 
   const handleSend = async () => {
     const trimmed = draft.trim();

@@ -10,6 +10,7 @@ import { API_CONSTANTS, ENVIRONMENTS } from './constants/API_CONSTANTS';
 
 import { store } from './store/redux.config';
 import { logout } from './store/slices/user.slice';
+import { clientScopeHeaderFor } from './tenant/tenant.utils';
 import { APP_VERSION } from './constants/app-version';
 
 /* ---------------------------------------------------------
@@ -29,6 +30,12 @@ axiosInstance.interceptors.request.use(
     const state = store.getState();
     config.baseURL = ENVIRONMENTS[state.environmentState.environment];
     config.headers['X-App-Version'] = APP_VERSION;
+    // Multicliente: ADMIN/MAINT de organización mandan el cliente elegido; los demás roles
+    // tienen su cliente fijo en el token y NO deben enviar este header.
+    Object.assign(
+      config.headers,
+      clientScopeHeaderFor(state.userState.role, state.tenantState?.selectedClientId),
+    );
     const token = state.userState.token; // ⬅️ AQUÍ EL TOKEN DEL STORE
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

@@ -98,6 +98,10 @@ export type RootStackParamList = {
   RESIDENT_KARDEX_STACK: {
     RESIDENT_KARDEX_MAIN: undefined;
   };
+  // Selector de cliente de la organización (ADMIN/MAINT multicliente).
+  CLIENTS_STACK: {
+    CLIENTS_MAIN: ScreenParams;
+  };
   PROFILE_SCREEN: undefined;
 };
 
@@ -162,6 +166,9 @@ export const AppStacks: RootStackParamList = {
   },
   RESIDENT_KARDEX_STACK: {
     RESIDENT_KARDEX_MAIN: undefined,
+  },
+  CLIENTS_STACK: {
+    CLIENTS_MAIN: {},
   },
   PROFILE_SCREEN: undefined,
 };

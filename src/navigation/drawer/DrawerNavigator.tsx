@@ -33,6 +33,7 @@ import { UniformStack } from '../../screens/uniform/stack/UniformStack';
 import { CasetaScreen } from '../../screens/caseta/screens/CasetaScreen';
 import { HeaderBack } from '../header/HeaderBack';
 import { RbacStack } from '../../screens/rbac/stack/RbacStack';
+import { ClientsStack } from '../../screens/clients/stack/ClientsStack';
 
 const Drawer = createDrawerNavigator();
 
@@ -340,6 +341,14 @@ const DrawerNavigator = () => {
       <Drawer.Screen
         name="UNIFORM_STACK"
         component={UniformStack}
+        options={{
+            drawerItemStyle: { display: 'none' }
+        }}
+      />
+
+      <Drawer.Screen
+        name="CLIENTS_STACK"
+        component={ClientsStack}
         options={{
             drawerItemStyle: { display: 'none' }
         }}

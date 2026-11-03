@@ -51,11 +51,21 @@ import { showToast } from '../../../core/store/slices/toast.slice';
 import { theme } from '../../../shared/theme/theme';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Skeleton } from '../../../shared/components/Skeleton';
+import { ActiveClientCard } from '../../../shared/components/ActiveClientCard';
 import { UserRole } from '../../../core/types/IUser';
 import { ShiftAlertBanner } from '../../shiftHandover/components/ShiftAlertBanner';
 import { parseLocationQrPayload } from '../../../shared/utils/locationQr';
 import { isNetworkFailure, isOnline } from '../../../offline/network';
 import { getGuardSnapshot, saveGuardSnapshot } from '../../../offline/snapshot';
+import {
+  claimClientChangeNotice,
+  CLIENT_CHANGED_EVENT,
+  CLIENT_UPDATED_EVENT,
+  describeClientChange,
+  getOfflineClient,
+} from '../../../offline/client';
+import { pullSync } from '../../../offline/sync/pull';
+import type { OfflineClient } from '../../../offline/types';
 import { endLocalRound, getLocalActiveRound, getLocalChecksForRound, isServerRoundEndedLocally, startLocalRound } from '../../../offline/rounds';
 import { mergeLocalRoundStatus } from '../../../offline/roundStatus';
 import { E2E_MODE } from '../../../core/constants/test-mode';
@@ -127,6 +137,11 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
   } | null>(null);
   const [startModalConfig, setStartModalConfig] = useState<any>(null);
   const [e2eScanVisible, setE2eScanVisible] = useState(false);
+
+  // Multicliente: cliente de la asignación activa (lo escribe el pull en `offline_meta`).
+  const [activeClient, setActiveClient] = useState<OfflineClient | null>(null);
+  const [clientLoading, setClientLoading] = useState(true);
+  const [clientError, setClientError] = useState(false);
 
   // Cooldown logic has been removed as per user request.
   const cooldownMinutes = 0;
@@ -245,6 +260,30 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
     return true;
   };
 
+  /**
+   * Cliente activo del guardia. Vive en la base local (lo actualiza `/sync/pull`); si todavía
+   * no hay snapshot se pide un pull una sola vez para mostrarlo desde el primer arranque.
+   */
+  const loadActiveClient = useCallback(async () => {
+    const userId = Number(user.id);
+    if (!userId) return;
+    setClientLoading(true);
+    setClientError(false);
+    try {
+      let client = await getOfflineClient(userId);
+      if (!client && (await isOnline())) {
+        await pullSync(userId);
+        client = await getOfflineClient(userId);
+      }
+      setActiveClient(client);
+    } catch (error) {
+      console.warn('[Offline] No se pudo leer el cliente activo', error);
+      setClientError(true);
+    } finally {
+      setClientLoading(false);
+    }
+  }, [user.id]);
+
   const loadData = async () => {
     const startedAt = Date.now();
     setLoading(true);
@@ -337,6 +376,28 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
       setHasLoaded(true);
     }
   };
+
+  // El pull puede cambiar el cliente en segundo plano: refrescar la tarjeta y avisar lo descartado.
+  const loadDataRef = useRef(loadData);
+  loadDataRef.current = loadData;
+
+  useEffect(() => {
+    const onClientChanged = () => {
+      void loadActiveClient();
+      void loadDataRef.current();
+      void claimClientChangeNotice(Number(user.id)).then(notice => {
+        if (notice) Alert.alert('Cambiaste de cliente', describeClientChange(notice));
+      });
+    };
+    const changedSub = DeviceEventEmitter.addListener(CLIENT_CHANGED_EVENT, onClientChanged);
+    const updatedSub = DeviceEventEmitter.addListener(CLIENT_UPDATED_EVENT, () => {
+      void loadActiveClient();
+    });
+    return () => {
+      changedSub.remove();
+      updatedSub.remove();
+    };
+  }, [loadActiveClient, user.id]);
 
   const onStartRoundConfirmed = async (configId?: number) => {
       setRouteSelectionVisible(false); // Close dialog if open
@@ -449,6 +510,7 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
     useCallback(() => {
       checkPermission();
       loadData();
+      void loadActiveClient();
       setScanned(false);
       setCameraActive(false); // Ensure camera is off when returning
       
@@ -1082,21 +1144,30 @@ export const GuardDashboard = ({ roundOnly = false }: { roundOnly?: boolean } = 
       {!roundOnly && user.role === UserRole.SHIFT && <ShiftAlertBanner />}
       <>
         {loading && !hasLoaded ? (
-          <View style={styles.skeletonWrap}>
-            <Skeleton height={190} radius={24} />
-            <View style={styles.skeletonActions}>
-              {[0, 1, 2].map(i => (
-                <Skeleton key={i} height={108} radius={16} style={{ flex: 1 }} />
-              ))}
+          <>
+            <ActiveClientCard client={activeClient} loading />
+            <View style={styles.skeletonWrap}>
+              <Skeleton height={190} radius={24} />
+              <View style={styles.skeletonActions}>
+                {[0, 1, 2].map(i => (
+                  <Skeleton key={i} height={108} radius={16} style={{ flex: 1 }} />
+                ))}
+              </View>
+              <Skeleton width={150} height={10} radius={5} style={{ marginTop: 22 }} />
+              <Skeleton height={72} radius={16} style={{ marginTop: 12 }} />
+              <Skeleton width={150} height={10} radius={5} style={{ marginTop: 22 }} />
+              <Skeleton height={104} radius={16} style={{ marginTop: 12 }} />
+              <Skeleton height={104} radius={16} style={{ marginTop: 10 }} />
             </View>
-            <Skeleton width={150} height={10} radius={5} style={{ marginTop: 22 }} />
-            <Skeleton height={72} radius={16} style={{ marginTop: 12 }} />
-            <Skeleton width={150} height={10} radius={5} style={{ marginTop: 22 }} />
-            <Skeleton height={104} radius={16} style={{ marginTop: 12 }} />
-            <Skeleton height={104} radius={16} style={{ marginTop: 10 }} />
-          </View>
+          </>
         ) : (
           <>
+            <ActiveClientCard
+              client={activeClient}
+              loading={clientLoading && !hasLoaded}
+              error={clientError}
+              onRetry={() => void loadActiveClient()}
+            />
             <View style={[styles.scannerContainer, cameraActive && styles.scannerContainerActive, isMyRound && !cameraActive && styles.scannerContainerRoundActive]}>
               {!activeRound || isRoundCompleted ? (
                 <View style={styles.startContainer}>
