@@ -1,0 +1,63 @@
+appId: com.axzy.checkapp.barcelona
+---
+# Fase 7 multicliente — ADMIN de organización COMPANY con 2 clientes.
+# 1) El gate obliga a elegir cliente al entrar.
+# 2) Se elige "Residencial Los Robles" y el drawer muestra ese cliente activo.
+# 3) Desde el menú "Cliente" se cambia a "Plaza Centro" y el cliente activo cambia.
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 60000
+- tapOn: "Usuario"
+- inputText: "demo_admin"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+
+# Gate de selección de cliente (organización multicliente)
+- extendedWaitUntil:
+    visible: "¿Con qué cliente trabajas?"
+    timeout: 60000
+- assertVisible: "Elige el cliente con el que vas a trabajar."
+- assertVisible: "Plaza Centro"
+- assertVisible: "Residencial Los Robles"
+
+# Elegir el primer cliente
+- tapOn: "Residencial Los Robles"
+- extendedWaitUntil:
+    visible: "Buenas (noches|tardes|días), Demo"
+    timeout: 60000
+
+# El drawer muestra el cliente activo (pill del header)
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "MENÚ"
+    timeout: 15000
+- assertVisible: "Residencial Los Robles"
+- assertVisible: "Entrada .* · Administrador"
+
+# Cambiar de cliente desde el menú "Cliente"
+- tapOn:
+    text: "Cliente"
+    index: 0
+- extendedWaitUntil:
+    visible: "Elige el cliente con el que vas a trabajar."
+    timeout: 15000
+- assertVisible: "Residencial Los Robles"
+- tapOn: "Plaza Centro"
+
+# Vuelve al home con el cliente nuevo y el drawer lo refleja
+- extendedWaitUntil:
+    visible: "Buenas (noches|tardes|días), Demo"
+    timeout: 60000
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "MENÚ"
+    timeout: 15000
+- assertVisible: "Plaza Centro"
+- assertNotVisible: "Residencial Los Robles"

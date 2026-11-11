@@ -30,6 +30,7 @@ import {
   getCurrentRound,
   getActiveRounds,
 } from '../../home/service/round.service';
+import { ShiftAlertBanner } from '../../shiftHandover/components/ShiftAlertBanner';
 
 /**
  * "Panel del Jefe de Guardias" (SHIFT).
@@ -383,6 +384,9 @@ export const ShiftDashboard = () => {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} />}
       showsVerticalScrollIndicator={false}
     >
+      {/* Entrega de turno pendiente (canal por cliente + polling de respaldo). */}
+      <ShiftAlertBanner />
+
       <View style={styles.hero}>
         <View style={styles.heroGlow} />
         <Text style={styles.heroEyebrow}>PANEL DE SUPERVISIÓN</Text>

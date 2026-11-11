@@ -1,10 +1,17 @@
 appId: com.axzy.checkapp.barcelona
 ---
+# Perfil del guardia (rediseño actual): cuenta de solo lectura + cambio de contraseña.
+#
+# Nota: desde S-25 el API/APP exigen contraseñas de 10–100 caracteres con letra y número
+# (y rechazan las comunes), así que ya no es posible el ida-y-vuelta 123456 → X → 123456.
+# Para no romper otros flujos este caso valida el formulario (sin guardar, la contraseña
+# queda intacta) y cierra el modal con Back.
 - launchApp:
     clearState: true
+
 - extendedWaitUntil:
     visible: "Iniciar sesión"
-    timeout: 30000
+    timeout: 60000
 - tapOn: "Usuario"
 - inputText: "e2e_guard"
 - tapOn: "Contraseña"
@@ -13,50 +20,60 @@ appId: com.axzy.checkapp.barcelona
 - tapOn:
     text: "Iniciar sesión"
     index: 1
+
+# Home del guardia → perfil (solo lectura para el personal)
 - extendedWaitUntil:
     visible: "Ronda no iniciada"
-    timeout: 30000
+    timeout: 60000
 - tapOn: "Abrir perfil"
 - extendedWaitUntil:
     visible: "Mi perfil"
-    timeout: 15000
-- assertVisible: "Datos personales"
-- tapOn: "Ej. Pérez García"
-- eraseText: 40
-- inputText: "Guardia Test"
-- hideKeyboard
-- tapOn: "Guardar cambios"
+    timeout: 20000
+- assertVisible: "1. MI CUENTA"
+- assertVisible: "NOMBRE"
+- assertVisible: "USUARIO"
+- assertVisible: "ROL"
+- assertVisible: "TURNO"
+- assertVisible: "ESTADO"
+- assertVisible: "La administración gestiona tus datos.*"
+
+# Seguridad: formulario de cambio de contraseña (validación, sin guardar)
+- assertVisible: "2. SEGURIDAD"
+- assertVisible: "Cambia tu contraseña cuando lo necesites y no compartas tus credenciales."
+# Cierra el aviso de LogBox de desarrollo y sube la tarjeta al área táctil libre.
+- tapOn:
+    point: "92%,91%"
+- swipe:
+    direction: UP
+    duration: 500
+- waitForAnimationToEnd
+- assertVisible: "Cambiar contraseña"
+# Tap por coordenadas: el botón queda en el borde inferior y el selector por texto
+# puede resolver el nodo de accesibilidad equivocado.
+- tapOn:
+    point: "50%,92%"
 - extendedWaitUntil:
-    visible: "Perfil actualizado correctamente."
+    visible: "Escribe tu contraseña actual y después la nueva."
     timeout: 15000
-- tapOn: "Seguridad"
-- extendedWaitUntil:
-    visible: "Cambia tu contraseña de acceso."
-    timeout: 10000
-- tapOn: "••••••••"
+- assertVisible: "Contraseña actual"
+- assertVisible: "Contraseña nueva"
+- assertVisible: "De 10 a 100 caracteres, con letras y números."
+- assertVisible: "Confirma la contraseña nueva"
+- assertVisible: "Escríbela igual que la nueva."
+
+- tapOn: "Contraseña actual"
 - inputText: "123456"
 - hideKeyboard
-- tapOn: "Mínimo 6 caracteres"
-- inputText: "1234567"
+- tapOn: "Contraseña nueva"
+- inputText: "corta"
 - hideKeyboard
-- tapOn: "Repite la nueva contraseña"
-- inputText: "1234567"
+- tapOn: "Confirma la contraseña nueva"
+- assertVisible: "Debe tener al menos 10 caracteres"
+
+# Cerrar sin guardar: la contraseña actual sigue siendo 123456 para el resto de flujos.
 - hideKeyboard
-- tapOn: "Actualizar contraseña"
+- pressKey: Back
 - extendedWaitUntil:
-    visible: "Contraseña actualizada correctamente."
+    visible: "Mi perfil"
     timeout: 15000
-- tapOn: "Seguridad"
-- tapOn: "••••••••"
-- inputText: "1234567"
-- hideKeyboard
-- tapOn: "Mínimo 6 caracteres"
-- inputText: "123456"
-- hideKeyboard
-- tapOn: "Repite la nueva contraseña"
-- inputText: "123456"
-- hideKeyboard
-- tapOn: "Actualizar contraseña"
-- extendedWaitUntil:
-    visible: "Contraseña actualizada correctamente."
-    timeout: 15000
+- assertVisible: "2. SEGURIDAD"

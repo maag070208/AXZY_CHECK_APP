@@ -1,0 +1,54 @@
+appId: com.axzy.checkapp.barcelona
+---
+# Fase 7 multicliente — CLIENT (administrador de un cliente).
+# Alcance fijo del token: entra directo al dashboard administrativo, sin gate/selector,
+# con etiqueta "Administrador de cliente" y sin el ítem "Cliente" del menú.
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 60000
+- tapOn: "Usuario"
+- inputText: "demo_client"
+- tapOn: "Contraseña"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    text: "Iniciar sesión"
+    index: 1
+
+# Home de administrador de cliente: dashboard, sin gate de selección
+- extendedWaitUntil:
+    visible: "Buenas (noches|tardes|días), Demo"
+    timeout: 60000
+- assertNotVisible: "¿Con qué cliente trabajas?"
+- assertVisible: "Nuevo reporte"
+- assertVisible: "Ver rondas"
+- assertVisible: "RESUMEN"
+
+# Menú: rol CLIENT y sin selector de cliente
+- tapOn: "Abrir menú"
+- extendedWaitUntil:
+    visible: "MENÚ"
+    timeout: 15000
+- assertVisible: "Entrada .* · Administrador de cliente"
+- assertVisible: "Inicio"
+- assertVisible: "Propiedades"
+- assertNotVisible: "Cliente"
+
+# Navegar a Propiedades (alcance del cliente) y volver
+- tapOn:
+    text: "Propiedades"
+    index: 0
+- extendedWaitUntil:
+    visible: "Propiedades"
+    timeout: 15000
+- assertVisible: "DEMO-ROBLES-01"
+- tapOn: "Volver"
+
+# De vuelta al home administrativo
+- extendedWaitUntil:
+    visible: "Buenas (noches|tardes|días), Demo"
+    timeout: 15000
+- assertVisible: "Nuevo reporte"

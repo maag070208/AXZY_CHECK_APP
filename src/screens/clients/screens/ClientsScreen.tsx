@@ -7,8 +7,6 @@ import { RootState } from '../../../core/store/redux.config';
 import {
   selectClient,
   setTenantClients,
-  setTenantError,
-  setTenantLoading,
 } from '../../../core/store/slices/tenant.slice';
 import {
   clearPersistedTenantClientId,
@@ -37,11 +35,14 @@ export const ClientsScreen = () => {
   const tenant = useSelector((state: RootState) => state.tenantState);
   const applySelection = useSelectTenantClient();
   const [refreshing, setRefreshing] = useState(false);
+  // Error de carga LOCAL: no se toca el status global del tenant porque el gate de
+  // `MainNavigation` se montaría encima y desmontaría esta pantalla (volvería a Inicio).
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(
     async (mode: 'initial' | 'refresh' = 'initial') => {
       if (mode === 'refresh') setRefreshing(true);
-      else dispatch(setTenantLoading());
+      setLoadError(false);
 
       const res = await getClients().catch(() => null);
       if (res?.success && Array.isArray(res.data)) {
@@ -52,7 +53,7 @@ export const ClientsScreen = () => {
         if (selected) await persistTenantClientId(Number(user.id), selected);
         else await clearPersistedTenantClientId(Number(user.id));
       } else {
-        dispatch(setTenantError());
+        setLoadError(true);
       }
       setRefreshing(false);
     },
@@ -79,7 +80,7 @@ export const ClientsScreen = () => {
       <ClientPickerList
         clients={tenant.clients}
         selectedClientId={tenant.selectedClientId}
-        state={clientPickerState(tenant.status, tenant.clients)}
+        state={loadError ? 'error' : clientPickerState(tenant.status, tenant.clients)}
         onSelect={client => void handleSelect(client)}
         onRetry={() => void load('refresh')}
         refreshing={refreshing}

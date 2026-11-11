@@ -71,7 +71,7 @@ Flujos nuevos:
 - `admin-smoke.yaml` — login ADMIN (`isabel`), home, Roles y permisos y Notificaciones.
 - `shift-smoke.yaml` — login SHIFT (`e2e_shift`), home del jefe, KPIs y pantalla de ronda compartida.
 - `resident-smoke.yaml` — login RESDN (`e2e_resident`), home de autoservicio y Mi perfil.
-- `guard-profile.yaml` — login GUARD (`e2e_guard`), actualización de datos personales y cambio de contraseña (ida y vuelta).
+- `guard-profile.yaml` — login GUARD (`e2e_guard`), perfil de solo lectura rediseñado (Mi cuenta, turno/estado) y formulario de cambio de contraseña con validación (sin guardar: la política S-25 exige 10+ caracteres con letra y número, así que no existe ida-y-vuelta a `123456`).
 
 Usuarios de prueba creados en dev:
 
@@ -100,3 +100,26 @@ JAVA_OPTS="-Duser.home=$PWD/.maestro-home" \
 
 - `navigation-access.yaml` — entra a Mi clave peatonal, vuelve al home, entra a Mi pase QR y comprueba que el back regresa al home (no a la clave).
 - `qr-pass.yaml` — activa/abre el QR, revisa la tarjeta y abre el ConfirmDialog de desactivación.
+
+
+## Multicliente fase 7 (2026-11-02)
+
+- `admin-client-selector.yaml` — login `demo_admin` (ADMIN de organización COMPANY con 2 clientes):
+  gate de selección → elige "Residencial Los Robles" → drawer con el cliente activo → menú
+  "Cliente" → cambia a "Plaza Centro" y verifica el cambio en el drawer.
+- `client-role.yaml` — login `demo_client` (CLIENT de "Residencial Los Robles"): home de
+  administrador de cliente sin gate/selector, menú con "Administrador de cliente" y sin ítem
+  "Cliente", entra a Propiedades y vuelve.
+
+Usuarios demo de `API/scripts/seed-demo-company.mjs`:
+
+- `demo_admin` / `123456` (ADMIN, selector de 2 clientes).
+- `demo_client` / `123456` (CLIENT de Residencial Los Robles).
+- `demo_guard1` / `demo_guard2` / `123456` (guardias, requieren horario para login).
+
+```bash
+JAVA_OPTS="-Duser.home=$PWD/.maestro-home" \
+  ~/.maestro/bin/maestro test e2e/maestro/admin-client-selector.yaml
+JAVA_OPTS="-Duser.home=$PWD/.maestro-home" \
+  ~/.maestro/bin/maestro test e2e/maestro/client-role.yaml
+```

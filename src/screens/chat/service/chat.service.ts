@@ -26,6 +26,4 @@ export const sendMessage = (message: string) => {
 };
 
 /** @description Requests a subscribe-only Ably TokenRequest for realtime updates. */
-export const getRealtimeToken = () => {
-  return get<any>('/realtime/token');
-};
+export { getRealtimeToken } from '../../../core/realtime/realtime.service';

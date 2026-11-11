@@ -1,11 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AppState, DeviceEventEmitter, StyleSheet, View } from 'react-native';
 import { Icon, Surface, Text, TouchableRipple } from 'react-native-paper';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../core/store/redux.config';
+import { UserRole } from '../../../core/types/IUser';
+import { resolveActiveClientId } from '../../../core/tenant/active-client';
+import { CLIENT_CHANGED_EVENT, CLIENT_UPDATED_EVENT } from '../../../offline/client';
 import { getPendingShiftHandover } from '../service/shiftHandover.service';
+import { useShiftAlertsRealtime } from '../service/shiftAlerts.realtime';
 
 const POLL_INTERVAL_MS = 60000;
-const ABLY_SHIFT_CHANNEL = 'shift-handover:alerts';
+
+/** Roles con operación offline: su cliente activo (fase 4) vive en la meta local. */
+const OFFLINE_ALERT_ROLES: string[] = [UserRole.GUARD, UserRole.MAINT, UserRole.SHIFT];
 
 /**
  * Banner shown to the jefe operativo (rol SHIFT) when today's shift-handover
@@ -13,13 +21,24 @@ const ABLY_SHIFT_CHANNEL = 'shift-handover:alerts';
  * the source of truth (polled every minute); Ably just makes the banner
  * appear immediately when the 7:00/19:00 cron fires, without waiting for
  * the next poll.
+ *
+ * Multicliente: la alerta llega por `shift-handover:alerts:<clientId>` (nunca el canal global);
+ * sin cliente activo no se suscribe y queda el polling.
  */
 export const ShiftAlertBanner = () => {
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
+  const user = useSelector((state: RootState) => state.userState);
+  const tenantClientId = useSelector(
+    (state: RootState) => state.tenantState.selectedClientId,
+  );
   const [pending, setPending] = useState<{ pending: boolean; shiftType: string | null }>({
     pending: false,
     shiftType: null,
   });
+  /** Cliente activo del canal de alertas; `null` = sin cliente (solo polling). */
+  const [alertClientId, setAlertClientId] = useState<number | null>(null);
+  const includeOfflineClient = OFFLINE_ALERT_ROLES.includes(String(user.role));
 
   const checkPending = useCallback(async () => {
     try {
@@ -32,43 +51,46 @@ export const ShiftAlertBanner = () => {
     }
   }, []);
 
+  // El pull offline o el selector de cliente pueden cambiar el alcance: se re-suscribe.
+  const syncAlertClient = useCallback(async () => {
+    const clientId = await resolveActiveClientId({
+      userId: user.id,
+      sessionClientId: user.clientId,
+      tenantClientId,
+      useOfflineClient: includeOfflineClient,
+    });
+    setAlertClientId(clientId);
+  }, [user.id, user.clientId, tenantClientId, includeOfflineClient]);
+
   useFocusEffect(
     useCallback(() => {
-      checkPending();
-      const pollTimer = setInterval(checkPending, POLL_INTERVAL_MS);
+      void checkPending();
+      const pollTimer = setInterval(() => void checkPending(), POLL_INTERVAL_MS);
 
-      let client: any = null;
-      (async () => {
-        try {
-          const Ably = require('ably');
-          const { get } = require('../../../core/axios');
-          client = new Ably.Realtime({
-            authCallback: async (_tokenParams: any, callback: any) => {
-              try {
-                const res = await get('/realtime/token');
-                if (res.success && res.data) {
-                  callback(null, res.data);
-                } else {
-                  callback('No se pudo obtener el token de tiempo real', null);
-                }
-              } catch (error) {
-                callback(error, null);
-              }
-            },
-          });
-          const channel = client.channels.get(ABLY_SHIFT_CHANNEL);
-          channel.subscribe('shift-reminder', () => checkPending());
-        } catch (e) {
-          console.warn('[ShiftAlert] Ably no disponible, usando solo polling.', e);
-        }
-      })();
+      void syncAlertClient();
+      const updatedSub = DeviceEventEmitter.addListener(CLIENT_UPDATED_EVENT, () => {
+        void syncAlertClient();
+      });
+      const changedSub = DeviceEventEmitter.addListener(CLIENT_CHANGED_EVENT, () => {
+        void syncAlertClient();
+      });
+      const appSub = AppState.addEventListener('change', next => {
+        if (next === 'active') void syncAlertClient();
+      });
 
       return () => {
         clearInterval(pollTimer);
-        client?.close?.();
+        updatedSub.remove();
+        changedSub.remove();
+        appSub.remove();
       };
-    }, [checkPending]),
+    }, [checkPending, syncAlertClient]),
   );
+
+  // Suscripción al canal del cliente mientras el banner está visible.
+  useShiftAlertsRealtime(isFocused ? alertClientId : null, () => {
+    void checkPending();
+  });
 
   if (!pending.pending) return null;
 

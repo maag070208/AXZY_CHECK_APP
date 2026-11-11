@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { getOfflineClient } from '../../../offline/client';
+import { resolveActiveClientId } from '../../../core/tenant/active-client';
 import { getRealtimeToken, IChatMessage } from './chat.service';
 
 /**
@@ -40,28 +40,16 @@ export interface ChatClientScopeOptions {
  * 3. Cliente del alcance de la sesión (`GET /users/me`).
  * `null` = sin cliente: no se suscribe a ningún canal y la pantalla usa polling/REST.
  */
-export const resolveChatClientId = async (
+export const resolveChatClientId = (
   options: ChatClientScopeOptions,
-): Promise<number | null> => {
-  const tenantId = Number(options.tenantClientId);
-  if (Number.isInteger(tenantId) && tenantId > 0) return tenantId;
-
-  if (options.useOfflineClient) {
-    const userId = Number(options.userId);
-    if (Number.isInteger(userId) && userId > 0) {
-      try {
-        const offline = await getOfflineClient(userId);
-        const offlineId = Number(offline?.id);
-        if (Number.isInteger(offlineId) && offlineId > 0) return offlineId;
-      } catch {
-        // Sin base local (APK sin SQLCipher o primer arranque): seguimos con la sesión.
-      }
-    }
-  }
-
-  const sessionId = Number(options.sessionClientId);
-  return Number.isInteger(sessionId) && sessionId > 0 ? sessionId : null;
-};
+): Promise<number | null> =>
+  // Mismo criterio que las alertas de turno: selector (tenant) → offline → sesión.
+  resolveActiveClientId({
+    userId: options.userId,
+    sessionClientId: options.sessionClientId,
+    tenantClientId: options.tenantClientId,
+    useOfflineClient: options.useOfflineClient,
+  });
 
 /** Crea el cliente Ably con el token subscribe-only del API. Se inyecta en pruebas. */
 export const createAblyChatClient = (): any => {
